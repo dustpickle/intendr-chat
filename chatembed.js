@@ -364,26 +364,9 @@
     const chatContainer = document.createElement('div');
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
     
-    const newConversationHTML = `
-        <div class="brand-header">
-            <img src="${config.branding.logo}" alt="${config.branding.name}">
-            <span>${config.branding.name}</span>
-            <button class="close-button">×</button>
-        </div>
-        <div class="new-conversation">
-            <h2 class="welcome-text">${config.branding.welcomeText}</h2>
-            <button class="new-chat-btn">
-                <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
-                </svg>
-                Send us a message
-            </button>
-            <p class="response-text">${config.branding.responseTimeText}</p>
-        </div>
-    `;
-
+    // Modified HTML - removed new conversation section and directly use chat interface
     const chatInterfaceHTML = `
-        <div class="chat-interface">
+        <div class="chat-interface active">
             <div class="brand-header">
                 <img src="${config.branding.logo}" alt="${config.branding.name}">
                 <span>${config.branding.name}</span>
@@ -397,7 +380,7 @@
         </div>
     `;
     
-    chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
+    chatContainer.innerHTML = chatInterfaceHTML;
     
     const toggleButton = document.createElement('button');
     toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
@@ -410,7 +393,7 @@
     widgetContainer.appendChild(toggleButton);
     document.body.appendChild(widgetContainer);
 
-    const newChatBtn = chatContainer.querySelector('.new-chat-btn');
+    // Get references to elements from new chat interface structure
     const chatInterface = chatContainer.querySelector('.chat-interface');
     const messagesContainer = chatContainer.querySelector('.chat-messages');
     const textarea = chatContainer.querySelector('textarea');
@@ -455,12 +438,7 @@
         }];
 
         try {
-            // First update the UI to show chat interface - directly show chat interface
-            chatContainer.querySelector('.brand-header').style.display = 'flex'; // Keep the header visible
-            chatContainer.querySelector('.new-conversation').style.display = 'none';
-            chatInterface.classList.add('active');
-            
-            // Show thinking animation
+            // Show thinking animation immediately
             const thinkingDiv = showThinkingAnimation();
             
             const response = await fetch(config.webhook.url, {
@@ -474,10 +452,17 @@
             // Remove thinking animation
             removeThinkingAnimation();
 
-            const responseData = await response.json();
-            
-            // Log the response for debugging
-            console.log('Initial conversation response:', responseData);
+            let responseData;
+            try {
+                responseData = await response.json();
+                console.log('Initial conversation response:', responseData);
+            } catch (parseError) {
+                console.error('Error parsing JSON response:', parseError);
+                // If response isn't valid JSON, try to get text
+                const textResponse = await response.text();
+                console.log('Raw response:', textResponse);
+                responseData = { output: textResponse };
+            }
             
             // Extract the output text, handling different response formats
             let outputText = '';
@@ -562,23 +547,19 @@
         }
     }
 
-    // Auto-start conversation when widget opens instead of waiting for button click
+    // Auto-start conversation when widget opens
     toggleButton.addEventListener('click', () => {
         if (!chatContainer.classList.contains('open')) {
             chatContainer.classList.add('open');
             
-            // Only start a new conversation if we haven't already
+            // Start a new conversation immediately
             if (!currentSessionId) {
-                // Add a slight delay to ensure UI is ready
-                setTimeout(startNewConversation, 100);
+                startNewConversation();
             }
         } else {
             chatContainer.classList.remove('open');
         }
     });
-    
-    // Keep the manual button click option as a fallback
-    newChatBtn.addEventListener('click', startNewConversation);
     
     sendButton.addEventListener('click', () => {
         const message = textarea.value.trim();
