@@ -455,8 +455,8 @@
         }];
 
         try {
-            // First update the UI to show chat interface
-            chatContainer.querySelector('.brand-header').style.display = 'none';
+            // First update the UI to show chat interface - directly show chat interface
+            chatContainer.querySelector('.brand-header').style.display = 'flex'; // Keep the header visible
             chatContainer.querySelector('.new-conversation').style.display = 'none';
             chatInterface.classList.add('active');
             
@@ -489,9 +489,11 @@
                 outputText = responseData.output;
             } else if (typeof responseData === 'string') {
                 outputText = responseData;
-            } else {
-                // Fallback greeting if no response data format matches
-                outputText = "Hello! How can I assist you today?";
+            }
+            
+            // Use default greeting if the response is empty
+            if (!outputText || outputText.trim() === '') {
+                outputText = config.branding.welcomeText || "Hello! How can I assist you today?";
             }
             
             // Create and append the bot message
@@ -508,7 +510,7 @@
             // Add a fallback message in case of error
             const errorMessageDiv = document.createElement('div');
             errorMessageDiv.className = 'chat-message bot';
-            errorMessageDiv.textContent = "Hello! How can I assist you today?";
+            errorMessageDiv.textContent = config.branding.welcomeText || "Hello! How can I assist you today?";
             messagesContainer.appendChild(errorMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
@@ -560,6 +562,22 @@
         }
     }
 
+    // Auto-start conversation when widget opens instead of waiting for button click
+    toggleButton.addEventListener('click', () => {
+        if (!chatContainer.classList.contains('open')) {
+            chatContainer.classList.add('open');
+            
+            // Only start a new conversation if we haven't already
+            if (!currentSessionId) {
+                // Add a slight delay to ensure UI is ready
+                setTimeout(startNewConversation, 100);
+            }
+        } else {
+            chatContainer.classList.remove('open');
+        }
+    });
+    
+    // Keep the manual button click option as a fallback
     newChatBtn.addEventListener('click', startNewConversation);
     
     sendButton.addEventListener('click', () => {
@@ -581,9 +599,7 @@
         }
     });
     
-    toggleButton.addEventListener('click', () => {
-        chatContainer.classList.toggle('open');
-    });
+    // Removed original toggle button event listener as it's replaced above
 
     // Add close button handlers
     const closeButtons = chatContainer.querySelectorAll('.close-button');
