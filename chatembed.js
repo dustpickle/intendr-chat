@@ -441,52 +441,72 @@
             // Show thinking animation immediately
             const thinkingDiv = showThinkingAnimation();
             
-            const response = await fetch(config.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            // Remove thinking animation
-            removeThinkingAnimation();
-
-            let responseData;
             try {
-                responseData = await response.json();
-                console.log('Initial conversation response:', responseData);
-            } catch (parseError) {
-                console.error('Error parsing JSON response:', parseError);
-                // If response isn't valid JSON, try to get text
-                const textResponse = await response.text();
-                console.log('Raw response:', textResponse);
-                responseData = { output: textResponse };
-            }
-            
-            // Extract the output text, handling different response formats
-            let outputText = '';
-            if (Array.isArray(responseData)) {
-                if (responseData.length > 0 && responseData[0].output) {
-                    outputText = responseData[0].output;
+                const response = await fetch(config.webhook.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                // Remove thinking animation
+                removeThinkingAnimation();
+
+                // Check if response is ok (status in the range 200-299)
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-            } else if (responseData && responseData.output) {
-                outputText = responseData.output;
-            } else if (typeof responseData === 'string') {
-                outputText = responseData;
+
+                let responseData;
+                try {
+                    responseData = await response.json();
+                    console.log('Initial conversation response:', responseData);
+                } catch (parseError) {
+                    console.error('Error parsing JSON response:', parseError);
+                    // If response isn't valid JSON, try to get text
+                    const textResponse = await response.text();
+                    console.log('Raw response:', textResponse);
+                    responseData = { output: textResponse };
+                }
+                
+                // Extract the output text, handling different response formats
+                let outputText = '';
+                if (Array.isArray(responseData)) {
+                    if (responseData.length > 0 && responseData[0].output) {
+                        outputText = responseData[0].output;
+                    }
+                } else if (responseData && responseData.output) {
+                    outputText = responseData.output;
+                } else if (typeof responseData === 'string') {
+                    outputText = responseData;
+                }
+                
+                // Use default greeting if the response is empty
+                if (!outputText || outputText.trim() === '') {
+                    outputText = config.branding.welcomeText || "Hello! How can I assist you today?";
+                }
+                
+                // Create and append the bot message
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot';
+                botMessageDiv.textContent = outputText;
+                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (fetchError) {
+                // Handle network or server errors
+                console.error('API Error:', fetchError);
+                
+                // Remove thinking animation if there's an error
+                removeThinkingAnimation();
+                
+                // Create fallback message for API errors
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.className = 'chat-message bot';
+                errorMessageDiv.textContent = config.branding.welcomeText || "Hello! How can I assist you today? (Note: Our messaging system is currently experiencing some technical difficulties. Basic chat is available, but some features may be limited.)";
+                messagesContainer.appendChild(errorMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
-            
-            // Use default greeting if the response is empty
-            if (!outputText || outputText.trim() === '') {
-                outputText = config.branding.welcomeText || "Hello! How can I assist you today?";
-            }
-            
-            // Create and append the bot message
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = outputText;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
             // Remove thinking animation if there's an error
             removeThinkingAnimation();
@@ -522,39 +542,98 @@
             // Show thinking animation
             const thinkingDiv = showThinkingAnimation();
             
-            const response = await fetch(config.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(messageData)
-            });
-            
-            // Remove thinking animation
-            removeThinkingAnimation();
-            
-            const data = await response.json();
-            
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(data) ? data[0].output : data.output;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            try {
+                const response = await fetch(config.webhook.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                // Remove thinking animation
+                removeThinkingAnimation();
+                
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Response data:', data);
+                } catch (parseError) {
+                    console.error('Error parsing JSON response:', parseError);
+                    const textResponse = await response.text();
+                    console.log('Raw text response:', textResponse);
+                    data = { output: "I'm sorry, I couldn't process that request properly." };
+                }
+                
+                let outputText = '';
+                if (Array.isArray(data)) {
+                    if (data.length > 0 && data[0].output) {
+                        outputText = data[0].output;
+                    }
+                } else if (data && data.output) {
+                    outputText = data.output;
+                } else if (typeof data === 'string') {
+                    outputText = data;
+                }
+                
+                // Fallback for empty responses
+                if (!outputText || outputText.trim() === '') {
+                    outputText = "I received your message, but I'm having trouble generating a response right now.";
+                }
+                
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot';
+                botMessageDiv.textContent = outputText;
+                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (fetchError) {
+                // Handle API errors
+                console.error('API Error:', fetchError);
+                
+                // Remove thinking animation
+                removeThinkingAnimation();
+                
+                // Create error message
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.className = 'chat-message bot';
+                errorMessageDiv.textContent = "I'm sorry, I'm having trouble connecting to our services right now. Please try again later.";
+                messagesContainer.appendChild(errorMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
         } catch (error) {
-            // Remove thinking animation if there's an error
+            // Catch any other errors
             removeThinkingAnimation();
-            console.error('Error:', error);
+            console.error('Error sending message:', error);
+            
+            const errorMessageDiv = document.createElement('div');
+            errorMessageDiv.className = 'chat-message bot';
+            errorMessageDiv.textContent = "I'm sorry, something went wrong. Please try again.";
+            messagesContainer.appendChild(errorMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     }
 
-    // Auto-start conversation when widget opens
+    // Auto-start conversation when widget opens, but skip the initial API call
     toggleButton.addEventListener('click', () => {
         if (!chatContainer.classList.contains('open')) {
             chatContainer.classList.add('open');
             
-            // Start a new conversation immediately
+            // Start a conversation with a default message instead of calling the API
             if (!currentSessionId) {
-                startNewConversation();
+                // Generate a session ID without making the initial API call
+                currentSessionId = generateUUID();
+                
+                // Add the welcome message directly
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot';
+                botMessageDiv.textContent = config.branding.welcomeText || "Hello! How can I assist you today?";
+                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         } else {
             chatContainer.classList.remove('open');
