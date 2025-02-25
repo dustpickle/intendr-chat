@@ -455,6 +455,7 @@
         }];
 
         try {
+            // First update the UI to show chat interface
             chatContainer.querySelector('.brand-header').style.display = 'none';
             chatContainer.querySelector('.new-conversation').style.display = 'none';
             chatInterface.classList.add('active');
@@ -474,16 +475,42 @@
             removeThinkingAnimation();
 
             const responseData = await response.json();
-
+            
+            // Log the response for debugging
+            console.log('Initial conversation response:', responseData);
+            
+            // Extract the output text, handling different response formats
+            let outputText = '';
+            if (Array.isArray(responseData)) {
+                if (responseData.length > 0 && responseData[0].output) {
+                    outputText = responseData[0].output;
+                }
+            } else if (responseData && responseData.output) {
+                outputText = responseData.output;
+            } else if (typeof responseData === 'string') {
+                outputText = responseData;
+            } else {
+                // Fallback greeting if no response data format matches
+                outputText = "Hello! How can I assist you today?";
+            }
+            
+            // Create and append the bot message
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
+            botMessageDiv.textContent = outputText;
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
             // Remove thinking animation if there's an error
             removeThinkingAnimation();
-            console.error('Error:', error);
+            console.error('Error starting conversation:', error);
+            
+            // Add a fallback message in case of error
+            const errorMessageDiv = document.createElement('div');
+            errorMessageDiv.className = 'chat-message bot';
+            errorMessageDiv.textContent = "Hello! How can I assist you today?";
+            messagesContainer.appendChild(errorMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     }
 
