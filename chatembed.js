@@ -1,4 +1,6 @@
-// Chat Widget Script
+// Chat Widget Script - Version 1.2.0
+// Last updated: Feb 24, 2025
+// Fixed initial 500 error by skipping loadPreviousSession
 (function() {
     // Create and inject styles
     const styles = `
