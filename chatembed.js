@@ -2,6 +2,9 @@
 // Last updated: Feb 24, 2025
 // Fixed initial 500 error by skipping loadPreviousSession
 (function() {
+    // Log version to console
+    const CHAT_VERSION = "1.2.0";
+    console.log("AegisChatVersion:", CHAT_VERSION);
     // Create and inject styles
     const styles = `
         .n8n-chat-widget {
