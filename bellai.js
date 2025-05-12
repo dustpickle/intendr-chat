@@ -203,17 +203,39 @@
         button.className = 'quick-action-btn';
         button.textContent = action.text;
         
-        button.addEventListener('click', function() {
-          sendMessage(action.action);
+        button.addEventListener('click', function(e) {
+          console.log('Quick action button clicked:', action.text);
+          console.log('Action to send:', action.action);
           
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Add user message to chat
+          const userMessageDiv = document.createElement('div');
+          userMessageDiv.className = 'chat-message user';
+          userMessageDiv.textContent = action.action;
+          messagesContainer.appendChild(userMessageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          
+          console.log('User message added to chat');
+          
+          // Send the message
+          console.log('Attempting to send message...');
+          sendMessage(action.action);
+          console.log('Message sent');
+          
+          // Remove the quick actions
           if (quickActionsContainer.parentNode) {
             quickActionsContainer.parentNode.removeChild(quickActionsContainer);
+            console.log('Quick actions removed');
           }
         });
         
+        console.log('Button created and event listener added:', action.text);
         quickActionsContainer.appendChild(button);
       });
       
+      console.log('Quick actions container created with buttons');
       return quickActionsContainer;
     }
     
@@ -894,13 +916,18 @@
                 { text: 'Continue Chatting', action: 'I would like to continue chatting about other options.' }
               ];
               
+              console.log('Creating quick action buttons...');
+              
               // Create and add the quick action buttons
               quickActions.forEach(function(action) {
                 const button = document.createElement('button');
                 button.className = 'quick-action-btn';
                 button.textContent = action.text;
                 
+                console.log('Adding click handler to button:', action.text);
+                
                 button.addEventListener('click', function(e) {
+                  console.log('Button clicked:', action.text);
                   e.preventDefault();
                   e.stopPropagation();
                   
@@ -911,20 +938,29 @@
                   messagesContainer.appendChild(userMessageDiv);
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                   
+                  console.log('User message added to chat:', action.action);
+                  
                   // Send the message
+                  console.log('Calling sendMessage...');
                   sendMessage(action.action);
+                  console.log('sendMessage called');
                   
                   // Remove the quick actions
                   if (quickActionsContainer.parentNode) {
                     quickActionsContainer.parentNode.removeChild(quickActionsContainer);
+                    console.log('Quick actions removed');
                   }
                 });
                 
                 quickActionsContainer.appendChild(button);
+                console.log('Button added to container:', action.text);
               });
               
+              console.log('All quick action buttons created');
               followUpDiv.appendChild(quickActionsContainer);
               messagesContainer.appendChild(followUpDiv);
+              console.log('Follow-up message and quick actions added to chat');
+              
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
               
               // Save session before redirect
