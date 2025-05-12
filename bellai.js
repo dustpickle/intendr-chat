@@ -877,6 +877,41 @@
               botMessageDiv.className = 'chat-message bot';
               botMessageDiv.innerHTML = formatMessage("Redirecting you now...");
               messagesContainer.appendChild(botMessageDiv);
+
+              // Add follow-up message with options
+              const followUpDiv = document.createElement('div');
+              followUpDiv.className = 'chat-message bot';
+              followUpDiv.innerHTML = formatMessage("After viewing the vehicle, would you like to:");
+              
+              // Create quick action buttons container
+              const quickActionsContainer = document.createElement('div');
+              quickActionsContainer.className = 'quick-actions';
+              
+              // Define the quick actions
+              const quickActions = [
+                { text: 'Call Sales Representative', action: 'I would like to speak with a sales representative about this vehicle.' },
+                { text: 'Schedule Test Drive', action: 'I would like to schedule a test drive for this vehicle.' },
+                { text: 'Continue Chatting', action: 'I would like to continue chatting about other options.' }
+              ];
+              
+              // Create and add the quick action buttons
+              quickActions.forEach(function(action) {
+                const button = document.createElement('button');
+                button.className = 'quick-action-btn';
+                button.textContent = action.text;
+                
+                button.addEventListener('click', function() {
+                  sendMessage(action.action);
+                  if (quickActionsContainer.parentNode) {
+                    quickActionsContainer.parentNode.removeChild(quickActionsContainer);
+                  }
+                });
+                
+                quickActionsContainer.appendChild(button);
+              });
+              
+              followUpDiv.appendChild(quickActionsContainer);
+              messagesContainer.appendChild(followUpDiv);
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
               
               // Save session before redirect
@@ -885,7 +920,7 @@
               // Perform the redirect after a short delay
               setTimeout(() => {
                 window.location.href = redirectUrl;
-              }, 1000);
+              }, 2000); // Increased delay to give time to read the follow-up message
               return;
             }
             
