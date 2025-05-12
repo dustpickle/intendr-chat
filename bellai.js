@@ -900,8 +900,21 @@
                 button.className = 'quick-action-btn';
                 button.textContent = action.text;
                 
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Add user message to chat
+                  const userMessageDiv = document.createElement('div');
+                  userMessageDiv.className = 'chat-message user';
+                  userMessageDiv.textContent = action.action;
+                  messagesContainer.appendChild(userMessageDiv);
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                  
+                  // Send the message
                   sendMessage(action.action);
+                  
+                  // Remove the quick actions
                   if (quickActionsContainer.parentNode) {
                     quickActionsContainer.parentNode.removeChild(quickActionsContainer);
                   }
