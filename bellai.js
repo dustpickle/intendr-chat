@@ -428,7 +428,7 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        z-index: 1002;
+        z-index: 2147483647;
         width: 380px;
         height: 600px;
         background: #ffffff;
@@ -598,7 +598,7 @@
       border: none;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
-      z-index: 1002;
+      z-index: 2147483647;
       border-radius: 30px !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       opacity: 1;
@@ -721,7 +721,7 @@
           font-weight: 500;
           box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
           cursor: pointer;
-          z-index: 1001;
+          z-index: 2147483646;
           border: 1px solid rgba(133, 79, 255, 0.2);
           animation: bounce-in 0.5s;
         }
