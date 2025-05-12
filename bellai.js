@@ -893,7 +893,9 @@
             // Check if the response contains a redirect URL
             const redirectMatch = outputText.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
             if (redirectMatch && redirectMatch[1]) {
+              console.log('Redirect match found, setting up quick actions');
               const redirectUrl = redirectMatch[1].trim();
+              
               // Create and add bot message before redirect
               const botMessageDiv = document.createElement('div');
               botMessageDiv.className = 'chat-message bot';
@@ -909,54 +911,44 @@
               const quickActionsContainer = document.createElement('div');
               quickActionsContainer.className = 'quick-actions';
               
-              // Define the quick actions
-              const quickActions = [
-                { text: 'Call Sales Representative', action: 'I would like to speak with a sales representative about this vehicle.' },
-                { text: 'Schedule Test Drive', action: 'I would like to schedule a test drive for this vehicle.' },
-                { text: 'Continue Chatting', action: 'I would like to continue chatting about other options.' }
-              ];
+              // Create buttons directly with onclick handlers
+              const callButton = document.createElement('button');
+              callButton.className = 'quick-action-btn';
+              callButton.textContent = 'Call Sales Representative';
+              callButton.onclick = function() {
+                console.log('Call button clicked');
+                const message = 'I would like to speak with a sales representative about this vehicle.';
+                sendMessage(message);
+                this.parentElement.remove();
+              };
               
-              console.log('Creating quick action buttons...');
+              const testDriveButton = document.createElement('button');
+              testDriveButton.className = 'quick-action-btn';
+              testDriveButton.textContent = 'Schedule Test Drive';
+              testDriveButton.onclick = function() {
+                console.log('Test drive button clicked');
+                const message = 'I would like to schedule a test drive for this vehicle.';
+                sendMessage(message);
+                this.parentElement.remove();
+              };
               
-              // Create and add the quick action buttons
-              quickActions.forEach(function(action) {
-                const button = document.createElement('button');
-                button.className = 'quick-action-btn';
-                button.textContent = action.text;
-                
-                console.log('Adding click handler to button:', action.text);
-                
-                button.addEventListener('click', function(e) {
-                  console.log('Button clicked:', action.text);
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  // Add user message to chat
-                  const userMessageDiv = document.createElement('div');
-                  userMessageDiv.className = 'chat-message user';
-                  userMessageDiv.textContent = action.action;
-                  messagesContainer.appendChild(userMessageDiv);
-                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                  
-                  console.log('User message added to chat:', action.action);
-                  
-                  // Send the message
-                  console.log('Calling sendMessage...');
-                  sendMessage(action.action);
-                  console.log('sendMessage called');
-                  
-                  // Remove the quick actions
-                  if (quickActionsContainer.parentNode) {
-                    quickActionsContainer.parentNode.removeChild(quickActionsContainer);
-                    console.log('Quick actions removed');
-                  }
-                });
-                
-                quickActionsContainer.appendChild(button);
-                console.log('Button added to container:', action.text);
-              });
+              const continueButton = document.createElement('button');
+              continueButton.className = 'quick-action-btn';
+              continueButton.textContent = 'Continue Chatting';
+              continueButton.onclick = function() {
+                console.log('Continue button clicked');
+                const message = 'I would like to continue chatting about other options.';
+                sendMessage(message);
+                this.parentElement.remove();
+              };
               
-              console.log('All quick action buttons created');
+              // Add buttons to container
+              quickActionsContainer.appendChild(callButton);
+              quickActionsContainer.appendChild(testDriveButton);
+              quickActionsContainer.appendChild(continueButton);
+              
+              console.log('Quick action buttons created and added to container');
+              
               followUpDiv.appendChild(quickActionsContainer);
               messagesContainer.appendChild(followUpDiv);
               console.log('Follow-up message and quick actions added to chat');
@@ -969,7 +961,7 @@
               // Perform the redirect after a short delay
               setTimeout(() => {
                 window.location.href = redirectUrl;
-              }, 2000); // Increased delay to give time to read the follow-up message
+              }, 2000);
               return;
             }
             
