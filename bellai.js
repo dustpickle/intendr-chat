@@ -186,6 +186,27 @@
       return text;
     }
     
+    // Function to append UTM parameters to URL
+    function appendUtmToUrl(url) {
+      try {
+        const urlObj = new URL(url);
+        const params = new URLSearchParams(urlObj.search);
+        
+        // Add the required UTM parameters
+        params.set('utm_source', 'BellaAI');
+        params.set('utm_medium', 'chat');
+        params.set('utm_campaign', 'Drivonic-MarketBuilder-AIChat');
+        
+        // Rebuild the URL with the new parameters
+        urlObj.search = params.toString();
+        return urlObj.toString();
+      } catch (error) {
+        console.error('Error appending UTM parameters to URL:', error);
+        // If URL parsing fails, return original URL
+        return url;
+      }
+    }
+    
     // Create thinking animation
     function showThinkingAnimation() {
       const thinkingDiv = document.createElement('div');
@@ -832,7 +853,11 @@
             // Check if the response contains a redirect URL
             const redirectMatch = outputText.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
             if (redirectMatch && redirectMatch[1]) {
-              const redirectUrl = redirectMatch[1].trim();
+              const originalUrl = redirectMatch[1].trim();
+              const redirectUrl = appendUtmToUrl(originalUrl);
+              
+              console.log('Original URL:', originalUrl);
+              console.log('URL with UTMs:', redirectUrl);
               
               // Create and add bot message before redirect
               const botMessageDiv = document.createElement('div');
