@@ -186,59 +186,6 @@
       return text;
     }
     
-    // Create quick action buttons
-    function createQuickActionButtons() {
-      const quickActionsContainer = document.createElement('div');
-      quickActionsContainer.className = 'quick-actions';
-      
-      const quickActions = [
-        { text: 'Schedule Tour', action: 'Schedule Tour' },
-        { text: 'Find Location', action: 'Find Location' },
-        { text: 'Ask Question', action: 'Ask Question' },
-        { text: 'Contact Us', action: 'Contact Us' }
-      ];
-      
-      quickActions.forEach(function(action) {
-        const button = document.createElement('button');
-        button.className = 'quick-action-btn';
-        button.textContent = action.text;
-        
-        button.addEventListener('click', function(e) {
-          console.log('Quick action button clicked:', action.text);
-          console.log('Action to send:', action.action);
-          
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Add user message to chat
-          const userMessageDiv = document.createElement('div');
-          userMessageDiv.className = 'chat-message user';
-          userMessageDiv.textContent = action.action;
-          messagesContainer.appendChild(userMessageDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          
-          console.log('User message added to chat');
-          
-          // Send the message
-          console.log('Attempting to send message...');
-          sendMessage(action.action);
-          console.log('Message sent');
-          
-          // Remove the quick actions
-          if (quickActionsContainer.parentNode) {
-            quickActionsContainer.parentNode.removeChild(quickActionsContainer);
-            console.log('Quick actions removed');
-          }
-        });
-        
-        console.log('Button created and event listener added:', action.text);
-        quickActionsContainer.appendChild(button);
-      });
-      
-      console.log('Quick actions container created with buttons');
-      return quickActionsContainer;
-    }
-    
     // Create thinking animation
     function showThinkingAnimation() {
       const thinkingDiv = document.createElement('div');
@@ -893,7 +840,6 @@
             // Check if the response contains a redirect URL
             const redirectMatch = outputText.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
             if (redirectMatch && redirectMatch[1]) {
-              console.log('[DEBUG] Redirect match found:', redirectMatch[1]);
               const redirectUrl = redirectMatch[1].trim();
               
               // Create and add bot message before redirect
@@ -901,93 +847,20 @@
               botMessageDiv.className = 'chat-message bot';
               botMessageDiv.innerHTML = formatMessage("Redirecting you now...");
               messagesContainer.appendChild(botMessageDiv);
-              console.log('[DEBUG] Added redirect message');
 
-              // Add follow-up message with options
+              // Add follow-up message asking for phone number
               const followUpDiv = document.createElement('div');
               followUpDiv.className = 'chat-message bot';
-              followUpDiv.innerHTML = formatMessage("After viewing the vehicle, would you like to:");
-              console.log('[DEBUG] Created follow-up message div');
-              
-              // Create quick action buttons container
-              const quickActionsContainer = document.createElement('div');
-              quickActionsContainer.className = 'quick-actions';
-              console.log('[DEBUG] Created quick actions container');
-
-              // Function to handle button clicks
-              function handleQuickAction(message) {
-                console.log('[DEBUG] Quick action clicked with message:', message);
-                
-                // Add user message to chat
-                const userMessageDiv = document.createElement('div');
-                userMessageDiv.className = 'chat-message user';
-                userMessageDiv.textContent = message;
-                messagesContainer.appendChild(userMessageDiv);
-                console.log('[DEBUG] Added user message to chat');
-                
-                // Scroll to bottom
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-                // Remove the quick actions container
-                if (quickActionsContainer.parentNode) {
-                  quickActionsContainer.parentNode.removeChild(quickActionsContainer);
-                  console.log('[DEBUG] Removed quick actions container');
-                }
-                
-                // Send the message
-                console.log('[DEBUG] Calling sendMessage with:', message);
-                sendMessage(message);
-              }
-
-              // Create and add buttons
-              const buttons = [
-                {
-                  text: 'Call Sales Representative',
-                  message: 'I would like to speak with a sales representative about this vehicle.'
-                },
-                {
-                  text: 'Schedule Test Drive',
-                  message: 'I would like to schedule a test drive for this vehicle.'
-                },
-                {
-                  text: 'Continue Chatting',
-                  message: 'I would like to continue chatting about other options.'
-                }
-              ];
-
-              buttons.forEach(buttonConfig => {
-                console.log('[DEBUG] Creating button:', buttonConfig.text);
-                const button = document.createElement('button');
-                button.className = 'quick-action-btn';
-                button.textContent = buttonConfig.text;
-                
-                // Add click handler
-                button.addEventListener('click', function(e) {
-                  console.log('[DEBUG] Button clicked:', buttonConfig.text);
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleQuickAction(buttonConfig.message);
-                });
-                
-                quickActionsContainer.appendChild(button);
-                console.log('[DEBUG] Added button to container:', buttonConfig.text);
-              });
-
-              // Add the quick actions to the follow-up message
-              followUpDiv.appendChild(quickActionsContainer);
+              followUpDiv.innerHTML = formatMessage("Our product specialists are ready to help you explore your options and answer any questions. What's the best phone number to reach you at?");
               messagesContainer.appendChild(followUpDiv);
-              console.log('[DEBUG] Added follow-up message and quick actions to chat');
               
-              // Scroll to bottom
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
               
               // Save session before redirect
               saveSession();
-              console.log('[DEBUG] Saved session before redirect');
               
               // Perform the redirect after a short delay
               setTimeout(() => {
-                console.log('[DEBUG] Executing redirect to:', redirectUrl);
                 window.location.href = redirectUrl;
               }, 2000);
               return;
