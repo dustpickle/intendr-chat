@@ -2,7 +2,7 @@
 
 (function() {
     // Configuration
-    const CHAT_VERSION = "1.9.1";
+    const CHAT_VERSION = "2.0";
     console.log("ChatVersion:", CHAT_VERSION);
     
     // Store user IP globally
@@ -41,8 +41,8 @@
     } : defaultConfig;
     
     // Prevent multiple initializations
-    if (window.N8NChatWidgetInitialized) return;
-    window.N8NChatWidgetInitialized = true;
+    if (window.BellaAIChatWidgetInitialized) return;
+    window.BellaAIChatWidgetInitialized = true;
     
     // Flag to track if user has manually closed the chat in this session
     let userManuallyClosedChat = false;
@@ -50,7 +50,7 @@
     // Function to check if chat was manually closed
     function checkIfChatWasManuallyClosed() {
       try {
-        const chatState = localStorage.getItem('n8nChatState');
+        const chatState = localStorage.getItem('bellaaiChatState');
         if (chatState) {
           const state = JSON.parse(chatState);
           return state.manuallyClosed || false;
@@ -68,7 +68,7 @@
           manuallyClosed: manuallyClosed,
           timestamp: new Date().getTime()
         };
-        localStorage.setItem('n8nChatState', JSON.stringify(state));
+        localStorage.setItem('bellaaiChatState', JSON.stringify(state));
       } catch (error) {
         console.error('Error saving chat state:', error);
       }
@@ -235,7 +235,7 @@
             utmParameters: window.initialUtmParameters || {}
           };
           
-          localStorage.setItem('n8nChatSession', JSON.stringify(sessionData));
+          localStorage.setItem('bellaaiChatSession', JSON.stringify(sessionData));
         } catch (error) {
           console.error('Error saving chat session:', error);
         }
@@ -244,7 +244,7 @@
     
     function loadSession() {
       try {
-        const savedSession = localStorage.getItem('n8nChatSession');
+        const savedSession = localStorage.getItem('bellaaiChatSession');
         if (savedSession) {
           const sessionData = JSON.parse(savedSession);
           
@@ -292,12 +292,12 @@
             return true;
           } else {
             // Session too old, clear it
-            localStorage.removeItem('n8nChatSession');
+            localStorage.removeItem('bellaaiChatSession');
           }
         }
       } catch (error) {
         console.error('Error loading saved chat session:', error);
-        localStorage.removeItem('n8nChatSession');
+        localStorage.removeItem('bellaaiChatSession');
       }
       return false;
     }
@@ -391,12 +391,12 @@
     
     // Styles
     const styles = `
-      .n8n-chat-widget {
+      .bellaai-chat-widget {
         --chat--color-primary: ${config.style.primaryColor};
         --chat--color-secondary: ${config.style.secondaryColor};
         font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
-      .n8n-chat-widget .chat-container {
+      .bellaai-chat-widget .chat-container {
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -418,7 +418,7 @@
         visibility: hidden;
       }
       @media screen and (max-width: 600px) {
-        .n8n-chat-widget .chat-container {
+        .bellaai-chat-widget .chat-container {
           width: 100%;
           height: 100%;
           bottom: 0;
@@ -426,22 +426,22 @@
           border-radius: 0;
           box-shadow: none;
         }
-        .n8n-chat-widget .chat-container.position-left {
+        .bellaai-chat-widget .chat-container.position-left {
           left: 0;
         }
       }
-      .n8n-chat-widget .chat-container.position-left {
+      .bellaai-chat-widget .chat-container.position-left {
         right: auto;
         left: 20px;
         transform-origin: bottom left;
       }
-      .n8n-chat-widget .chat-container.open {
+      .bellaai-chat-widget .chat-container.open {
         opacity: 1;
         transform: scale(1);
         pointer-events: all;
         visibility: visible;
       }
-      .n8n-chat-widget .brand-header {
+      .bellaai-chat-widget .brand-header {
         padding: 16px;
         display: flex;
         align-items: center;
@@ -449,7 +449,7 @@
         border-bottom: 1px solid rgba(133, 79, 255, 0.1);
         position: relative;
       }
-      .n8n-chat-widget .close-button {
+      .bellaai-chat-widget .close-button {
         position: absolute;
         right: 16px;
         top: 50%;
@@ -460,27 +460,27 @@
         font-size: 20px;
         opacity: 0.6;
       }
-      .n8n-chat-widget .brand-header img {
+      .bellaai-chat-widget .brand-header img {
         width: 32px;
         height: 32px;
       }
-      .n8n-chat-widget .brand-header span {
+      .bellaai-chat-widget .brand-header span {
         font-size: 18px;
         font-weight: 500;
       }
-      .n8n-chat-widget .chat-interface {
+      .bellaai-chat-widget .chat-interface {
         display: flex;
         flex-direction: column;
         height: 100%;
       }
-      .n8n-chat-widget .chat-messages {
+      .bellaai-chat-widget .chat-messages {
         flex: 1;
         overflow-y: auto;
         padding: 20px;
         display: flex;
         flex-direction: column;
       }
-      .n8n-chat-widget .chat-message {
+      .bellaai-chat-widget .chat-message {
         padding: 12px 16px;
         margin: 8px 0;
         border-radius: 12px;
@@ -489,66 +489,48 @@
         font-size: 14px;
         line-height: 1.5;
       }
-      .n8n-chat-widget .chat-message.user {
+      .bellaai-chat-widget .chat-message.user {
         background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
         color: white;
         align-self: flex-end;
         box-shadow: 0 4px 12px rgba(133, 79, 255, 0.2);
       }
-      .n8n-chat-widget .chat-message.bot {
+      .bellaai-chat-widget .chat-message.bot {
         background: #ffffff;
         border: 1px solid rgba(133, 79, 255, 0.2);
         color: #333;
         align-self: flex-start;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       }
-      .n8n-chat-widget .quick-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 3px;
-        padding: 0px;
-        margin-top: 5px;
-      }
-      .n8n-chat-widget .quick-action-btn {
-        padding: 12px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(133, 79, 255, 0.3);
-        background: #fff;
-        color: var(--chat--color-primary);
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: center;
-      }
-      .n8n-chat-widget .quick-action-btn:hover {
-        background: rgba(133, 79, 255, 0.1);
-        transform: translateY(-2px);
-      }
-      .n8n-chat-widget .chat-message.bot a {
+      .bellaai-chat-widget .chat-message.bot a {
         color: var(--chat--color-primary);
         text-decoration: none;
         font-weight: 500;
       }
-      .n8n-chat-widget .chat-message.bot a:hover {
+      .bellaai-chat-widget .chat-message.bot a:hover {
         text-decoration: underline;
       }
-      .n8n-chat-widget .chat-input {
+      .bellaai-chat-widget .chat-input {
         padding: 16px;
         border-top: 1px solid rgba(133, 79, 255, 0.1);
         display: flex;
         gap: 8px;
       }
-      .n8n-chat-widget .chat-input textarea {
-        flex: 1;
-        padding: 12px;
-        border: 1px solid rgba(133, 79, 255, 0.2);
-        border-radius: 8px;
-        resize: none;
-        font-family: inherit;
-        font-size: 14px;
+      .bellaai-chat-widget .chat-input textarea {
+        flex: 1 !important;
+        padding: 12px !important;
+        border: 1px solid rgba(133, 79, 255, 0.2) !important;
+        border-radius: 8px !important;
+        resize: none !important;
+        font-family: inherit !important;
+        font-size: 14px !important;
+        height: auto !important;
+        min-height: 40px !important;
+        max-height: 120px !important;
+        width: auto !important;
+        box-sizing: border-box !important;
       }
-      .n8n-chat-widget .chat-input button {
+      .bellaai-chat-widget .chat-input button {
         background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
         color: white;
         border: none;
@@ -557,7 +539,7 @@
         cursor: pointer;
         font-weight: 500;
       }
-    .n8n-chat-widget .chat-toggle {
+    .bellaai-chat-widget .chat-toggle {
       position: fixed;
       bottom: 20px;
       right: 20px;
@@ -577,34 +559,34 @@
       transform: scale(1);
     }
     
-    .n8n-chat-widget .chat-toggle.hidden {
+    .bellaai-chat-widget .chat-toggle.hidden {
       opacity: 0;
       transform: scale(0.8);
       pointer-events: none;
     }
     
-    .n8n-chat-widget .chat-toggle-content {
+    .bellaai-chat-widget .chat-toggle-content {
       display: flex;
       align-items: center;
       gap: 12px;
       position: relative;
     }
     
-    .n8n-chat-widget .chat-toggle svg {
+    .bellaai-chat-widget .chat-toggle svg {
       width: 24px;
       height: 24px;
       fill: currentColor;
       color: white;
     }
     
-    .n8n-chat-widget .chat-toggle-text {
+    .bellaai-chat-widget .chat-toggle-text {
       font-size: 16px;
       font-weight: 500;
       white-space: nowrap;
       line-height: 24px;
     }
     
-    .n8n-chat-widget .online-indicator {
+    .bellaai-chat-widget .online-indicator {
       position: absolute;
       top: -20px;
       right: -4px;
@@ -630,33 +612,33 @@
     
     /* Update mobile styles for online indicator */
     @media screen and (max-width: 600px) {
-      .n8n-chat-widget .chat-toggle {
+      .bellaai-chat-widget .chat-toggle {
         width: 60px;
         height: 60px;
         padding: 0;
         justify-content: center;
       }
     
-      .n8n-chat-widget .chat-toggle-text {
+      .bellaai-chat-widget .chat-toggle-text {
         display: none;
       }
       
-      .n8n-chat-widget .online-indicator {
+      .bellaai-chat-widget .online-indicator {
         top: -20px;
         right: -4px;
       }
     }
     
-        .n8n-chat-widget .chat-toggle.position-left {
+        .bellaai-chat-widget .chat-toggle.position-left {
           right: auto;
           left: 20px;
         }
-        .n8n-chat-widget .chat-toggle svg {
+        .bellaai-chat-widget .chat-toggle svg {
           width: 24px;
           height: 24px;
           fill: currentColor;
         }
-        .n8n-chat-widget .thinking {
+        .bellaai-chat-widget .thinking {
           display: flex;
           align-items: center;
           padding: 12px 16px;
@@ -668,15 +650,15 @@
           border: 1px solid rgba(133, 79, 255, 0.2);
           gap: 8px;
         }
-        .n8n-chat-widget .thinking span {
+        .bellaai-chat-widget .thinking span {
           color: #666;
           font-size: 14px;
         }
-        .n8n-chat-widget .dots {
+        .bellaai-chat-widget .dots {
           display: flex;
           gap: 2px;
         }
-        .n8n-chat-widget .dot {
+        .bellaai-chat-widget .dot {
           height: 8px;
           width: 8px;
           background-color: var(--chat--color-primary);
@@ -685,15 +667,11 @@
           opacity: 0.4;
           animation: dot-typing 1.4s infinite ease-in-out;
         }
-        .n8n-chat-widget .dot:nth-child(1) { animation-delay: 0s; }
-        .n8n-chat-widget .dot:nth-child(2) { animation-delay: 0.2s; }
-        .n8n-chat-widget .dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes dot-typing {
-          0%, 60%, 100% { opacity: 0.4; transform: scale(1); }
-          30% { opacity: 1; transform: scale(1.2); }
-        }
+        .bellaai-chat-widget .dot:nth-child(1) { animation-delay: 0s; }
+        .bellaai-chat-widget .dot:nth-child(2) { animation-delay: 0.2s; }
+        .bellaai-chat-widget .dot:nth-child(3) { animation-delay: 0.4s; }
         /* Prompt bubble styles */
-        .n8n-chat-widget .prompt-bubble {
+        .bellaai-chat-widget .prompt-bubble {
           position: absolute;
           bottom: 90px;
           right: 10px;
@@ -710,7 +688,7 @@
           animation: bounce-in 0.5s;
         }
         /* Position the prompt bubble on the left if chat is on the left */
-        .n8n-chat-widget .chat-toggle.position-left + .prompt-bubble {
+        .bellaai-chat-widget .chat-toggle.position-left + .prompt-bubble {
           right: auto;
           left: 10px;
         }
@@ -718,6 +696,10 @@
           0% { transform: scale(0.5); opacity: 0; }
           50% { transform: scale(1.05); opacity: 0.9; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes dot-typing {
+          0%, 60%, 100% { opacity: 0.4; transform: scale(1); }
+          30% { opacity: 1; transform: scale(1.2); }
         }
       `;
       
@@ -728,7 +710,7 @@
       
       // Create DOM elements
       const widgetContainer = document.createElement('div');
-      widgetContainer.className = 'n8n-chat-widget';
+      widgetContainer.className = 'bellaai-chat-widget';
       
       const chatContainer = document.createElement('div');
       chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
