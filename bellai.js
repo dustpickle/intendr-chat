@@ -191,9 +191,12 @@
       const thinkingDiv = document.createElement('div');
       thinkingDiv.className = 'thinking';
       thinkingDiv.innerHTML = `
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+        <span>Bella is typing</span>
+        <div class="dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
       `;
       thinkingDiv.id = 'thinking-animation';
       messagesContainer.appendChild(thinkingDiv);
@@ -663,20 +666,32 @@
           align-self: flex-start;
           background: #fff;
           border: 1px solid rgba(133, 79, 255, 0.2);
+          gap: 8px;
+        }
+        .n8n-chat-widget .thinking span {
+          color: #666;
+          font-size: 14px;
+        }
+        .n8n-chat-widget .dots {
+          display: flex;
+          gap: 2px;
         }
         .n8n-chat-widget .dot {
           height: 8px;
           width: 8px;
-          margin: 0 2px;
           background-color: var(--chat--color-primary);
           border-radius: 50%;
           display: inline-block;
-          opacity: 0.6;
-          animation: dot-pulse 1.5s infinite;
+          opacity: 0.4;
+          animation: dot-typing 1.4s infinite ease-in-out;
         }
         .n8n-chat-widget .dot:nth-child(1) { animation-delay: 0s; }
-        .n8n-chat-widget .dot:nth-child(2) { animation-delay: 0.3s; }
-        .n8n-chat-widget .dot:nth-child(3) { animation-delay: 0.6s; }
+        .n8n-chat-widget .dot:nth-child(2) { animation-delay: 0.2s; }
+        .n8n-chat-widget .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dot-typing {
+          0%, 60%, 100% { opacity: 0.4; transform: scale(1); }
+          30% { opacity: 1; transform: scale(1.2); }
+        }
         /* Prompt bubble styles */
         .n8n-chat-widget .prompt-bubble {
           position: absolute;
@@ -703,11 +718,6 @@
           0% { transform: scale(0.5); opacity: 0; }
           50% { transform: scale(1.05); opacity: 0.9; }
           100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes dot-pulse {
-          0% { opacity: 0.6; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.2); }
-          100% { opacity: 0.6; transform: scale(1); }
         }
       `;
       
