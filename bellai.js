@@ -839,18 +839,25 @@
 
           // Prepare summary request
           const summaryRequest = {
+            action: "generatePageSummary", // Add action to differentiate from chat messages
             content: textContent,
             metadata: metadata
           };
 
-          // Send to page context webhook
-          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext', {
+          // Use the configured webhook URL instead of hardcoded one
+          const response = await fetch(config.webhook.url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Origin': window.location.origin
+            },
             body: JSON.stringify(summaryRequest)
           });
 
-          if (!response.ok) throw new Error('Failed to generate summary');
+          if (!response.ok) {
+            console.warn('Failed to generate page summary:', response.status);
+            return null;
+          }
           
           const data = await response.json();
           const summary = data.summary || null;
