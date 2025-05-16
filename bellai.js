@@ -1405,4 +1405,11 @@
         }
       `;
       document.head.appendChild(modalStyles);
+
+      // On load, check for overtake
+      if (shouldShowOvertake()) {
+        setTimeout(() => {
+          showOvertakeModal();
+        }, 400); // slight delay for effect
+      }
     })();
