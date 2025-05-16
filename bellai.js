@@ -39,7 +39,8 @@
         backgroundColor: '#ffffff',
         fontColor: '#333333'
       },
-      dealer: { name: '', phone: '', website: '', searchPage: '', provider: '' }
+      dealer: { name: '', phone: '', website: '', searchPage: '', provider: '' },
+      overtake: false
     };
     
     // Merge user config with defaults
@@ -47,7 +48,8 @@
       webhook: { ...defaultConfig.webhook, ...window.ChatWidgetConfig.webhook },
       branding: { ...defaultConfig.branding, ...window.ChatWidgetConfig.branding },
       style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style },
-      dealer: { ...defaultConfig.dealer, ...window.ChatWidgetConfig.dealer }
+      dealer: { ...defaultConfig.dealer, ...window.ChatWidgetConfig.dealer },
+      overtake: window.ChatWidgetConfig.overtake || false
     } : defaultConfig;
     
     // Prevent multiple initializations
@@ -1205,4 +1207,99 @@
           }, index * 1000); // Send each message with a 1-second delay
         });
       }
+
+      // Overtake modal logic
+      function shouldShowOvertake() {
+        return config.overtake === true &&
+          window.location.pathname === '/' &&
+          !localStorage.getItem('bellaaiOvertakeShown');
+      }
+
+      let overlayDiv = null;
+      function showOvertakeModal() {
+        // Create overlay
+        overlayDiv = document.createElement('div');
+        overlayDiv.className = 'bellaai-overtake-overlay';
+        overlayDiv.style.position = 'fixed';
+        overlayDiv.style.inset = '0';
+        overlayDiv.style.background = 'rgba(0,0,0,0.6)';
+        overlayDiv.style.zIndex = '2147483646';
+        overlayDiv.style.display = 'flex';
+        overlayDiv.style.alignItems = 'center';
+        overlayDiv.style.justifyContent = 'center';
+        overlayDiv.style.transition = 'opacity 0.3s';
+        overlayDiv.style.opacity = '1';
+
+        // Style chat container for modal
+        chatContainer.classList.add('overtake-modal');
+        chatContainer.style.position = 'fixed';
+        chatContainer.style.left = '50%';
+        chatContainer.style.top = '50%';
+        chatContainer.style.transform = 'translate(-50%, -50%)';
+        chatContainer.style.zIndex = '2147483647';
+        chatContainer.style.width = '520px';
+        chatContainer.style.height = 'auto';
+        chatContainer.style.maxHeight = '90vh';
+        chatContainer.style.borderRadius = '18px';
+        chatContainer.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)';
+        chatContainer.style.opacity = '1';
+        chatContainer.style.visibility = 'visible';
+        chatContainer.classList.add('open');
+
+        // Mobile styles
+        if (window.innerWidth <= 600) {
+          chatContainer.style.width = '95vw';
+          chatContainer.style.height = '85vh';
+          chatContainer.style.maxHeight = '85vh';
+          chatContainer.style.borderRadius = '12px';
+        }
+
+        // Hide toggle button
+        toggleButton.classList.add('hidden');
+
+        // Add overlay to DOM
+        document.body.appendChild(overlayDiv);
+        overlayDiv.appendChild(chatContainer);
+
+        // Set flag so modal only shows once
+        localStorage.setItem('bellaaiOvertakeShown', '1');
+      }
+
+      function hideOvertakeModal() {
+        if (overlayDiv) {
+          // Restore chat container to widget
+          widgetContainer.appendChild(chatContainer);
+          overlayDiv.remove();
+          overlayDiv = null;
+        }
+        // Restore chat container styles
+        chatContainer.classList.remove('overtake-modal');
+        chatContainer.style.position = '';
+        chatContainer.style.left = '';
+        chatContainer.style.top = '';
+        chatContainer.style.transform = '';
+        chatContainer.style.zIndex = '';
+        chatContainer.style.width = '';
+        chatContainer.style.height = '';
+        chatContainer.style.maxHeight = '';
+        chatContainer.style.borderRadius = '';
+        chatContainer.style.boxShadow = '';
+        chatContainer.style.opacity = '';
+        chatContainer.style.visibility = '';
+      }
+
+      // On load, check for overtake
+      if (shouldShowOvertake()) {
+        setTimeout(() => {
+          showOvertakeModal();
+        }, 400); // slight delay for effect
+      }
+
+      // When chat is closed, hide modal and minimize as normal
+      const origCloseHandler = closeButton.onclick;
+      closeButton.addEventListener('click', function() {
+        if (overlayDiv) hideOvertakeModal();
+        // Continue with normal close
+        if (typeof origCloseHandler === 'function') origCloseHandler();
+      });
     })();
