@@ -845,14 +845,22 @@
         this.style.height = (this.scrollHeight) + 'px';
       });
 
-      // Handle message sending
+      // Enhanced handleMessageSend to support close commands
       function handleMessageSend() {
-        const message = textarea.value.trim();
-        if (message) {
-          sendMessage(message);
-          textarea.value = '';
-          textarea.style.height = 'auto';
+        const input = window.bellaaiTextarea || textarea;
+        const message = input.value.trim();
+        if (!message) return;
+        // Check for close commands
+        const closeCommands = ['close', 'close chat', 'exit', 'quit', 'dismiss'];
+        if (closeCommands.includes(message.toLowerCase())) {
+          if (overlayDiv) hideOvertakeModal();
+          else hideChat();
+          input.value = '';
+          return;
         }
+        sendMessage(message);
+        input.value = '';
+        input.style.height = 'auto';
       }
 
       sendButton.addEventListener('click', handleMessageSend);
