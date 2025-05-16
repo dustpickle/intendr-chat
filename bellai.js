@@ -983,31 +983,14 @@
             return null;
           }
 
-          // Check if response has content
-          const responseText = await response.text();
-          if (!responseText) {
-            console.warn('Empty response from page context webhook');
-            return null;
-          }
-
-          // Try to parse JSON response
-          let data;
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error('Failed to parse page context response:', parseError);
-            console.debug('Response text:', responseText);
-            return null;
-          }
-          
-          // Extract the summary from the response
-          const summary = data.pageSummary || null;
+          // Get the text response
+          const summary = await response.text();
           
           // Cache the summary if we got one
           if (summary) {
             cacheSummary(window.location.href, contentHash, summary);
           } else {
-            console.warn('No pageSummary found in response:', data);
+            console.warn('Empty response from page context webhook');
           }
           
           return summary;
