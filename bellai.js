@@ -1391,15 +1391,35 @@
         }
         .overtake-modal .chat-input button[type="submit"] {
           background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-          color: white;
+          color: #fff;
           border: none;
           border-radius: 8px;
-          padding: 0 20px;
+          padding: 0 18px;
           cursor: pointer;
           font-weight: 500;
-          font-size: 15px;
+          font-size: 16px;
           height: 40px;
-          min-width: 70px;
+          min-width: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .overtake-modal .chat-input button[type="submit"] svg {
+          fill: #fff;
+          stroke: #fff;
+        }
+        .overtake-modal .chat-message.user {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: #fff;
+          align-self: flex-end;
+          box-shadow: 0 4px 12px rgba(133, 79, 255, 0.2);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin: 8px 0;
+          max-width: 80%;
+          word-wrap: break-word;
+          font-size: 14px;
+          line-height: 1.5;
         }
         @media (max-width: 600px) {
           .overtake-modal {
