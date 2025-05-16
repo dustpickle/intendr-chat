@@ -542,6 +542,9 @@
       .bellaai-chat-widget .chat-message.bot a:hover {
         text-decoration: underline;
       }
+      .bellaai-chat-widget .chat-message.bot a:hover {
+        text-decoration: underline;
+      }
       .bellaai-chat-widget .chat-input {
         padding: 16px;
         border-top: 1px solid rgba(133, 79, 255, 0.1);
@@ -1231,7 +1234,7 @@
         overlayDiv.style.opacity = '0';
         overlayDiv.style.animation = 'bellaai-fadein 0.4s forwards';
 
-        // Style chat container for modal
+        // Only adjust position/size, do not change chat logic or DOM
         chatContainer.classList.add('overtake-modal');
         chatContainer.style.position = 'relative';
         chatContainer.style.left = '';
@@ -1263,7 +1266,7 @@
         // Hide toggle button
         toggleButton.classList.add('hidden');
 
-        // Add overlay to DOM
+        // Move chat container into overlay
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
 
@@ -1301,21 +1304,6 @@
         // Restore background scroll
         document.body.style.overflow = '';
       }
-
-      // On load, check for overtake
-      if (shouldShowOvertake()) {
-        setTimeout(() => {
-          showOvertakeModal();
-        }, 400); // slight delay for effect
-      }
-
-      // When chat is closed, hide modal and minimize as normal
-      const origCloseHandler = closeButton.onclick;
-      closeButton.addEventListener('click', function() {
-        if (overlayDiv) hideOvertakeModal();
-        // Continue with normal close
-        if (typeof origCloseHandler === 'function') origCloseHandler();
-      });
 
       // Add fade-in keyframes and modal polish styles
       const modalStyles = document.createElement('style');
@@ -1363,12 +1351,42 @@
           padding: 10px 0 10px 0;
           margin-bottom: 10px;
           background: none;
+          min-height: 400px;
         }
         .overtake-modal .chat-input {
           padding: 0;
           border-top: 1px solid #f0f0f0;
           margin-top: 10px;
           background: none;
+          display: flex;
+          align-items: center;
+        }
+        .overtake-modal .chat-input textarea {
+          flex: 1 !important;
+          padding: 12px !important;
+          border: 1px solid rgba(133, 79, 255, 0.2) !important;
+          border-radius: 8px !important;
+          resize: none !important;
+          font-family: inherit !important;
+          font-size: 14px !important;
+          height: auto !important;
+          min-height: 40px !important;
+          max-height: 120px !important;
+          width: auto !important;
+          box-sizing: border-box !important;
+          margin-right: 8px;
+        }
+        .overtake-modal .chat-input button[type="submit"] {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 0 20px;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 15px;
+          height: 40px;
+          min-width: 70px;
         }
         @media (max-width: 600px) {
           .overtake-modal {
@@ -1380,6 +1398,9 @@
           }
           .overtake-modal .brand-header span {
             font-size: 18px;
+          }
+          .overtake-modal .chat-messages {
+            min-height: 200px;
           }
         }
       `;
