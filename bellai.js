@@ -786,6 +786,27 @@
       let pageSummary = null;
       let summaryFetchTimeout = null;
       
+      // Function to determine page type
+      function determinePageType() {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/new-vehicles/') || path.includes('/used-vehicles/')) {
+          return 'inventory';
+        } else if (path.includes('/finance')) {
+          return 'finance';
+        } else if (path.includes('/service')) {
+          return 'service';
+        } else if (path.includes('/parts')) {
+          return 'parts';
+        } else if (path.includes('/about')) {
+          return 'about';
+        } else if (path.includes('/contact')) {
+          return 'contact';
+        } else if (path === '/' || path === '/index.html') {
+          return 'home';
+        }
+        return 'other';
+      }
+
       // Function to generate page summary with caching
       async function generatePageSummary() {
         try {
