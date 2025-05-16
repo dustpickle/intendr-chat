@@ -972,6 +972,74 @@
       }).observe(document, { subtree: true, childList: true });
 
       // Send message function
+      async function sendMessage(message) {
+        if (!message.trim()) return;
+        
+        // Add user message to chat
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'chat-message user';
+        userMessageDiv.textContent = message;
+        messagesContainer.appendChild(userMessageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Show thinking animation
+        const thinkingDiv = showThinkingAnimation();
+        
+        try {
+          // Get current page context if available
+          const currentPageContext = pageSummary || await generatePageSummary();
+          
+          // Prepare message data
+          const messageData = {
+            message: message,
+            sessionId: currentSessionId,
+            metadata: {
+              dealer: config.dealer,
+              pageContext: currentPageContext,
+              utmParameters: window.initialUtmParameters || {},
+              userIP: userIP
+            }
+          };
+          
+          // Send to webhook
+          const response = await fetch(config.webhook.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(messageData)
+          });
+          
+          if (!response.ok) throw new Error('Failed to send message');
+          
+          const data = await response.json();
+          
+          // Remove thinking animation
+          removeThinkingAnimation();
+          
+          // Add bot response
+          const botMessageDiv = document.createElement('div');
+          botMessageDiv.className = 'chat-message bot';
+          botMessageDiv.innerHTML = formatMessage(data.response);
+          messagesContainer.appendChild(botMessageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          
+          // Save session after changes
+          saveSession();
+          
+          // Reset inactivity timer
+          resetInactivityState();
+        } catch (error) {
+          console.error('Error sending message:', error);
+          removeThinkingAnimation();
+          
+          // Show error message
+          const errorMessageDiv = document.createElement('div');
+          errorMessageDiv.className = 'chat-message bot';
+          errorMessageDiv.innerHTML = formatMessage("I apologize, but I'm having trouble connecting right now. Please try again in a moment.");
+          messagesContainer.appendChild(errorMessageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+
       // Function to send initial messages
       function sendInitialMessages() {
         const dealerName = config.dealer.name || '[DealerName]';
