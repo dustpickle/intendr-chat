@@ -109,8 +109,11 @@
           inactivityMessageSent = false;
           currentSessionId = generateUUID();
           
-          // Send initial messages instead of single welcome message
-          sendInitialMessages();
+          // Generate page context before sending initial messages
+          generatePageSummary().then(() => {
+            // Send initial messages after page context is generated
+            sendInitialMessages();
+          });
         }
         
         // Save session after changes
@@ -925,19 +928,6 @@
           pageSummary = await generatePageSummary();
         }, 1000); // Wait 1 second after last page change before generating summary
       }
-
-      // Generate summary when page loads
-      document.addEventListener('DOMContentLoaded', debouncedGenerateSummary);
-
-      // Generate summary when URL changes (for SPA navigation)
-      const lastUrl = window.location.href;
-      new MutationObserver(() => {
-        const currentUrl = window.location.href;
-        if (currentUrl !== lastUrl) {
-          lastUrl = currentUrl;
-          debouncedGenerateSummary();
-        }
-      }).observe(document, { subtree: true, childList: true });
 
       // Send message function
       // Function to send initial messages
