@@ -829,15 +829,14 @@
       });
 
       closeButton.addEventListener('click', function() {
-        chatContainer.classList.remove('open');
-        toggleButton.classList.remove('hidden');
+        if (overlayDiv) {
+          hideOvertakeModal();
+        } else {
+          hideChat();
+        }
         userManuallyClosedChat = true;
         saveChatState(true);
-        
-        // Handle mobile
-        if (window.innerWidth <= 600) {
-          document.body.style.overflow = '';
-        }
+        if (window.innerWidth <= 600) document.body.style.overflow = '';
       });
 
       // Handle textarea input
@@ -1469,4 +1468,124 @@
 
       // Call initChat on page load
       initChat();
+
+      // Ensure chat input row markup and send button are correct
+      // (Rebuild input row if needed)
+      function ensureInputRow() {
+        const chatInputDiv = chatContainer.querySelector('.chat-input');
+        if (!chatInputDiv) return;
+        chatInputDiv.innerHTML = '';
+        const textareaEl = document.createElement('textarea');
+        textareaEl.placeholder = 'Type your message here...';
+        textareaEl.rows = 1;
+        textareaEl.style.resize = 'none';
+        textareaEl.style.flex = '1';
+        textareaEl.style.marginRight = '8px';
+        textareaEl.className = textarea.className;
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'submit';
+        sendBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+        sendBtn.style.display = 'flex';
+        sendBtn.style.alignItems = 'center';
+        sendBtn.style.justifyContent = 'center';
+        sendBtn.style.background = 'linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%)';
+        sendBtn.style.color = 'white';
+        sendBtn.style.border = 'none';
+        sendBtn.style.borderRadius = '8px';
+        sendBtn.style.padding = '0 18px';
+        sendBtn.style.cursor = 'pointer';
+        sendBtn.style.fontWeight = '500';
+        sendBtn.style.fontSize = '16px';
+        sendBtn.style.height = '40px';
+        sendBtn.style.minWidth = '40px';
+        chatInputDiv.appendChild(textareaEl);
+        chatInputDiv.appendChild(sendBtn);
+        // Re-attach listeners
+        sendBtn.addEventListener('click', handleMessageSend);
+        textareaEl.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleMessageSend();
+          }
+        });
+        textareaEl.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = (this.scrollHeight) + 'px';
+        });
+        // Update references
+        window.bellaaiTextarea = textareaEl;
+      }
+      ensureInputRow();
+
+      // Add/restore CSS for message bubbles and input row
+      const bubbleStyles = document.createElement('style');
+      bubbleStyles.textContent = `
+        .chat-message.user {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: white;
+          align-self: flex-end;
+          box-shadow: 0 4px 12px rgba(133, 79, 255, 0.2);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin: 8px 0;
+          max-width: 80%;
+          word-wrap: break-word;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        .chat-message.bot {
+          background: #ffffff;
+          border: 1px solid rgba(133, 79, 255, 0.2);
+          color: #333;
+          align-self: flex-start;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          border-radius: 12px;
+          padding: 12px 16px;
+          margin: 8px 0;
+          max-width: 80%;
+          word-wrap: break-word;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        .chat-input {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0;
+          border-top: 1px solid #f0f0f0;
+          margin-top: 10px;
+          background: none;
+        }
+        .chat-input textarea {
+          flex: 1 !important;
+          padding: 12px !important;
+          border: 1px solid rgba(133, 79, 255, 0.2) !important;
+          border-radius: 8px !important;
+          resize: none !important;
+          font-family: inherit !important;
+          font-size: 14px !important;
+          height: auto !important;
+          min-height: 40px !important;
+          max-height: 120px !important;
+          width: auto !important;
+          box-sizing: border-box !important;
+          margin-right: 8px;
+        }
+        .chat-input button[type="submit"] {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 0 18px;
+          cursor: pointer;
+          font-weight: 500;
+          font-size: 16px;
+          height: 40px;
+          min-width: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      `;
+      document.head.appendChild(bubbleStyles);
     })();
