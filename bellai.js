@@ -1588,4 +1588,15 @@
         }
       `;
       document.head.appendChild(bubbleStyles);
+
+      // Add Escape key handler to close modal or minimize chat
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          if (overlayDiv) {
+            hideOvertakeModal();
+          } else if (chatContainer.classList.contains('open')) {
+            hideChat();
+          }
+        }
+      });
     })();
