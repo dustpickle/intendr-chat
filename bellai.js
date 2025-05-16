@@ -27,8 +27,18 @@
     // Default configuration
     const defaultConfig = {
       webhook: { url: '', route: '' },
-      branding: { logo: '', name: '', welcomeText: 'Hello! How can I assist you today?' },
-      style: { primaryColor: '#854fff', secondaryColor: '#6b3fd4', position: 'right' },
+      branding: { 
+        logo: 'https://cdn-icons-png.flaticon.com/512/5962/5962463.png', 
+        name: 'Bella : Product Specialist', 
+        welcomeText: '' 
+      },
+      style: { 
+        primaryColor: '#003f72', 
+        secondaryColor: '#003f72', 
+        position: 'right',
+        backgroundColor: '#ffffff',
+        fontColor: '#333333'
+      },
       dealer: { name: '', phone: '', website: '', searchPage: '', provider: '' }
     };
     
@@ -99,11 +109,8 @@
           inactivityMessageSent = false;
           currentSessionId = generateUUID();
           
-          // Add welcome message only for new sessions
-          const botMessageDiv = document.createElement('div');
-          botMessageDiv.className = 'chat-message bot';
-          botMessageDiv.innerHTML = formatMessage(config.branding.welcomeText);
-          messagesContainer.appendChild(botMessageDiv);
+          // Send initial messages instead of single welcome message
+          sendInitialMessages();
         }
         
         // Save session after changes
@@ -950,11 +957,8 @@
             inactivityMessageSent = false;
             currentSessionId = generateUUID();
             
-            // Add welcome message only for new sessions
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.innerHTML = formatMessage(config.branding.welcomeText);
-            messagesContainer.appendChild(botMessageDiv);
+            // Send initial messages instead of single welcome message
+            sendInitialMessages();
           }
           
           // Save session after changes
@@ -1036,4 +1040,24 @@
           }
         }
       }).observe(document, { subtree: true, childList: true });
+
+      // Function to send initial messages
+      function sendInitialMessages() {
+        const messages = [
+          "Hi, I'm Bella! I'm a product specialist here to help guide you through our site today.",
+          "We do things a little bit differently here at [DealerName] and our customers really seem to appreciate it.",
+          "First let me ask, what brings you here today so I can help guide you to the right department?"
+        ];
+
+        messages.forEach((message, index) => {
+          setTimeout(() => {
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.innerHTML = formatMessage(message);
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            saveSession();
+          }, index * 1000); // Send each message with a 1-second delay
+        });
+      }
     })();
