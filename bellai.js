@@ -784,6 +784,56 @@
       const messagesContainer = chatContainer.querySelector('.chat-messages');
       const textarea = chatContainer.querySelector('textarea');
       const sendButton = chatContainer.querySelector('button[type="submit"]');
+      const closeButton = chatContainer.querySelector('.close-button');
+      
+      // Add event listeners
+      toggleButton.addEventListener('click', openChat);
+      closeButton.addEventListener('click', function() {
+        chatContainer.classList.remove('open');
+        toggleButton.classList.remove('hidden');
+        userManuallyClosedChat = true;
+        saveChatState(true);
+        
+        // Handle mobile
+        if (window.innerWidth <= 600) {
+          document.body.style.overflow = '';
+        }
+      });
+
+      // Handle textarea input
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+
+      // Handle message sending
+      function handleMessageSend() {
+        const message = textarea.value.trim();
+        if (message) {
+          sendMessage(message);
+          textarea.value = '';
+          textarea.style.height = 'auto';
+        }
+      }
+
+      sendButton.addEventListener('click', handleMessageSend);
+      textarea.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleMessageSend();
+        }
+      });
+
+      // Handle window resize
+      window.addEventListener('resize', function() {
+        if (window.innerWidth <= 600) {
+          if (chatContainer.classList.contains('open')) {
+            document.body.style.overflow = 'hidden';
+          }
+        } else {
+          document.body.style.overflow = '';
+        }
+      });
       
       // Store page summary globally
       let pageSummary = null;
