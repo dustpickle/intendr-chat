@@ -49,7 +49,8 @@
       branding: { ...defaultConfig.branding, ...window.ChatWidgetConfig.branding },
       style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style },
       dealer: { ...defaultConfig.dealer, ...window.ChatWidgetConfig.dealer },
-      overtake: window.ChatWidgetConfig.overtake || false
+      overtake: window.ChatWidgetConfig.overtake || false,
+      overtakePath: window.ChatWidgetConfig.overtakePath || '/'
     } : defaultConfig;
     
     // Prevent multiple initializations
@@ -110,12 +111,10 @@
           // Create new session
           inactivityMessageSent = false;
           currentSessionId = generateUUID();
-          
-          // Generate page context before sending initial messages
-          generatePageSummary().then(() => {
-            // Send initial messages after page context is generated
-            sendInitialMessages();
-          });
+          // Show initial messages immediately
+          sendInitialMessages();
+          // Generate page summary in background
+          generatePageSummary();
         }
         
         // Save session after changes
@@ -1210,8 +1209,9 @@
 
       // Overtake modal logic
       function shouldShowOvertake() {
+        const pathToMatch = config.overtakePath || '/';
         return config.overtake === true &&
-          window.location.pathname === '/' &&
+          window.location.pathname === pathToMatch &&
           !localStorage.getItem('bellaaiOvertakeShown');
       }
 
