@@ -1126,17 +1126,50 @@
           
           // Remove thinking animation
           removeThinkingAnimation();
-          
-          // Add bot response
-          const botMessageDiv = document.createElement('div');
-          botMessageDiv.className = 'chat-message bot';
-          botMessageDiv.innerHTML = formatMessage(botReply);
-          messagesContainer.appendChild(botMessageDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          
+
+          // Handle [REDIRECT]...[/REDIRECT] in botReply
+          const redirectMatch = botReply.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
+          if (redirectMatch && redirectMatch[1]) {
+            const originalUrl = redirectMatch[1].trim();
+            const redirectUrl = appendUtmToUrl(originalUrl);
+
+            // Show 'Redirecting you now...' message
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.innerHTML = formatMessage('Redirecting you now...');
+            messagesContainer.appendChild(botMessageDiv);
+
+            // Show follow-up message
+            const followUpDiv = document.createElement('div');
+            followUpDiv.className = 'chat-message bot';
+            followUpDiv.innerHTML = formatMessage("Our product specialists are ready to help you explore your options and answer any questions. What's the best phone number to reach you at?");
+            messagesContainer.appendChild(followUpDiv);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            saveSession();
+
+            // Redirect after a short delay
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 2000);
+            return;
+          }
+
+          // Remove any [REDIRECT]...[/REDIRECT] tags from the message if present
+          const cleanedReply = botReply.replace(/\[REDIRECT\][\s\S]*?\[\/REDIRECT\]/g, '').trim();
+
+          // Add bot response (if anything remains after cleaning)
+          if (cleanedReply) {
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.innerHTML = formatMessage(cleanedReply);
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+
           // Save session after changes
           saveSession();
-          
+
           // Reset inactivity timer
           resetInactivityState();
         } catch (error) {
