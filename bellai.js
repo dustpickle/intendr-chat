@@ -1220,7 +1220,6 @@
 
       let overlayDiv = null;
       function showOvertakeModal() {
-        // Create overlay
         overlayDiv = document.createElement('div');
         overlayDiv.className = 'bellaai-overtake-overlay';
         overlayDiv.style.position = 'fixed';
@@ -1233,8 +1232,6 @@
         overlayDiv.style.transition = 'opacity 0.4s';
         overlayDiv.style.opacity = '0';
         overlayDiv.style.animation = 'bellaai-fadein 0.4s forwards';
-
-        // Only adjust position/size, do not change chat logic or DOM
         chatContainer.classList.add('overtake-modal');
         chatContainer.style.position = 'relative';
         chatContainer.style.left = '';
@@ -1253,8 +1250,6 @@
         chatContainer.style.padding = '32px 28px 20px 28px';
         chatContainer.style.transition = 'opacity 0.4s';
         setTimeout(() => { chatContainer.style.opacity = '1'; }, 50);
-
-        // Mobile styles
         if (window.innerWidth <= 600) {
           chatContainer.style.width = '95vw';
           chatContainer.style.height = '85vh';
@@ -1262,29 +1257,20 @@
           chatContainer.style.borderRadius = '12px';
           chatContainer.style.padding = '16px 6px 10px 6px';
         }
-
-        // Hide toggle button
         toggleButton.classList.add('hidden');
-
-        // Move chat container into overlay
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
-
-        // Prevent background scroll
         document.body.style.overflow = 'hidden';
-
-        // Set flag so modal only shows once
         localStorage.setItem('bellaaiOvertakeShown', '1');
+        showChat();
       }
 
       function hideOvertakeModal() {
         if (overlayDiv) {
-          // Restore chat container to widget
           widgetContainer.appendChild(chatContainer);
           overlayDiv.remove();
           overlayDiv = null;
         }
-        // Restore chat container styles
         chatContainer.classList.remove('overtake-modal');
         chatContainer.style.position = '';
         chatContainer.style.left = '';
@@ -1301,8 +1287,8 @@
         chatContainer.style.display = '';
         chatContainer.style.flexDirection = '';
         chatContainer.style.padding = '';
-        // Restore background scroll
         document.body.style.overflow = '';
+        hideChat();
       }
 
       // Add fade-in keyframes and modal polish styles
@@ -1412,4 +1398,75 @@
           showOvertakeModal();
         }, 400); // slight delay for effect
       }
+
+      // --- Chat Initialization Refactor ---
+      function initChat() {
+        // Only run once
+        if (window.BellaAIChatWidgetChatInitialized) return;
+        window.BellaAIChatWidgetChatInitialized = true;
+
+        // Restore session or show initial messages
+        const sessionRestored = loadSession();
+        if (!sessionRestored) {
+          inactivityMessageSent = false;
+          currentSessionId = generateUUID();
+          sendInitialMessages();
+          generatePageSummary();
+        }
+        saveSession();
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        startInactivityTimer();
+        clearTimeout(promptBubbleTimer);
+
+        // Add event listeners (only once)
+        toggleButton.addEventListener('click', function() {
+          showChat();
+        });
+        closeButton.addEventListener('click', function() {
+          hideChat();
+          userManuallyClosedChat = true;
+          saveChatState(true);
+          if (window.innerWidth <= 600) document.body.style.overflow = '';
+        });
+        sendButton.addEventListener('click', handleMessageSend);
+        textarea.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleMessageSend();
+          }
+        });
+        textarea.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = (this.scrollHeight) + 'px';
+        });
+        window.addEventListener('resize', function() {
+          if (window.innerWidth <= 600) {
+            if (chatContainer.classList.contains('open')) document.body.style.overflow = 'hidden';
+          } else {
+            document.body.style.overflow = '';
+          }
+        });
+      }
+
+      function showChat() {
+        hidePromptBubble();
+        promptBubbleShown = true;
+        chatContainer.classList.add('open');
+        toggleButton.classList.add('hidden');
+        if (window.innerWidth <= 600) document.body.style.overflow = 'hidden';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        startInactivityTimer();
+        clearTimeout(promptBubbleTimer);
+      }
+
+      function hideChat() {
+        chatContainer.classList.remove('open');
+        toggleButton.classList.remove('hidden');
+        if (window.innerWidth <= 600) document.body.style.overflow = '';
+      }
+
+      // --- End Chat Initialization Refactor ---
+
+      // Call initChat on page load
+      initChat();
     })();
