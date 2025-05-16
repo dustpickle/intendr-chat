@@ -810,6 +810,37 @@
         return 'other';
       }
 
+      // Function to clean HTML content
+      function cleanHtmlContent(element) {
+        if (!element) return '';
+        
+        // Clone the element to avoid modifying the original
+        const clone = element.cloneNode(true);
+        
+        // Remove script tags
+        const scripts = clone.getElementsByTagName('script');
+        while (scripts.length > 0) {
+          scripts[0].parentNode.removeChild(scripts[0]);
+        }
+        
+        // Remove style tags
+        const styles = clone.getElementsByTagName('style');
+        while (styles.length > 0) {
+          styles[0].parentNode.removeChild(styles[0]);
+        }
+        
+        // Get text content and clean it
+        let text = clone.textContent || clone.innerText;
+        
+        // Remove extra whitespace
+        text = text.replace(/\s+/g, ' ').trim();
+        
+        // Remove any remaining HTML tags
+        text = text.replace(/<[^>]*>/g, '');
+        
+        return text;
+      }
+
       // Function to generate page summary with caching
       async function generatePageSummary() {
         try {
@@ -817,8 +848,8 @@
           const mainContent = document.querySelector('main, #main, .main-content, .content');
           if (!mainContent) return null;
 
-          // Extract text content
-          const textContent = mainContent.innerText.trim();
+          // Extract and clean text content
+          const textContent = cleanHtmlContent(mainContent);
           if (!textContent) return null;
 
           // Generate a simple hash of the content to check if it's changed
@@ -840,21 +871,19 @@
             dealer: config.dealer
           };
 
-          // Prepare summary request
-          const summaryRequest = {
-            action: "generatePageSummary", // Add action to differentiate from chat messages
+          // Prepare URL with query parameters
+          const params = new URLSearchParams({
             content: textContent,
-            metadata: metadata
-          };
+            metadata: JSON.stringify(metadata)
+          });
 
-          // Use the configured webhook URL instead of hardcoded one
-          const response = await fetch(config.webhook.url, {
-            method: 'POST',
+          // Send GET request to pagecontext webhook
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext?' + params.toString(), {
+            method: 'GET',
             headers: { 
               'Content-Type': 'application/json',
               'Origin': window.location.origin
-            },
-            body: JSON.stringify(summaryRequest)
+            }
           });
 
           if (!response.ok) {
@@ -928,6 +957,19 @@
           pageSummary = await generatePageSummary();
         }, 1000); // Wait 1 second after last page change before generating summary
       }
+
+      // Generate summary when page loads
+      document.addEventListener('DOMContentLoaded', debouncedGenerateSummary);
+
+      // Generate summary when URL changes (for SPA navigation)
+      const lastUrl = window.location.href;
+      new MutationObserver(() => {
+        const currentUrl = window.location.href;
+        if (currentUrl !== lastUrl) {
+          lastUrl = currentUrl;
+          debouncedGenerateSummary();
+        }
+      }).observe(document, { subtree: true, childList: true });
 
       // Send message function
       // Function to send initial messages
