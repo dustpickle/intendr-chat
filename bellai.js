@@ -978,7 +978,9 @@
           }
           
           const data = await response.json();
-          const summary = data.summary || null;
+          
+          // Extract the summary from the response
+          const summary = data.pageSummary || null;
           
           // Cache the summary if we got one
           if (summary) {
