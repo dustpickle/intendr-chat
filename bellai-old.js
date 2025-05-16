@@ -27,18 +27,8 @@
     // Default configuration
     const defaultConfig = {
       webhook: { url: '', route: '' },
-      branding: { 
-        logo: 'https://cdn-icons-png.flaticon.com/512/5962/5962463.png', 
-        name: 'Bella : Product Specialist', 
-        welcomeText: '' 
-      },
-      style: { 
-        primaryColor: '#003f72', 
-        secondaryColor: '#003f72', 
-        position: 'right',
-        backgroundColor: '#ffffff',
-        fontColor: '#333333'
-      },
+      branding: { logo: '', name: '', welcomeText: 'Hello! How can I assist you today?' },
+      style: { primaryColor: '#854fff', secondaryColor: '#6b3fd4', position: 'right' },
       dealer: { name: '', phone: '', website: '', searchPage: '', provider: '' }
     };
     
@@ -109,11 +99,11 @@
           inactivityMessageSent = false;
           currentSessionId = generateUUID();
           
-          // Generate page context before sending initial messages
-          generatePageSummary().then(() => {
-            // Send initial messages after page context is generated
-            sendInitialMessages();
-          });
+          // Add welcome message only for new sessions
+          const botMessageDiv = document.createElement('div');
+          botMessageDiv.className = 'chat-message bot';
+          botMessageDiv.innerHTML = formatMessage(config.branding.welcomeText);
+          messagesContainer.appendChild(botMessageDiv);
         }
         
         // Save session after changes
@@ -784,10 +774,162 @@
       const messagesContainer = chatContainer.querySelector('.chat-messages');
       const textarea = chatContainer.querySelector('textarea');
       const sendButton = chatContainer.querySelector('button[type="submit"]');
-      const closeButton = chatContainer.querySelector('.close-button');
+      
+      // Send message function
+      async function sendMessage(message) {
+        // Reset inactivity state when user sends a message
+        resetInactivityState();
+        
+        // Hide prompt bubble if it's visible
+        hidePromptBubble();
+    
+        const messageData = {
+            action: "sendMessage",
+            sessionId: currentSessionId,
+            route: config.webhook.route,
+            chatInput: message,
+            metadata: { 
+                userId: "",
+                utmParams: window.initialUtmParameters || {},
+                pageUrl: window.location.href,
+                userIP: userIP,
+                dealer: config.dealer
+            }
+        };
+        
+        // Add user message to chat
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'chat-message user';
+        userMessageDiv.textContent = message;
+        messagesContainer.appendChild(userMessageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Save session after adding user message
+        saveSession();
+        
+        try {
+          // Show thinking animation
+          const thinkingDiv = showThinkingAnimation();
+          
+          try {
+            const response = await fetch(config.webhook.url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(messageData)
+            });
+            
+            // Remove thinking animation
+            removeThinkingAnimation();
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            let data;
+            try {
+              data = await response.json();
+            } catch (parseError) {
+              console.error('Error parsing JSON response:', parseError);
+              const textResponse = await response.text();
+              console.log('Raw text response:', textResponse);
+              data = { output: "I'm sorry, I couldn't process that request properly." };
+            }
+            
+            // Extract the output text
+            let outputText = '';
+            if (Array.isArray(data) && data.length > 0 && data[0].output) {
+              outputText = data[0].output;
+            } else if (data && data.output) {
+              outputText = data.output;
+            } else if (typeof data === 'string') {
+              outputText = data;
+            }
+            
+            // Fallback for empty responses
+            if (!outputText || outputText.trim() === '') {
+              outputText = "I received your message, but I'm having trouble generating a response.";
+            }
+
+            // Check if the response contains a redirect URL
+            const redirectMatch = outputText.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
+            if (redirectMatch && redirectMatch[1]) {
+              const originalUrl = redirectMatch[1].trim();
+              const redirectUrl = appendUtmToUrl(originalUrl);
+              
+              console.log('Original URL:', originalUrl);
+              console.log('URL with UTMs:', redirectUrl);
+              
+              // Create and add bot message before redirect
+              const botMessageDiv = document.createElement('div');
+              botMessageDiv.className = 'chat-message bot';
+              botMessageDiv.innerHTML = formatMessage("Redirecting you now...");
+              messagesContainer.appendChild(botMessageDiv);
+
+              // Add follow-up message asking for phone number
+              const followUpDiv = document.createElement('div');
+              followUpDiv.className = 'chat-message bot';
+              followUpDiv.innerHTML = formatMessage("Our product specialists are ready to help you explore your options and answer any questions. What's the best phone number to reach you at?");
+              messagesContainer.appendChild(followUpDiv);
+              
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              
+              // Save session before redirect
+              saveSession();
+              
+              // Perform the redirect after a short delay
+              setTimeout(() => {
+                window.location.href = redirectUrl;
+              }, 2000);
+              return;
+            }
+            
+            // Create and add bot message
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.innerHTML = formatMessage(outputText);
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Save session
+            saveSession();
+            
+            // Reset inactivity timer (without resetting the inactivityMessageSent flag)
+            resetInactivityTimer();
+          } catch (error) {
+            // Handle errors
+            console.error('API Error:', error);
+            removeThinkingAnimation();
+            
+            const errorMessageDiv = document.createElement('div');
+            errorMessageDiv.className = 'chat-message bot';
+            errorMessageDiv.textContent = "I'm sorry, I'm having trouble connecting to our services right now.";
+            messagesContainer.appendChild(errorMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            saveSession();
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          removeThinkingAnimation();
+          
+          const errorMessageDiv = document.createElement('div');
+          errorMessageDiv.className = 'chat-message bot';
+          errorMessageDiv.textContent = "I'm sorry, something went wrong. Please try again.";
+          messagesContainer.appendChild(errorMessageDiv);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          
+          saveSession();
+        }
+      }
+      
+      // Expose sendMessage function to global scope for inline click handlers
+      window.sendMessage = sendMessage;
       
       // Add event listeners
       toggleButton.addEventListener('click', function() {
+        hidePromptBubble();
+        promptBubbleShown = true;
+        
         if (!chatContainer.classList.contains('open')) {
           chatContainer.classList.add('open');
           toggleButton.classList.add('hidden');
@@ -808,11 +950,11 @@
             inactivityMessageSent = false;
             currentSessionId = generateUUID();
             
-            // Generate page context before sending initial messages
-            generatePageSummary().then(() => {
-              // Send initial messages after page context is generated
-              sendInitialMessages();
-            });
+            // Add welcome message only for new sessions
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.innerHTML = formatMessage(config.branding.welcomeText);
+            messagesContainer.appendChild(botMessageDiv);
           }
           
           // Save session after changes
@@ -823,353 +965,75 @@
           clearTimeout(promptBubbleTimer);
         }
       });
-
-      closeButton.addEventListener('click', function() {
-        chatContainer.classList.remove('open');
-        toggleButton.classList.remove('hidden');
-        userManuallyClosedChat = true;
-        saveChatState(true);
-        
-        // Handle mobile
-        if (window.innerWidth <= 600) {
-          document.body.style.overflow = '';
-        }
-      });
-
-      // Handle textarea input
-      textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-      });
-
-      // Handle message sending
-      function handleMessageSend() {
+      
+      // Send button click event
+      sendButton.addEventListener('click', function() {
         const message = textarea.value.trim();
         if (message) {
           sendMessage(message);
           textarea.value = '';
-          textarea.style.height = 'auto';
         }
-      }
-
-      sendButton.addEventListener('click', handleMessageSend);
+      });
+      
+      // Textarea keypress event
       textarea.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          handleMessageSend();
-        }
-      });
-
-      // Handle window resize
-      window.addEventListener('resize', function() {
-        if (window.innerWidth <= 600) {
-          if (chatContainer.classList.contains('open')) {
-            document.body.style.overflow = 'hidden';
+          const message = textarea.value.trim();
+          if (message) {
+            sendMessage(message);
+            textarea.value = '';
           }
-        } else {
-          document.body.style.overflow = '';
         }
       });
       
-      // Store page summary globally
-      let pageSummary = null;
-      let summaryFetchTimeout = null;
+      // Close button event
+      const closeButton = chatContainer.querySelector('.close-button');
+      closeButton.addEventListener('click', function() {
+        chatContainer.classList.remove('open');
+        toggleButton.classList.remove('hidden');
+        document.body.style.overflow = '';
+        clearTimeout(inactivityTimer);
+        saveSession();
+        
+        // Track that user has manually closed the chat
+        userManuallyClosedChat = true;
+        saveChatState(true);
+      });
       
-      // Function to determine page type
-      function determinePageType() {
-        const path = window.location.pathname.toLowerCase();
-        if (path.includes('/new-vehicles/') || path.includes('/used-vehicles/')) {
-          return 'inventory';
-        } else if (path.includes('/finance')) {
-          return 'finance';
-        } else if (path.includes('/service')) {
-          return 'service';
-        } else if (path.includes('/parts')) {
-          return 'parts';
-        } else if (path.includes('/about')) {
-          return 'about';
-        } else if (path.includes('/contact')) {
-          return 'contact';
-        } else if (path === '/' || path === '/index.html') {
-          return 'home';
-        }
-        return 'other';
-      }
-
-      // Function to clean HTML content
-      function cleanHtmlContent(element) {
-        if (!element) return '';
-        
-        // Clone the element to avoid modifying the original
-        const clone = element.cloneNode(true);
-        
-        // Remove script tags
-        const scripts = clone.getElementsByTagName('script');
-        while (scripts.length > 0) {
-          scripts[0].parentNode.removeChild(scripts[0]);
-        }
-        
-        // Remove style tags
-        const styles = clone.getElementsByTagName('style');
-        while (styles.length > 0) {
-          styles[0].parentNode.removeChild(styles[0]);
-        }
-        
-        // Get text content and clean it
-        let text = clone.textContent || clone.innerText;
-        
-        // Remove extra whitespace
-        text = text.replace(/\s+/g, ' ').trim();
-        
-        // Remove any remaining HTML tags
-        text = text.replace(/<[^>]*>/g, '');
-        
-        return text;
-      }
-
-      // Function to generate page summary with caching
-      async function generatePageSummary() {
-        try {
-          // Get main content
-          const mainContent = document.querySelector('main, #main, .main-content, .content');
-          if (!mainContent) {
-            console.log('No main content found on page');
-            return null;
+      // Auto-open chat on desktop after 5 seconds
+      const AUTO_OPEN_DELAY = 5000; // 5 seconds
+      const isDesktop = window.innerWidth > 768; // Common breakpoint for desktop
+      
+      // Check if chat was manually closed in previous session
+      userManuallyClosedChat = checkIfChatWasManuallyClosed();
+      
+      if (isDesktop && !userManuallyClosedChat) {
+        setTimeout(function() {
+          // Only auto-open if the user hasn't manually closed the chat
+          if (!userManuallyClosedChat) {
+            openChat();
           }
+        }, AUTO_OPEN_DELAY);
+      }
 
-          // Extract and clean text content
-          const textContent = cleanHtmlContent(mainContent);
-          if (!textContent) {
-            console.log('No text content found in main content');
-            return null;
-          }
-
-          // Generate a simple hash of the content to check if it's changed
-          const contentHash = await generateContentHash(textContent);
-          
-          // Check if we have a cached summary for this content
-          const cachedSummary = getCachedSummary(window.location.href, contentHash);
-          if (cachedSummary) {
-            console.log('Using cached page summary');
-            return cachedSummary;
-          }
-
-          // Get page metadata
-          const metadata = {
-            title: document.title,
-            url: window.location.href,
-            description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-            type: determinePageType(),
-            dealer: config.dealer
-          };
-
-          // Prepare URL with query parameters
-          const params = new URLSearchParams({
-            content: textContent,
-            metadata: JSON.stringify(metadata)
-          });
-
-          // Send GET request to pagecontext webhook
-          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext?' + params.toString(), {
-            method: 'GET',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Origin': window.location.origin
-            }
-          });
-
-          if (!response.ok) {
-            console.warn('Failed to generate page summary:', response.status, response.statusText);
-            return null;
-          }
-
-          // Get the text response
-          const summary = await response.text();
-          
-          // Cache the summary if we got one
-          if (summary) {
-            cacheSummary(window.location.href, contentHash, summary);
-          } else {
-            console.warn('Empty response from page context webhook');
-          }
-          
-          return summary;
-        } catch (error) {
-          console.error('Error generating page summary:', error);
-          return null;
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && !userManuallyClosedChat) {
+          // If page becomes visible and chat wasn't manually closed, open it
+          openChat();
         }
-      }
+      });
 
-      // Function to generate a simple hash of the content
-      async function generateContentHash(content) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(content);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      }
-
-      // Function to get cached summary
-      function getCachedSummary(url, contentHash) {
-        try {
-          const cached = localStorage.getItem('bellaaiPageSummary');
-          if (cached) {
-            const { url: cachedUrl, hash: cachedHash, summary, timestamp } = JSON.parse(cached);
-            // Check if the cache is for the same URL, content, and less than 1 hour old
-            if (cachedUrl === url && cachedHash === contentHash && 
-                (Date.now() - timestamp) < 3600000) { // 1 hour cache
-              return summary;
-            }
-          }
-        } catch (error) {
-          console.error('Error reading cached summary:', error);
-        }
-        return null;
-      }
-
-      // Function to cache summary
-      function cacheSummary(url, contentHash, summary) {
-        try {
-          const cacheData = {
-            url,
-            hash: contentHash,
-            summary,
-            timestamp: Date.now()
-          };
-          localStorage.setItem('bellaaiPageSummary', JSON.stringify(cacheData));
-        } catch (error) {
-          console.error('Error caching summary:', error);
-        }
-      }
-
-      // Debounced function to generate summary
-      function debouncedGenerateSummary() {
-        if (summaryFetchTimeout) {
-          clearTimeout(summaryFetchTimeout);
-        }
-        summaryFetchTimeout = setTimeout(async () => {
-          pageSummary = await generatePageSummary();
-        }, 1000); // Wait 1 second after last page change before generating summary
-      }
-
-      // Generate summary when page loads
-      document.addEventListener('DOMContentLoaded', debouncedGenerateSummary);
-
-      // Generate summary when URL changes (for SPA navigation)
-      const lastUrl = window.location.href;
+      // Handle page navigation (for single-page applications)
+      let lastUrl = window.location.href;
       new MutationObserver(() => {
         const currentUrl = window.location.href;
         if (currentUrl !== lastUrl) {
           lastUrl = currentUrl;
-          debouncedGenerateSummary();
+          if (!userManuallyClosedChat) {
+            openChat();
+          }
         }
       }).observe(document, { subtree: true, childList: true });
-
-      // Send message function
-      async function sendMessage(message) {
-        if (!message.trim()) return;
-        
-        // Add user message to chat
-        const userMessageDiv = document.createElement('div');
-        userMessageDiv.className = 'chat-message user';
-        userMessageDiv.textContent = message;
-        messagesContainer.appendChild(userMessageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // Show thinking animation
-        const thinkingDiv = showThinkingAnimation();
-        
-        try {
-          // Get current page context if available
-          const currentPageContext = pageSummary || await generatePageSummary();
-          
-          // Prepare message data
-          const messageData = {
-            chatInput: message,
-            sessionId: currentSessionId,
-            metadata: {
-              dealer: config.dealer,
-              pageContext: currentPageContext,
-              utmParameters: window.initialUtmParameters || {},
-              userIP: userIP
-            }
-          };
-          
-          // Send to webhook
-          const response = await fetch(config.webhook.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(messageData)
-          });
-          
-          if (!response.ok) throw new Error('Failed to send message');
-          
-          // Try to parse as JSON, fallback to plain text
-          let botReply = '';
-          const responseText = await response.text();
-          try {
-            const data = JSON.parse(responseText);
-            if (Array.isArray(data) && data.length > 0 && data[0].output) {
-              botReply = data[0].output;
-            } else if (data && typeof data === 'object') {
-              botReply = data.output || data.response || data.message || '';
-            } else if (typeof data === 'string') {
-              botReply = data;
-            }
-          } catch (e) {
-            botReply = responseText;
-          }
-          // Fallback for empty responses
-          if (!botReply || botReply.trim() === '') {
-            botReply = "I received your message, but I'm having trouble generating a response.";
-          }
-          
-          // Remove thinking animation
-          removeThinkingAnimation();
-          
-          // Add bot response
-          const botMessageDiv = document.createElement('div');
-          botMessageDiv.className = 'chat-message bot';
-          botMessageDiv.innerHTML = formatMessage(botReply);
-          messagesContainer.appendChild(botMessageDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          
-          // Save session after changes
-          saveSession();
-          
-          // Reset inactivity timer
-          resetInactivityState();
-        } catch (error) {
-          console.error('Error sending message:', error);
-          removeThinkingAnimation();
-          
-          // Show error message
-          const errorMessageDiv = document.createElement('div');
-          errorMessageDiv.className = 'chat-message bot';
-          errorMessageDiv.innerHTML = formatMessage("I apologize, but I'm having trouble connecting right now. Please try again in a moment.");
-          messagesContainer.appendChild(errorMessageDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-      }
-
-      // Function to send initial messages
-      function sendInitialMessages() {
-        const dealerName = config.dealer.name || '[DealerName]';
-        const messages = [
-          "Hi, I'm Bella! I'm a product specialist here to help guide you through our site today.",
-          `We do things a little bit differently here at ${dealerName} and our customers really seem to appreciate it.`,
-          "First let me ask, what brings you here today so I can help guide you to the right department?"
-        ];
-
-        messages.forEach((message, index) => {
-          setTimeout(() => {
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.innerHTML = formatMessage(message);
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            saveSession();
-          }, index * 1000); // Send each message with a 1-second delay
-        });
-      }
     })();
