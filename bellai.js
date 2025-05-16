@@ -1104,7 +1104,15 @@
           
           if (!response.ok) throw new Error('Failed to send message');
           
-          const data = await response.json();
+          // Try to parse as JSON, fallback to plain text
+          let botReply = '';
+          const responseText = await response.text();
+          try {
+            const data = JSON.parse(responseText);
+            botReply = data.response || data.message || '';
+          } catch (e) {
+            botReply = responseText;
+          }
           
           // Remove thinking animation
           removeThinkingAnimation();
@@ -1112,7 +1120,7 @@
           // Add bot response
           const botMessageDiv = document.createElement('div');
           botMessageDiv.className = 'chat-message bot';
-          botMessageDiv.innerHTML = formatMessage(data.response || data.message || '');
+          botMessageDiv.innerHTML = formatMessage(botReply);
           messagesContainer.appendChild(botMessageDiv);
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           
