@@ -1245,7 +1245,7 @@
         chatContainer.style.top = '';
         chatContainer.style.transform = '';
         chatContainer.style.zIndex = '2147483647';
-        chatContainer.style.width = '520px';
+        chatContainer.style.width = '800px';
         chatContainer.style.height = 'auto';
         chatContainer.style.maxHeight = '90vh';
         chatContainer.style.borderRadius = '18px';
@@ -1257,6 +1257,9 @@
         chatContainer.style.padding = '32px 28px 20px 28px';
         chatContainer.style.transition = 'opacity 0.4s';
         setTimeout(() => { chatContainer.style.opacity = '1'; }, 50);
+        if (window.innerWidth <= 900) {
+          chatContainer.style.width = '95vw';
+        }
         if (window.innerWidth <= 600) {
           chatContainer.style.width = '95vw';
           chatContainer.style.height = '85vh';
@@ -1398,6 +1401,30 @@
         }
       `;
       document.head.appendChild(modalStyles);
+
+      // Add/restore CSS for responsive modal width
+      const modalResponsiveStyles = document.createElement('style');
+      modalResponsiveStyles.textContent = `
+        .overtake-modal {
+          width: 800px !important;
+          max-width: 95vw;
+        }
+        @media (max-width: 900px) {
+          .overtake-modal {
+            width: 95vw !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .overtake-modal {
+            width: 95vw !important;
+            height: 85vh !important;
+            max-height: 85vh !important;
+            border-radius: 12px !important;
+            padding: 16px 6px 10px 6px !important;
+          }
+        }
+      `;
+      document.head.appendChild(modalResponsiveStyles);
 
       // On load, check for overtake
       if (shouldShowOvertake()) {
