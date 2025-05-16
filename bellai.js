@@ -1436,6 +1436,23 @@
             min-height: 200px;
           }
         }
+        .overtake-modal {
+          height: 60vh;
+          max-height: 60vh;
+          display: flex;
+          flex-direction: column;
+        }
+        .overtake-modal .chat-messages {
+          flex: 1 1 0%;
+          overflow-y: auto;
+          min-height: 0;
+        }
+        @media (max-width: 600px) {
+          .overtake-modal {
+            height: 85vh !important;
+            max-height: 85vh !important;
+          }
+        }
       `;
       document.head.appendChild(modalStyles);
 
