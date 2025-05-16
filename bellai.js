@@ -125,7 +125,7 @@
         clearTimeout(promptBubbleTimer);
       }
     }
-
+    
     // UTM tracking function
     function extractUtmParameters(url) {
       const utmParams = {};
@@ -225,9 +225,9 @@
       thinkingDiv.innerHTML = `
         <span>Bella is typing</span>
         <div class="dots">
-          <div class="dot"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
         </div>
       `;
       thinkingDiv.id = 'thinking-animation';
@@ -1087,10 +1087,10 @@
         messagesContainer.appendChild(userMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
-        // Show thinking animation
-        const thinkingDiv = showThinkingAnimation();
-        
-        try {
+          // Show thinking animation
+          const thinkingDiv = showThinkingAnimation();
+          
+          try {
           // Get current page context if available
           const currentPageContext = pageSummary || await generatePageSummary();
           
@@ -1107,12 +1107,12 @@
           };
           
           // Send to webhook
-          const response = await fetch(config.webhook.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(messageData)
-          });
-          
+            const response = await fetch(config.webhook.url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(messageData)
+            });
+            
           if (!response.ok) throw new Error('Failed to send message');
           
           // Try to parse as JSON, fallback to plain text
@@ -1130,7 +1130,7 @@
           } catch (e) {
             botReply = responseText;
           }
-          // Fallback for empty responses
+            // Fallback for empty responses
           if (!botReply || botReply.trim() === '') {
             botReply = "I received your message, but I'm having trouble generating a response.";
           }
@@ -1158,7 +1158,7 @@
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             saveSession();
-
+            
             // Redirect after a short delay
             setTimeout(() => {
               window.location.href = redirectUrl;
@@ -1177,9 +1177,9 @@
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
           }
-
+            
           // Save session after changes
-          saveSession();
+            saveSession();
 
           // Reset inactivity timer
           resetInactivityState();
@@ -1260,7 +1260,7 @@
         if (window.innerWidth <= 900) {
           chatContainer.style.width = '95vw';
         }
-        if (window.innerWidth <= 600) {
+          if (window.innerWidth <= 600) {
           chatContainer.style.width = '95vw';
           chatContainer.style.height = '85vh';
           chatContainer.style.maxHeight = '85vh';
@@ -1270,7 +1270,7 @@
         toggleButton.classList.add('hidden');
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
-        document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
         localStorage.setItem('bellaaiOvertakeShown', '1');
         showChat();
       }
@@ -1441,16 +1441,16 @@
 
         // Restore session or show initial messages
         const sessionRestored = loadSession();
-        if (!sessionRestored) {
-          inactivityMessageSent = false;
-          currentSessionId = generateUUID();
+          if (!sessionRestored) {
+            inactivityMessageSent = false;
+            currentSessionId = generateUUID();
           sendInitialMessages();
           generatePageSummary();
         }
-        saveSession();
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        startInactivityTimer();
-        clearTimeout(promptBubbleTimer);
+          saveSession();
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          startInactivityTimer();
+          clearTimeout(promptBubbleTimer);
 
         // Add event listeners (only once)
         toggleButton.addEventListener('click', function() {
@@ -1463,9 +1463,9 @@
           if (window.innerWidth <= 600) document.body.style.overflow = '';
         });
         sendButton.addEventListener('click', handleMessageSend);
-        textarea.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+      textarea.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
             handleMessageSend();
           }
         });
@@ -1477,16 +1477,16 @@
           if (window.innerWidth <= 600) {
             if (chatContainer.classList.contains('open')) document.body.style.overflow = 'hidden';
           } else {
-            document.body.style.overflow = '';
+        document.body.style.overflow = '';
           }
         });
       }
 
       function showChat() {
-        hidePromptBubble();
-        promptBubbleShown = true;
-        chatContainer.classList.add('open');
-        toggleButton.classList.add('hidden');
+            hidePromptBubble();
+            promptBubbleShown = true;
+            chatContainer.classList.add('open');
+            toggleButton.classList.add('hidden');
         if (window.innerWidth <= 600) document.body.style.overflow = 'hidden';
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         startInactivityTimer();
