@@ -782,270 +782,142 @@
       const textarea = chatContainer.querySelector('textarea');
       const sendButton = chatContainer.querySelector('button[type="submit"]');
       
-      // Send message function
-      async function sendMessage(message) {
-        // Reset inactivity state when user sends a message
-        resetInactivityState();
-        
-        // Hide prompt bubble if it's visible
-        hidePromptBubble();
-    
-        const messageData = {
-            action: "sendMessage",
-            sessionId: currentSessionId,
-            route: config.webhook.route,
-            chatInput: message,
-            metadata: { 
-                userId: "",
-                utmParams: window.initialUtmParameters || {},
-                pageUrl: window.location.href,
-                userIP: userIP,
-                dealer: config.dealer
-            }
-        };
-        
-        // Add user message to chat
-        const userMessageDiv = document.createElement('div');
-        userMessageDiv.className = 'chat-message user';
-        userMessageDiv.textContent = message;
-        messagesContainer.appendChild(userMessageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // Save session after adding user message
-        saveSession();
-        
+      // Store page summary globally
+      let pageSummary = null;
+      let summaryFetchTimeout = null;
+      
+      // Function to generate page summary with caching
+      async function generatePageSummary() {
         try {
-          // Show thinking animation
-          const thinkingDiv = showThinkingAnimation();
+          // Get main content
+          const mainContent = document.querySelector('main, #main, .main-content, .content');
+          if (!mainContent) return null;
+
+          // Extract text content
+          const textContent = mainContent.innerText.trim();
+          if (!textContent) return null;
+
+          // Generate a simple hash of the content to check if it's changed
+          const contentHash = await generateContentHash(textContent);
           
-          try {
-            const response = await fetch(config.webhook.url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(messageData)
-            });
-            
-            // Remove thinking animation
-            removeThinkingAnimation();
-            
-            if (!response.ok) {
-              throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            let data;
-            try {
-              data = await response.json();
-            } catch (parseError) {
-              console.error('Error parsing JSON response:', parseError);
-              const textResponse = await response.text();
-              console.log('Raw text response:', textResponse);
-              data = { output: "I'm sorry, I couldn't process that request properly." };
-            }
-            
-            // Extract the output text
-            let outputText = '';
-            if (Array.isArray(data) && data.length > 0 && data[0].output) {
-              outputText = data[0].output;
-            } else if (data && data.output) {
-              outputText = data.output;
-            } else if (typeof data === 'string') {
-              outputText = data;
-            }
-            
-            // Fallback for empty responses
-            if (!outputText || outputText.trim() === '') {
-              outputText = "I received your message, but I'm having trouble generating a response.";
-            }
+          // Check if we have a cached summary for this content
+          const cachedSummary = getCachedSummary(window.location.href, contentHash);
+          if (cachedSummary) {
+            console.log('Using cached page summary');
+            return cachedSummary;
+          }
 
-            // Check if the response contains a redirect URL
-            const redirectMatch = outputText.match(/\[REDIRECT\](.*?)\[\/REDIRECT\]/);
-            if (redirectMatch && redirectMatch[1]) {
-              const originalUrl = redirectMatch[1].trim();
-              const redirectUrl = appendUtmToUrl(originalUrl);
-              
-              console.log('Original URL:', originalUrl);
-              console.log('URL with UTMs:', redirectUrl);
-              
-              // Create and add bot message before redirect
-              const botMessageDiv = document.createElement('div');
-              botMessageDiv.className = 'chat-message bot';
-              botMessageDiv.innerHTML = formatMessage("Redirecting you now...");
-              messagesContainer.appendChild(botMessageDiv);
+          // Get page metadata
+          const metadata = {
+            title: document.title,
+            url: window.location.href,
+            description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+            type: determinePageType(),
+            dealer: config.dealer
+          };
 
-              // Add follow-up message asking for phone number
-              const followUpDiv = document.createElement('div');
-              followUpDiv.className = 'chat-message bot';
-              followUpDiv.innerHTML = formatMessage("Our product specialists are ready to help you explore your options and answer any questions. What's the best phone number to reach you at?");
-              messagesContainer.appendChild(followUpDiv);
-              
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
-              
-              // Save session before redirect
-              saveSession();
-              
-              // Perform the redirect after a short delay
-              setTimeout(() => {
-                window.location.href = redirectUrl;
-              }, 2000);
-              return;
+          // Prepare summary request
+          const summaryRequest = {
+            content: textContent,
+            metadata: metadata
+          };
+
+          // Send to page context webhook
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(summaryRequest)
+          });
+
+          if (!response.ok) throw new Error('Failed to generate summary');
+          
+          const data = await response.json();
+          const summary = data.summary || null;
+          
+          // Cache the summary if we got one
+          if (summary) {
+            cacheSummary(window.location.href, contentHash, summary);
+          }
+          
+          return summary;
+        } catch (error) {
+          console.error('Error generating page summary:', error);
+          return null;
+        }
+      }
+
+      // Function to generate a simple hash of the content
+      async function generateContentHash(content) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(content);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+
+      // Function to get cached summary
+      function getCachedSummary(url, contentHash) {
+        try {
+          const cached = localStorage.getItem('bellaaiPageSummary');
+          if (cached) {
+            const { url: cachedUrl, hash: cachedHash, summary, timestamp } = JSON.parse(cached);
+            // Check if the cache is for the same URL, content, and less than 1 hour old
+            if (cachedUrl === url && cachedHash === contentHash && 
+                (Date.now() - timestamp) < 3600000) { // 1 hour cache
+              return summary;
             }
-            
-            // Create and add bot message
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.innerHTML = formatMessage(outputText);
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // Save session
-            saveSession();
-            
-            // Reset inactivity timer (without resetting the inactivityMessageSent flag)
-            resetInactivityTimer();
-          } catch (error) {
-            // Handle errors
-            console.error('API Error:', error);
-            removeThinkingAnimation();
-            
-            const errorMessageDiv = document.createElement('div');
-            errorMessageDiv.className = 'chat-message bot';
-            errorMessageDiv.textContent = "I'm sorry, I'm having trouble connecting to our services right now.";
-            messagesContainer.appendChild(errorMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            saveSession();
           }
         } catch (error) {
-          console.error('Error:', error);
-          removeThinkingAnimation();
-          
-          const errorMessageDiv = document.createElement('div');
-          errorMessageDiv.className = 'chat-message bot';
-          errorMessageDiv.textContent = "I'm sorry, something went wrong. Please try again.";
-          messagesContainer.appendChild(errorMessageDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          
-          saveSession();
+          console.error('Error reading cached summary:', error);
         }
-      }
-      
-      // Expose sendMessage function to global scope for inline click handlers
-      window.sendMessage = sendMessage;
-      
-      // Add event listeners
-      toggleButton.addEventListener('click', function() {
-        hidePromptBubble();
-        promptBubbleShown = true;
-        
-        if (!chatContainer.classList.contains('open')) {
-          chatContainer.classList.add('open');
-          toggleButton.classList.add('hidden');
-          
-          // Handle mobile
-          if (window.innerWidth <= 600) {
-            document.body.style.overflow = 'hidden';
-          }
-          
-          // Clear any existing messages first
-          messagesContainer.innerHTML = '';
-          
-          // Try to load existing session
-          const sessionRestored = loadSession();
-          
-          if (!sessionRestored) {
-            // Create new session
-            inactivityMessageSent = false;
-            currentSessionId = generateUUID();
-            
-            // Send initial messages instead of single welcome message
-            sendInitialMessages();
-          }
-          
-          // Save session after changes
-          saveSession();
-          
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          startInactivityTimer();
-          clearTimeout(promptBubbleTimer);
-        }
-      });
-      
-      // Send button click event
-      sendButton.addEventListener('click', function() {
-        const message = textarea.value.trim();
-        if (message) {
-          sendMessage(message);
-          textarea.value = '';
-        }
-      });
-      
-      // Textarea keypress event
-      textarea.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          const message = textarea.value.trim();
-          if (message) {
-            sendMessage(message);
-            textarea.value = '';
-          }
-        }
-      });
-      
-      // Close button event
-      const closeButton = chatContainer.querySelector('.close-button');
-      closeButton.addEventListener('click', function() {
-        chatContainer.classList.remove('open');
-        toggleButton.classList.remove('hidden');
-        document.body.style.overflow = '';
-        clearTimeout(inactivityTimer);
-        saveSession();
-        
-        // Track that user has manually closed the chat
-        userManuallyClosedChat = true;
-        saveChatState(true);
-      });
-      
-      // Auto-open chat on desktop after 5 seconds
-      const AUTO_OPEN_DELAY = 5000; // 5 seconds
-      const isDesktop = window.innerWidth > 768; // Common breakpoint for desktop
-      
-      // Check if chat was manually closed in previous session
-      userManuallyClosedChat = checkIfChatWasManuallyClosed();
-      
-      if (isDesktop && !userManuallyClosedChat) {
-        setTimeout(function() {
-          // Only auto-open if the user hasn't manually closed the chat
-          if (!userManuallyClosedChat) {
-            openChat();
-          }
-        }, AUTO_OPEN_DELAY);
+        return null;
       }
 
-      // Handle page visibility changes
-      document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible' && !userManuallyClosedChat) {
-          // If page becomes visible and chat wasn't manually closed, open it
-          openChat();
+      // Function to cache summary
+      function cacheSummary(url, contentHash, summary) {
+        try {
+          const cacheData = {
+            url,
+            hash: contentHash,
+            summary,
+            timestamp: Date.now()
+          };
+          localStorage.setItem('bellaaiPageSummary', JSON.stringify(cacheData));
+        } catch (error) {
+          console.error('Error caching summary:', error);
         }
-      });
+      }
 
-      // Handle page navigation (for single-page applications)
-      let lastUrl = window.location.href;
+      // Debounced function to generate summary
+      function debouncedGenerateSummary() {
+        if (summaryFetchTimeout) {
+          clearTimeout(summaryFetchTimeout);
+        }
+        summaryFetchTimeout = setTimeout(async () => {
+          pageSummary = await generatePageSummary();
+        }, 1000); // Wait 1 second after last page change before generating summary
+      }
+
+      // Generate summary when page loads
+      document.addEventListener('DOMContentLoaded', debouncedGenerateSummary);
+
+      // Generate summary when URL changes (for SPA navigation)
+      const lastUrl = window.location.href;
       new MutationObserver(() => {
         const currentUrl = window.location.href;
         if (currentUrl !== lastUrl) {
           lastUrl = currentUrl;
-          if (!userManuallyClosedChat) {
-            openChat();
-          }
+          debouncedGenerateSummary();
         }
       }).observe(document, { subtree: true, childList: true });
 
+      // Send message function
       // Function to send initial messages
       function sendInitialMessages() {
+        const dealerName = config.dealer.name || '[DealerName]';
         const messages = [
           "Hi, I'm Bella! I'm a product specialist here to help guide you through our site today.",
-          "We do things a little bit differently here at [DealerName] and our customers really seem to appreciate it.",
+          `We do things a little bit differently here at ${dealerName} and our customers really seem to appreciate it.`,
           "First let me ask, what brings you here today so I can help guide you to the right department?"
         ];
 
