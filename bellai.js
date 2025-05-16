@@ -932,11 +932,17 @@
         try {
           // Get main content
           const mainContent = document.querySelector('main, #main, .main-content, .content');
-          if (!mainContent) return null;
+          if (!mainContent) {
+            console.log('No main content found on page');
+            return null;
+          }
 
           // Extract and clean text content
           const textContent = cleanHtmlContent(mainContent);
-          if (!textContent) return null;
+          if (!textContent) {
+            console.log('No text content found in main content');
+            return null;
+          }
 
           // Generate a simple hash of the content to check if it's changed
           const contentHash = await generateContentHash(textContent);
@@ -973,11 +979,26 @@
           });
 
           if (!response.ok) {
-            console.warn('Failed to generate page summary:', response.status);
+            console.warn('Failed to generate page summary:', response.status, response.statusText);
             return null;
           }
-          
-          const data = await response.json();
+
+          // Check if response has content
+          const responseText = await response.text();
+          if (!responseText) {
+            console.warn('Empty response from page context webhook');
+            return null;
+          }
+
+          // Try to parse JSON response
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error('Failed to parse page context response:', parseError);
+            console.debug('Response text:', responseText);
+            return null;
+          }
           
           // Extract the summary from the response
           const summary = data.pageSummary || null;
@@ -985,6 +1006,8 @@
           // Cache the summary if we got one
           if (summary) {
             cacheSummary(window.location.href, contentHash, summary);
+          } else {
+            console.warn('No pageSummary found in response:', data);
           }
           
           return summary;
