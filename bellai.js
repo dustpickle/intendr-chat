@@ -1085,7 +1085,7 @@
           
           // Prepare message data
           const messageData = {
-            message: message,
+            chatInput: message,
             sessionId: currentSessionId,
             metadata: {
               dealer: config.dealer,
@@ -1112,7 +1112,7 @@
           // Add bot response
           const botMessageDiv = document.createElement('div');
           botMessageDiv.className = 'chat-message bot';
-          botMessageDiv.innerHTML = formatMessage(data.response);
+          botMessageDiv.innerHTML = formatMessage(data.response || data.message || '');
           messagesContainer.appendChild(botMessageDiv);
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           
