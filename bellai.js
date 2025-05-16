@@ -787,7 +787,43 @@
       const closeButton = chatContainer.querySelector('.close-button');
       
       // Add event listeners
-      toggleButton.addEventListener('click', openChat);
+      toggleButton.addEventListener('click', function() {
+        if (!chatContainer.classList.contains('open')) {
+          chatContainer.classList.add('open');
+          toggleButton.classList.add('hidden');
+          
+          // Handle mobile
+          if (window.innerWidth <= 600) {
+            document.body.style.overflow = 'hidden';
+          }
+          
+          // Clear any existing messages first
+          messagesContainer.innerHTML = '';
+          
+          // Try to load existing session
+          const sessionRestored = loadSession();
+          
+          if (!sessionRestored) {
+            // Create new session
+            inactivityMessageSent = false;
+            currentSessionId = generateUUID();
+            
+            // Generate page context before sending initial messages
+            generatePageSummary().then(() => {
+              // Send initial messages after page context is generated
+              sendInitialMessages();
+            });
+          }
+          
+          // Save session after changes
+          saveSession();
+          
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          startInactivityTimer();
+          clearTimeout(promptBubbleTimer);
+        }
+      });
+
       closeButton.addEventListener('click', function() {
         chatContainer.classList.remove('open');
         toggleButton.classList.remove('hidden');
