@@ -1227,24 +1227,29 @@
         overlayDiv.style.display = 'flex';
         overlayDiv.style.alignItems = 'center';
         overlayDiv.style.justifyContent = 'center';
-        overlayDiv.style.transition = 'opacity 0.3s';
-        overlayDiv.style.opacity = '1';
+        overlayDiv.style.transition = 'opacity 0.4s';
+        overlayDiv.style.opacity = '0';
+        overlayDiv.style.animation = 'bellaai-fadein 0.4s forwards';
 
         // Style chat container for modal
         chatContainer.classList.add('overtake-modal');
-        chatContainer.style.position = 'fixed';
-        chatContainer.style.left = '50%';
-        chatContainer.style.top = '50%';
-        chatContainer.style.transform = 'translate(-50%, -50%)';
+        chatContainer.style.position = 'relative';
+        chatContainer.style.left = '';
+        chatContainer.style.top = '';
+        chatContainer.style.transform = '';
         chatContainer.style.zIndex = '2147483647';
         chatContainer.style.width = '520px';
         chatContainer.style.height = 'auto';
         chatContainer.style.maxHeight = '90vh';
         chatContainer.style.borderRadius = '18px';
         chatContainer.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)';
-        chatContainer.style.opacity = '1';
-        chatContainer.style.visibility = 'visible';
-        chatContainer.classList.add('open');
+        chatContainer.style.opacity = '0';
+        chatContainer.style.background = '#fff';
+        chatContainer.style.display = 'flex';
+        chatContainer.style.flexDirection = 'column';
+        chatContainer.style.padding = '32px 28px 20px 28px';
+        chatContainer.style.transition = 'opacity 0.4s';
+        setTimeout(() => { chatContainer.style.opacity = '1'; }, 50);
 
         // Mobile styles
         if (window.innerWidth <= 600) {
@@ -1252,6 +1257,7 @@
           chatContainer.style.height = '85vh';
           chatContainer.style.maxHeight = '85vh';
           chatContainer.style.borderRadius = '12px';
+          chatContainer.style.padding = '16px 6px 10px 6px';
         }
 
         // Hide toggle button
@@ -1260,6 +1266,9 @@
         // Add overlay to DOM
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
+
+        // Prevent background scroll
+        document.body.style.overflow = 'hidden';
 
         // Set flag so modal only shows once
         localStorage.setItem('bellaaiOvertakeShown', '1');
@@ -1285,7 +1294,12 @@
         chatContainer.style.borderRadius = '';
         chatContainer.style.boxShadow = '';
         chatContainer.style.opacity = '';
-        chatContainer.style.visibility = '';
+        chatContainer.style.background = '';
+        chatContainer.style.display = '';
+        chatContainer.style.flexDirection = '';
+        chatContainer.style.padding = '';
+        // Restore background scroll
+        document.body.style.overflow = '';
       }
 
       // On load, check for overtake
@@ -1302,4 +1316,72 @@
         // Continue with normal close
         if (typeof origCloseHandler === 'function') origCloseHandler();
       });
+
+      // Add fade-in keyframes and modal polish styles
+      const modalStyles = document.createElement('style');
+      modalStyles.textContent = `
+        @keyframes bellaai-fadein {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .bellaai-overtake-overlay {
+          animation: bellaai-fadein 0.4s forwards;
+        }
+        .overtake-modal .brand-header {
+          padding-bottom: 12px;
+          border-bottom: 1px solid #f0f0f0;
+          margin-bottom: 12px;
+        }
+        .overtake-modal .brand-header img {
+          width: 40px;
+          height: 40px;
+          margin-right: 10px;
+        }
+        .overtake-modal .brand-header span {
+          font-size: 22px;
+          font-weight: 600;
+        }
+        .overtake-modal .close-button {
+          position: absolute;
+          right: 18px;
+          top: 18px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 28px;
+          color: #888;
+          opacity: 0.7;
+          z-index: 2;
+          transition: opacity 0.2s;
+        }
+        .overtake-modal .close-button:hover {
+          opacity: 1;
+        }
+        .overtake-modal .chat-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 10px 0 10px 0;
+          margin-bottom: 10px;
+          background: none;
+        }
+        .overtake-modal .chat-input {
+          padding: 0;
+          border-top: 1px solid #f0f0f0;
+          margin-top: 10px;
+          background: none;
+        }
+        @media (max-width: 600px) {
+          .overtake-modal {
+            padding: 0 !important;
+          }
+          .overtake-modal .brand-header img {
+            width: 32px;
+            height: 32px;
+          }
+          .overtake-modal .brand-header span {
+            font-size: 18px;
+          }
+        }
+      `;
+      document.head.appendChild(modalStyles);
     })();
