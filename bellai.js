@@ -955,52 +955,124 @@
         return text;
       }
 
+      // Function to extract navigation links
+      function extractNavigationLinks() {
+        try {
+          // Check localStorage first
+          const cachedNav = localStorage.getItem('bellaaiNavigationLinks');
+          if (cachedNav) {
+            return JSON.parse(cachedNav);
+          }
+
+          const navLinks = [];
+          
+          // Strategy 1: Look for <nav> element
+          const navElement = document.querySelector('nav');
+          if (navElement) {
+            const links = navElement.querySelectorAll('a');
+            links.forEach(link => {
+              if (link.href && link.textContent.trim()) {
+                navLinks.push({
+                  name: link.textContent.trim(),
+                  url: link.href
+                });
+              }
+            });
+          }
+
+          // Strategy 2: Look for elements with nav/navbar in class
+          if (navLinks.length === 0) {
+            const navContainers = Array.from(document.querySelectorAll('*')).filter(el => {
+              const className = el.className.toLowerCase();
+              return (className.includes('nav') || className.includes('navbar')) && 
+                     el.querySelectorAll('a').length > 0;
+            });
+
+            // Get the most parent container
+            const parentContainer = navContainers.reduce((parent, current) => {
+              if (!parent) return current;
+              return parent.contains(current) ? parent : current;
+            }, null);
+
+            if (parentContainer) {
+              const links = parentContainer.querySelectorAll('a');
+              links.forEach(link => {
+                if (link.href && link.textContent.trim()) {
+                  navLinks.push({
+                    name: link.textContent.trim(),
+                    url: link.href
+                  });
+                }
+              });
+            }
+          }
+
+          // Store in localStorage if we found any links
+          if (navLinks.length > 0) {
+            localStorage.setItem('bellaaiNavigationLinks', JSON.stringify(navLinks));
+          }
+
+          return navLinks;
+        } catch (error) {
+          console.error('Error extracting navigation links:', error);
+          return [];
+        }
+      }
+
       // Function to generate page summary with caching
       async function generatePageSummary() {
         try {
-          // Get main content
           const mainContent = document.querySelector('main, #main, .main-content, .content');
           if (!mainContent) {
             console.log('No main content found on page');
             return null;
           }
 
-          // Extract and clean text content
-          const textContent = cleanHtmlContent(mainContent);
-          if (!textContent) {
+          // Get navigation links
+          const navigationLinks = extractNavigationLinks();
+
+          // Get page type
+          const pageType = determinePageType();
+
+          // Clean the content
+          const cleanedContent = cleanHtmlContent(mainContent);
+          if (!cleanedContent) {
             console.log('No text content found in main content');
             return null;
           }
 
-          // Generate a simple hash of the content to check if it's changed
-          const contentHash = await generateContentHash(textContent);
-          
-          // Check if we have a cached summary for this content
+          // Generate content hash
+          const contentHash = await generateContentHash(cleanedContent);
+
+          // Check cache
           const cachedSummary = getCachedSummary(window.location.href, contentHash);
           if (cachedSummary) {
             console.log('Using cached page summary');
-            return cachedSummary;
+            return {
+              ...cachedSummary,
+              navigationLinks
+            };
           }
 
-          // Get page metadata
+          // Prepare metadata
           const metadata = {
             title: document.title,
             url: window.location.href,
             description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-            type: determinePageType(),
-            dealer: config.dealer
+            type: pageType,
+            dealer: config.dealer,
+            navigationLinks
           };
 
-          // Prepare URL with query parameters
+          // Generate summary
           const params = new URLSearchParams({
-            content: textContent,
+            content: cleanedContent,
             metadata: JSON.stringify(metadata)
           });
 
-          // Send GET request to pagecontext webhook
           const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext?' + params.toString(), {
             method: 'GET',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               'Origin': window.location.origin
             }
@@ -1011,17 +1083,17 @@
             return null;
           }
 
-          // Get the text response
           const summary = await response.text();
-          
-          // Cache the summary if we got one
           if (summary) {
             cacheSummary(window.location.href, contentHash, summary);
-          } else {
-            console.warn('Empty response from page context webhook');
+            return {
+              summary,
+              navigationLinks
+            };
           }
-          
-          return summary;
+
+          console.warn('Empty response from page context webhook');
+          return null;
         } catch (error) {
           console.error('Error generating page summary:', error);
           return null;
