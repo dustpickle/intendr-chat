@@ -1,4 +1,44 @@
-// Chat Widget Script - Version 1.9.1
+// Chat Widget Script - Version 1.9.2
+
+// Global audio playback tracker to prevent overlapping audio
+window.BellaAIVoiceChatAudio = {
+  currentSource: null,
+  isPlaying: false,
+  stop: function() {
+    if (this.currentSource) {
+      try {
+        this.currentSource.stop();
+        this.currentSource.disconnect();
+      } catch (err) {
+        console.error('[BellaAI] Error stopping audio:', err);
+      }
+      this.currentSource = null;
+      this.isPlaying = false;
+    }
+  },
+  play: function(source) {
+    this.stop(); // Stop any existing audio
+    this.currentSource = source;
+    this.isPlaying = true;
+    source.onended = () => {
+      this.isPlaying = false;
+      this.currentSource = null;
+    };
+    source.start(0);
+  }
+};
+
+// Chat session transcript ID tracking to prevent duplicate messages
+window.BellaAITranscriptTracking = {
+  lastUserTranscriptId: null,
+  lastAgentResponseId: null,
+  currentConversationId: null,
+  reset: function() {
+    this.lastUserTranscriptId = null;
+    this.lastAgentResponseId = null;
+    this.currentConversationId = null;
+  }
+};
 
 (function() {
     // Configuration
@@ -864,9 +904,20 @@
 
       // Enhanced handleMessageSend to support close commands
       function handleMessageSend() {
-        const input = window.bellaaiTextarea || textarea;
+        // Find the current active textarea - try window reference first, 
+        // then global textarea, then query for it directly
+        const input = window.bellaaiTextarea || 
+                     textarea || 
+                     document.querySelector('.chat-input textarea');
+                     
+        if (!input) {
+          console.error('[BellaAI] No textarea found for message sending');
+          return;
+        }
+        
         const message = input.value.trim();
         if (!message) return;
+        
         // Check for close commands
         const closeCommands = ['close', 'close chat', 'exit', 'quit', 'dismiss'];
         if (closeCommands.includes(message.toLowerCase())) {
@@ -956,67 +1007,50 @@
       }
 
       // Function to extract navigation links
-      function extractNavigationLinks() {
-        try {
-          // Check localStorage first
-          const cachedNav = localStorage.getItem('bellaaiNavigationLinks');
-          if (cachedNav) {
-            return JSON.parse(cachedNav);
-          }
+      function collectNavigationLinks() {
+        // Check if we already have stored links
+        const storedLinks = localStorage.getItem('bellai_nav_links')
+        if (storedLinks) return JSON.parse(storedLinks)
 
-          const navLinks = [];
-          
-          // Strategy 1: Look for <nav> element
-          const navElement = document.querySelector('nav');
-          if (navElement) {
-            const links = navElement.querySelectorAll('a');
-            links.forEach(link => {
-              if (link.href && link.textContent.trim()) {
-                navLinks.push({
-                  name: link.textContent.trim(),
-                  url: link.href
-                });
-              }
-            });
-          }
-
-          // Strategy 2: Look for elements with nav/navbar in class
-          if (navLinks.length === 0) {
-            const navContainers = Array.from(document.querySelectorAll('*')).filter(el => {
-              const className = el.className.toLowerCase();
-              return (className.includes('nav') || className.includes('navbar')) && 
-                     el.querySelectorAll('a').length > 0;
-            });
-
-            // Get the most parent container
-            const parentContainer = navContainers.reduce((parent, current) => {
-              if (!parent) return current;
-              return parent.contains(current) ? parent : current;
-            }, null);
-
-            if (parentContainer) {
-              const links = parentContainer.querySelectorAll('a');
-              links.forEach(link => {
-                if (link.href && link.textContent.trim()) {
-                  navLinks.push({
-                    name: link.textContent.trim(),
-                    url: link.href
-                  });
+        const links = new Set()
+        
+        // Function to process links from an element
+        function processLinks(element) {
+            if (!element) return
+            const anchorElements = element.querySelectorAll('a[href]')
+            anchorElements.forEach(anchor => {
+                const href = anchor.getAttribute('href')
+                const text = anchor.textContent.trim()
+                if (href && !href.startsWith('#') && !href.startsWith('javascript:') && text) {
+                    // Convert relative URLs to absolute
+                    const absoluteUrl = new URL(href, window.location.origin).href
+                    // Store as object with text and url
+                    links.add(JSON.stringify({
+                        text: text,
+                        url: absoluteUrl
+                    }))
                 }
-              });
-            }
-          }
-
-          // Store in localStorage if we found any links
-          if (navLinks.length > 0) {
-            localStorage.setItem('bellaaiNavigationLinks', JSON.stringify(navLinks));
-          }
-
-          return navLinks;
-        } catch (error) {
-          console.error('Error extracting navigation links:', error);
-          return [];
+            })
         }
+
+        // Try to find navigation elements
+        const navElement = document.querySelector('nav')
+        const headerElement = document.querySelector('header')
+        
+        // Process nav and header if they exist
+        if (navElement) processLinks(navElement)
+        if (headerElement) processLinks(headerElement)
+
+        // If no links found in nav/header, look for elements with 'nav' in their class
+        if (links.size === 0) {
+            const navLikeElements = document.querySelectorAll('[class*="nav"]')
+            navLikeElements.forEach(element => processLinks(element))
+        }
+
+        // Convert Set of JSON strings back to array of objects
+        const linksArray = Array.from(links).map(link => JSON.parse(link))
+        localStorage.setItem('bellai_nav_links', JSON.stringify(linksArray))
+        return linksArray
       }
 
       // Function to generate page summary with caching
@@ -1029,7 +1063,7 @@
           }
 
           // Get navigation links
-          const navigationLinks = extractNavigationLinks();
+          const navigationLinks = collectNavigationLinks();
 
           // Get page type
           const pageType = determinePageType();
@@ -1162,7 +1196,7 @@
         if (currentUrl !== lastUrl) {
           lastUrl = currentUrl;
           debouncedGenerateSummary();
-        }
+            }
       }).observe(document, { subtree: true, childList: true });
 
       // Send message function
@@ -1176,6 +1210,7 @@
         messagesContainer.appendChild(userMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
+        // Show thinking animation
           // Show thinking animation
           const thinkingDiv = showThinkingAnimation();
           
@@ -1222,8 +1257,8 @@
             // Fallback for empty responses
           if (!botReply || botReply.trim() === '') {
             botReply = "I received your message, but I'm having trouble generating a response.";
-          }
-          
+            }
+            
           // Remove thinking animation
           removeThinkingAnimation();
 
@@ -1284,7 +1319,7 @@
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
       }
-
+      
       // Function to send initial messages
       function sendInitialMessages() {
         const dealerName = config.dealer.name || '[DealerName]';
@@ -1388,8 +1423,8 @@
         chatContainer.style.padding = '';
         document.body.style.overflow = '';
         hideChat();
-      }
-
+          }
+          
       // Add fade-in keyframes and modal polish styles
       const modalStyles = document.createElement('style');
       modalStyles.textContent = `
@@ -1527,7 +1562,7 @@
         }
       `;
       document.head.appendChild(modalStyles);
-
+          
       // Add/restore CSS for responsive modal width
       const modalResponsiveStyles = document.createElement('style');
       modalResponsiveStyles.textContent = `
@@ -1572,7 +1607,7 @@
             currentSessionId = generateUUID();
           sendInitialMessages();
           generatePageSummary();
-        }
+          }
           saveSession();
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           startInactivityTimer();
@@ -1636,6 +1671,151 @@
         const chatInputDiv = chatContainer.querySelector('.chat-input');
         if (!chatInputDiv) return;
         chatInputDiv.innerHTML = '';
+        
+        // Voice button with microphone and phone icons
+        const voiceBtn = document.createElement('button');
+        voiceBtn.type = 'button';
+        voiceBtn.title = 'Transfer to Voice';
+        voiceBtn.id = 'bellaai-voice-button';
+        voiceBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span style="margin:0 2px;">/</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        `;
+        voiceBtn.style.display = 'flex';
+        voiceBtn.style.alignItems = 'center';
+        voiceBtn.style.justifyContent = 'center';
+        voiceBtn.style.background = 'linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%)';
+        voiceBtn.style.color = 'white';
+        voiceBtn.style.border = 'none';
+        voiceBtn.style.borderRadius = '8px';
+        voiceBtn.style.padding = '0 12px';
+        voiceBtn.style.cursor = 'pointer';
+        voiceBtn.style.fontWeight = '500';
+        voiceBtn.style.fontSize = '16px';
+        voiceBtn.style.height = '40px';
+        voiceBtn.style.minWidth = '40px';
+        voiceBtn.style.marginRight = '8px';
+        
+        // Create a tooltip that will appear when the button is clicked
+        voiceBtn.onclick = function(e) {
+          e.stopPropagation();
+          
+          // Remove any existing tooltip
+          const existingTooltip = document.getElementById('bellaai-voice-tooltip');
+          if (existingTooltip) {
+            existingTooltip.remove();
+            return;
+          }
+          
+          // Create tooltip
+          const tooltip = document.createElement('div');
+          tooltip.id = 'bellaai-voice-tooltip';
+          tooltip.style.position = 'absolute';
+          tooltip.style.bottom = '50px';
+          tooltip.style.left = '0';
+          tooltip.style.background = 'white';
+          tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+          tooltip.style.borderRadius = '8px';
+          tooltip.style.padding = '10px';
+          tooltip.style.zIndex = '9999';
+          tooltip.style.width = '210px';
+          
+          tooltip.innerHTML = `
+            <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Voice</div>
+            <button id="bellaai-browser-voice" style="width:100%;margin-bottom:6px;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+              Start Voice Chat
+            </button>
+            <button id="bellaai-phone-voice" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              Call my Phone
+            </button>
+            <div id="bellaai-phone-input-container" style="display:none;margin-top:6px;">
+              <input type="tel" id="bellaai-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;">
+              <button id="bellaai-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;">Start Call</button>
+            </div>
+          `;
+          
+          // Position the tooltip
+          chatInputDiv.style.position = 'relative';
+          chatInputDiv.appendChild(tooltip);
+          
+          // Close tooltip when clicking outside
+          document.addEventListener('click', function closeTooltip(e) {
+            if (!tooltip.contains(e.target) && e.target !== voiceBtn) {
+              tooltip.remove();
+              document.removeEventListener('click', closeTooltip);
+            }
+          });
+          
+          // Button event handlers
+          document.getElementById('bellaai-browser-voice').onclick = async function() {
+            tooltip.remove();
+            try {
+              const res = await initiateVoiceCall('browser');
+              if (!res.websocketUrl) throw new Error('Missing websocketUrl from server');
+              startVoiceChatInWindow(res.websocketUrl);
+            } catch (err) {
+              console.error('Error starting voice chat:', err);
+              
+              // Show error message in chat
+              const errorMsg = document.createElement('div');
+              errorMsg.className = 'chat-message bot';
+              errorMsg.innerHTML = formatMessage("I couldn't start the voice chat. Please try again later.");
+              messagesContainer.appendChild(errorMsg);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          };
+          
+          document.getElementById('bellaai-phone-voice').onclick = function() {
+            document.getElementById('bellaai-phone-input-container').style.display = 'block';
+            document.getElementById('bellaai-browser-voice').style.display = 'none';
+            document.getElementById('bellaai-phone-voice').style.display = 'none';
+          };
+          
+          document.getElementById('bellaai-start-call').onclick = async function() {
+            const phone = document.getElementById('bellaai-phone-input').value.trim();
+            if (!phone) return;
+            
+            try {
+              tooltip.remove();
+              await initiateVoiceCall('phone', phone);
+              
+              // Show message in chat
+              const msgDiv = document.createElement('div');
+              msgDiv.className = 'chat-message bot';
+              msgDiv.innerHTML = formatMessage("I'm calling your phone now. Please answer to continue our conversation.");
+              messagesContainer.appendChild(msgDiv);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (err) {
+              console.error('Error initiating phone call:', err);
+              
+              // Show error message
+              const errorMsg = document.createElement('div');
+              errorMsg.className = 'chat-message bot';
+              errorMsg.innerHTML = formatMessage("I couldn't connect to your phone. Please check the number and try again.");
+              messagesContainer.appendChild(errorMsg);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          };
+        };
+        
+        // Textarea
         const textareaEl = document.createElement('textarea');
         textareaEl.placeholder = 'Type your message here...';
         textareaEl.rows = 1;
@@ -1643,6 +1823,8 @@
         textareaEl.style.flex = '1';
         textareaEl.style.marginRight = '8px';
         textareaEl.className = textarea.className;
+        
+        // Send button
         const sendBtn = document.createElement('button');
         sendBtn.type = 'submit';
         sendBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
@@ -1659,8 +1841,12 @@
         sendBtn.style.fontSize = '16px';
         sendBtn.style.height = '40px';
         sendBtn.style.minWidth = '40px';
+        
+        // Add elements to container
+        chatInputDiv.appendChild(voiceBtn);
         chatInputDiv.appendChild(textareaEl);
         chatInputDiv.appendChild(sendBtn);
+        
         // Re-attach listeners
         sendBtn.addEventListener('click', handleMessageSend);
         textareaEl.addEventListener('keypress', function(e) {
@@ -1673,6 +1859,7 @@
           this.style.height = 'auto';
           this.style.height = (this.scrollHeight) + 'px';
         });
+        
         // Update references
         window.bellaaiTextarea = textareaEl;
       }
@@ -1760,4 +1947,816 @@
           }
         }
       });
+
+      // --- Voice Call Integration via n8n ---
+
+      // Helper: Get chat history from localStorage
+      function getChatHistory() {
+        try {
+          const history = localStorage.getItem('bella-chat-history')
+          return history ? JSON.parse(history) : []
+        } catch (e) {
+          console.error('Failed to parse chat history', e)
+          return []
+        }
+      }
+
+      // Helper: Get dealer info from config
+      function getDealerInfo() {
+        return config.dealer || {}
+      }
+
+      // Helper: Initiate voice call via n8n
+      async function initiateVoiceCall(callType, phone) {
+        const chatHistory = getChatHistory()
+        const dealerInfo = getDealerInfo()
+        const payload = {
+          type: callType,
+          chatHistory,
+          dealerInfo
+        }
+        if (callType === 'phone') {
+          if (!phone) throw new Error('Phone number required for phone call')
+          payload.phone = phone
+        }
+        const response = await fetch('https://automation.cloudcovehosting.com/webhook/voice-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const err = await response.text()
+          throw new Error('Failed to initiate call: ' + err)
+        }
+        return response.json()
+      }
+
+      // Helper: Send transcript to n8n
+      function sendTranscriptToN8N(transcript) {
+        const chatHistory = getChatHistory()
+        const dealerInfo = getDealerInfo()
+        fetch('https://automation.cloudcovehosting.com/webhook/voice-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript, chatHistory, dealerInfo })
+        })
+      }
+
+      // Voice Transfer Tooltip (replacing modal)
+      function showVoiceTransferModal() {
+        // Remove any existing tooltip
+        const oldTooltip = document.getElementById('bellaai-voice-tooltip')
+        if (oldTooltip) oldTooltip.remove()
+        
+        // Create tooltip container
+        const tooltip = document.createElement('div')
+        tooltip.id = 'bellaai-voice-tooltip'
+        tooltip.style.position = 'fixed'
+        tooltip.style.top = '50%'
+        tooltip.style.left = '50%'
+        tooltip.style.transform = 'translate(-50%, -50%)'
+        tooltip.style.background = 'white'
+        tooltip.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'
+        tooltip.style.borderRadius = '12px'
+        tooltip.style.padding = '16px'
+        tooltip.style.zIndex = '9999'
+        tooltip.style.width = '280px'
+        tooltip.style.maxWidth = '90vw'
+        
+        // Add tooltip content
+        tooltip.innerHTML = `
+          <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;text-align:center;">Transfer to Voice</div>
+          <button id="bellaai-browser-voice" style="width:100%;margin-bottom:10px;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            Start Voice Chat
+          </button>
+          <button id="bellaai-phone-voice" style="width:100%;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            Call my Phone
+          </button>
+          <div id="bellaai-phone-form" style="display:none;margin-top:10px;">
+            <input id="bellaai-phone-input" type="tel" placeholder="Enter your phone number" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;font-size:0.95rem;" />
+            <button id="bellaai-start-call" style="width:100%;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;">Start Call</button>
+          </div>
+          <div id="bellaai-voice-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
+          <button id="bellaai-voice-cancel" style="display:block;margin:10px auto 0;background:none;border:none;color:#666;cursor:pointer;font-size:0.9rem;">Cancel</button>
+        `
+        
+        document.body.appendChild(tooltip)
+        
+        // Add overlay to capture clicks outside the tooltip
+        const overlay = document.createElement('div')
+        overlay.style.position = 'fixed'
+        overlay.style.top = '0'
+        overlay.style.left = '0'
+        overlay.style.width = '100vw'
+        overlay.style.height = '100vh'
+        overlay.style.background = 'rgba(0,0,0,0.3)'
+        overlay.style.zIndex = '9998'
+        document.body.appendChild(overlay)
+        
+        // Remove tooltip and overlay when clicking outside
+        overlay.onclick = function() {
+          tooltip.remove()
+          overlay.remove()
+        }
+        
+        // Add button handlers
+        const browserBtn = document.getElementById('bellaai-browser-voice')
+        const phoneBtn = document.getElementById('bellaai-phone-voice')
+        const phoneForm = document.getElementById('bellaai-phone-form')
+        const phoneInput = document.getElementById('bellaai-phone-input')
+        const errorDiv = document.getElementById('bellaai-voice-error')
+        const cancelBtn = document.getElementById('bellaai-voice-cancel')
+        
+        browserBtn.onclick = async function() {
+          errorDiv.style.display = 'none'
+          browserBtn.disabled = true
+          try {
+            const res = await initiateVoiceCall('browser')
+            if (!res.websocketUrl) throw new Error('Missing websocketUrl from server')
+            // Start integrated voice chat
+            startVoiceChatInWindow(res.websocketUrl)
+            tooltip.remove()
+            overlay.remove()
+          } catch (err) {
+            errorDiv.textContent = err.message
+            errorDiv.style.display = 'block'
+            browserBtn.disabled = false
+          }
+        }
+        
+        phoneBtn.onclick = function() {
+          phoneForm.style.display = 'block'
+          phoneBtn.style.display = 'none'
+          browserBtn.style.display = 'none'
+        }
+        
+        phoneForm.onsubmit = function(e) {
+          e.preventDefault()
+        }
+        
+        document.getElementById('bellaai-start-call').onclick = async function() {
+          errorDiv.style.display = 'none'
+          const phone = phoneInput.value.trim()
+          if (!phone) {
+            errorDiv.textContent = 'Please enter your phone number.'
+            errorDiv.style.display = 'block'
+            return
+          }
+          phoneInput.disabled = true
+          document.getElementById('bellaai-start-call').disabled = true
+          try {
+            await initiateVoiceCall('phone', phone)
+            errorDiv.style.color = '#090'
+            errorDiv.textContent = 'Call initiated! Please answer your phone.'
+            errorDiv.style.display = 'block'
+            setTimeout(() => {
+              tooltip.remove()
+              overlay.remove()
+            }, 2000)
+          } catch (err) {
+            errorDiv.textContent = err.message
+            errorDiv.style.display = 'block'
+            phoneInput.disabled = false
+            document.getElementById('bellaai-start-call').disabled = false
+          }
+        }
+        
+        cancelBtn.onclick = function() {
+          tooltip.remove()
+          overlay.remove()
+        }
+      }
+
+      // --- Conversational AI Integration ---
+      // Utility: Convert Float32 PCM to 16-bit PCM
+      function floatTo16BitPCM(input) {
+        const output = new Int16Array(input.length)
+        for (let i = 0; i < input.length; i++) {
+          let s = Math.max(-1, Math.min(1, input[i]))
+          output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+        }
+        return output
+      }
+
+      // Utility: Convert Int16Array to Base64
+      function int16ToBase64(int16arr) {
+        const buf = new Uint8Array(int16arr.buffer)
+        let binary = ''
+        for (let i = 0; i < buf.byteLength; i++) binary += String.fromCharCode(buf[i])
+        return btoa(binary)
+      }
+
+      // Utility: Resample audio to 16kHz
+      async function resampleTo16kHz(input, inputSampleRate) {
+        console.log('[BellaAI] Resampling from', inputSampleRate, 'Hz to 16000 Hz')
+        if (inputSampleRate === 16000) return input
+        const ratio = 16000 / inputSampleRate
+        const outputLength = Math.ceil(input.length * ratio)
+        const offlineCtx = new OfflineAudioContext(1, outputLength, 16000)
+        const buffer = offlineCtx.createBuffer(1, input.length, inputSampleRate)
+        buffer.copyToChannel(input, 0)
+        const source = offlineCtx.createBufferSource()
+        source.buffer = buffer
+        source.connect(offlineCtx.destination)
+        source.start(0)
+        try {
+          const rendered = await offlineCtx.startRendering()
+          return rendered.getChannelData(0)
+        } catch (err) {
+          console.error('[BellaAI] Resampling error:', err)
+          return input // Fall back to original
+        }
+      }
+
+      // Integrated voice chat directly into the main chat window
+      function startVoiceChatInWindow(websocketUrl) {
+        console.log('[BellaAI] startVoiceChatInWindow called with', websocketUrl)
+        
+        // Create voice controls to replace the chat input
+        const chatInputDiv = chatContainer.querySelector('.chat-input')
+        if (!chatInputDiv) return
+        
+        // Save original chat input content to restore later
+        const originalChatInput = chatInputDiv.innerHTML
+        
+        // Replace with voice controls
+        chatInputDiv.innerHTML = `
+          <div id="bellaai-voice-controls" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;">
+              <div id="bellaai-voice-indicator" style="width:12px;height:12px;background:#ccc;border-radius:50%;margin-right:8px;"></div>
+              <div id="bellaai-voice-status" style="color:#666;font-size:0.9rem;text-align:center;">Initializing...</div>
+            </div>
+            <button id="bellaai-voice-end" style="width:100%;padding:0.75rem 0;border-radius:8px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;">End Voice Chat</button>
+            <div id="bellaai-reconnection-info" style="margin-top:0.5rem;font-size:0.8rem;color:#666;display:none;text-align:center;">Connection lost. Attempting to reconnect...</div>
+          </div>
+        `
+        
+        // Add CSS for animations if not already added
+        if (!document.getElementById('bellaai-voice-animations')) {
+          const style = document.createElement('style')
+          style.id = 'bellaai-voice-animations'
+          style.textContent = `
+            @keyframes pulse {
+              0% { opacity: 1; }
+              50% { opacity: 0.5; }
+              100% { opacity: 1; }
+            }
+            
+            @keyframes recording-pulse {
+              0% { transform: scale(1); opacity: 1; background-color: #c00; }
+              50% { transform: scale(1.2); opacity: 0.7; background-color: #f00; }
+              100% { transform: scale(1); opacity: 1; background-color: #c00; }
+            }
+          `
+          document.head.appendChild(style)
+        }
+        
+        // Get DOM elements
+        const statusDiv = document.getElementById('bellaai-voice-status')
+        const endBtn = document.getElementById('bellaai-voice-end')
+        const indicator = document.getElementById('bellaai-voice-indicator')
+        const reconnectionInfo = document.getElementById('bellaai-reconnection-info')
+        
+        // State variables
+        let ws = null
+        let audioContext = null
+        let micStream = null
+        let processor = null
+        let analyserNode = null
+        let isEnded = false
+        let canSendAudio = false
+        let lastPingTime = Date.now()
+        let hasActivity = false
+        let silenceTimer = null
+        let activityCheckTimer = null
+        let pingCheckTimer = null
+        let audioChunksSent = 0
+        let reconnectAttempts = 0
+        const MAX_RECONNECT_ATTEMPTS = 3
+        
+        // Update status with color
+        function updateStatus(message, color = '#666') {
+          if (statusDiv) {
+            statusDiv.textContent = message
+            statusDiv.style.color = color
+          }
+          if (indicator) {
+            indicator.style.background = color
+          }
+          console.log('[BellaAI] Status:', message)
+        }
+        
+        // Add message to chat (used for both user and AI messages)
+        function addMessageToChat(message, isUser = false) {
+          const messageDiv = document.createElement('div')
+          messageDiv.className = `chat-message ${isUser ? 'user' : 'bot'}`
+          
+          if (isUser) {
+            messageDiv.textContent = message
+          } else {
+            messageDiv.innerHTML = formatMessage(message)
+          }
+          
+          messagesContainer.appendChild(messageDiv)
+          messagesContainer.scrollTop = messagesContainer.scrollHeight
+          saveSession()
+        }
+        
+        // Play audio from base64 PCM (16kHz mono)
+        async function playBase64PCM(base64) {
+          if (!audioContext) return
+          
+          // Use global audio manager to track playback
+          try {
+            const binary = atob(base64)
+            const buf = new ArrayBuffer(binary.length)
+            const view = new Uint8Array(buf)
+            for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i)
+            
+            // Create audio buffer (PCM 16kHz mono, 16-bit signed)
+            const audioBuffer = audioContext.createBuffer(1, view.length / 2, 16000)
+            const floatBuf = audioBuffer.getChannelData(0)
+            
+            // Convert Int16 PCM to Float32
+            const int16 = new Int16Array(view.buffer)
+            for (let i = 0; i < int16.length; i++) {
+              floatBuf[i] = int16[i] / 32768.0
+            }
+            
+            // Play the audio
+            const src = audioContext.createBufferSource()
+            src.buffer = audioBuffer
+            src.connect(audioContext.destination)
+            
+            // Use global audio manager to handle the audio playback
+            window.BellaAIVoiceChatAudio.play(src);
+            
+            // Update UI to show audio is playing
+            updateStatus('Bella is speaking...', '#090')
+            
+            // Add visual indication that AI is speaking
+            indicator.style.animation = 'pulse 1s infinite'
+            indicator.style.background = '#090'
+            
+            // Add event for when playback ends
+            src.onended = () => {
+              console.log('[BellaAI] Audio playback completed')
+              window.BellaAIVoiceChatAudio.currentSource = null
+              
+              // Reset UI when playback completes naturally
+              if (!isEnded && canSendAudio) {
+                updateStatus('Listening...', '#090')
+                if (indicator) {
+                  indicator.style.animation = ''
+                }
+              }
+            }
+          } catch (err) {
+            console.error('[BellaAI] Error playing audio:', err)
+          }
+        }
+        
+        // Clean up resources and restore chat input
+        function cleanup(reason = 'Voice chat ended') {
+          if (isEnded) return
+          console.log('[BellaAI] cleanup called:', reason)
+          isEnded = true
+          
+          // Add a system message about voice chat ending
+          addMessageToChat(`Voice conversation ended: ${reason}`, false)
+          
+          // Clear timers
+          if (silenceTimer) clearInterval(silenceTimer)
+          if (activityCheckTimer) clearInterval(activityCheckTimer)
+          if (pingCheckTimer) clearInterval(pingCheckTimer)
+          
+          // Stop any playing audio using global audio manager
+          window.BellaAIVoiceChatAudio.stop();
+          
+          // Reset transcript tracking variables
+          window.BellaAITranscriptTracking.reset();
+          
+          // Close WebSocket
+          if (ws) {
+            try {
+              if (ws.readyState === 1) { // Open
+                ws.close()
+              }
+            } catch (e) {
+              console.error('[BellaAI] Error closing WebSocket:', e)
+            }
+            ws = null
+          }
+          
+          // Clean up audio resources
+          if (processor) {
+            try {
+              processor.disconnect()
+            } catch (e) {
+              console.error('[BellaAI] Error disconnecting processor:', e)
+            }
+            processor = null
+          }
+          
+          if (analyserNode) {
+            try {
+              analyserNode.disconnect()
+            } catch (e) {
+              console.error('[BellaAI] Error disconnecting analyser:', e)
+            }
+            analyserNode = null
+          }
+          
+          if (audioContext) {
+            try {
+              if (audioContext.state !== 'closed') {
+                audioContext.close()
+              }
+            } catch (e) {
+              console.error('[BellaAI] Error closing AudioContext:', e)
+            }
+            audioContext = null
+          }
+          
+          if (micStream) {
+            try {
+              micStream.getTracks().forEach(track => track.stop())
+            } catch (e) {
+              console.error('[BellaAI] Error stopping mic stream:', e)
+            }
+            micStream = null
+          }
+          
+          // Restore original chat input with a slight delay to ensure proper cleanup
+          setTimeout(function() {
+            // Completely rebuild the input row
+            ensureInputRow();
+            
+            // Update global references
+            textarea = chatContainer.querySelector('.chat-input textarea');
+            sendButton = chatContainer.querySelector('.chat-input button.send-button');
+            
+            // Re-attach event listeners
+            if (textarea && sendButton) {
+              sendButton.addEventListener('click', handleMessageSend);
+              textarea.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleMessageSend();
+                }
+              });
+              textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+              });
+              
+              console.log('[BellaAI] Chat input fully restored with event listeners');
+            } else {
+              console.error('[BellaAI] Failed to find textarea or send button after restoration');
+            }
+          }, 200);
+        }
+        
+        // Set up end call button
+        endBtn.onclick = () => {
+          console.log('[BellaAI] End Voice Chat button clicked')
+          cleanup('Voice chat ended by user')
+        }
+        
+        // Attempt to reconnect WebSocket
+        async function attemptReconnect() {
+          if (isEnded || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            cleanup('Connection lost. Please try again.')
+            return
+          }
+          
+          reconnectAttempts++
+          reconnectionInfo.style.display = 'block'
+          reconnectionInfo.textContent = `Connection lost. Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
+          
+          try {
+            // Close existing connection if any
+            if (ws && ws.readyState === 1) {
+              ws.close()
+            }
+            
+            // Wait a bit before reconnecting
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            
+            // Reinitialize WebSocket
+            initializeWebSocket()
+            
+          } catch (err) {
+            console.error('[BellaAI] Reconnection error:', err)
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+              cleanup('Failed to reconnect. Please try again.')
+            } else {
+              // Try again
+              setTimeout(attemptReconnect, 2000)
+            }
+          }
+        }
+        
+        // Setup WebSocket with handling
+        function initializeWebSocket() {
+          // Connect to WebSocket
+          ws = new WebSocket(websocketUrl)
+          
+          // WebSocket open handler
+          ws.onopen = function() {
+            console.log('[BellaAI] WebSocket connection established')
+            updateStatus('Connected, initializing agent...')
+            reconnectionInfo.style.display = 'none'
+            
+            // Reset reconnect counter on successful connection
+            reconnectAttempts = 0
+            
+            // Add a message to the chat that voice mode is starting
+            addMessageToChat("Voice mode activated. You can now speak with Bella. Your conversation will appear here as text.", false)
+            
+            // Send initial conversation config
+            const chatHistory = getChatHistory()
+            const dealerInfo = getDealerInfo()
+            
+            // Build appropriate prompt text
+            let promptText
+            if (chatHistory && chatHistory.length > 0) {
+              promptText = `You are a helpful product specialist for ${dealerInfo.name || 'our dealership'}. Continue the conversation based on the previous chat history. IMPORTANT: Do not repeat introductions or greetings as we are transitioning from text to voice mode. The user will see your responses as text while also hearing them as voice.`
+            } else {
+              promptText = `You are a helpful product specialist for ${dealerInfo.name || 'our dealership'}. The user will see your responses as text while also hearing them as voice. Keep responses concise and avoid repeating the same information in different messages.`
+            }
+            
+            // Don't include a first_message since we'll just use the text chat context
+            console.log('[BellaAI] Sending conversation config')
+            
+            const conversationConfig = {
+              type: 'conversation_initiation_client_data',
+              conversation_config_override: {
+                agent: {
+                  prompt: { prompt: promptText },
+                  language: 'en'
+                },
+                tts: { voice_id: '21m00Tcm4TlvDq8ikWAM' }
+              },
+              custom_llm_extra_body: { 
+                temperature: 0.7, 
+                max_tokens: 150
+              },
+              dynamic_variables: { 
+                user_name: '', 
+                account_type: '' 
+              }
+            }
+            
+            // Only send first_message if we don't have chat history
+            if (!chatHistory || chatHistory.length === 0) {
+              conversationConfig.conversation_config_override.agent.first_message = 
+                "I'll be speaking with you now. How can I help you?";
+            }
+            
+            // Send the configuration
+            ws.send(JSON.stringify(conversationConfig))
+            
+            // Set up ping check timer
+            lastPingTime = Date.now()
+            if (pingCheckTimer) clearInterval(pingCheckTimer)
+            
+            pingCheckTimer = setInterval(() => {
+              if (isEnded) return
+              
+              // Check if it's been too long since last ping
+              const now = Date.now()
+              if (now - lastPingTime > 30000) { // 30 seconds
+                console.warn('[BellaAI] No ping received in 30s, connection may be lost')
+                attemptReconnect()
+              }
+            }, 10000) // Check every 10 seconds
+          }
+          
+          // WebSocket message handler
+          ws.onmessage = function(event) {
+            try {
+              console.log('[BellaAI] WebSocket message received:', event.data.substring(0, 150) + '...')
+              const data = JSON.parse(event.data)
+              
+              // Handle conversation initialization metadata
+              if (data.type === 'conversation_initiation_metadata') {
+                console.log('[BellaAI] Conversation initiated, ID:', 
+                  data.conversation_initiation_metadata_event?.conversation_id)
+                canSendAudio = true
+                updateStatus('Listening...', '#090')
+                
+                // Store conversation ID to help with tracking responses
+                window.BellaAITranscriptTracking.currentConversationId = 
+                  data.conversation_initiation_metadata_event?.conversation_id || null
+              }
+              
+              // Handle audio from the agent
+              else if (data.type === 'audio' && data.audio_event && data.audio_event.audio_base_64) {
+                console.log('[BellaAI] Received audio')
+                playBase64PCM(data.audio_event.audio_base_64)
+              }
+              
+              // Handle user transcript (what we said)
+              else if (data.type === 'user_transcript' && data.user_transcription_event) {
+                const userText = data.user_transcription_event.user_transcript
+                console.log('[BellaAI] User transcript:', userText)
+                if (userText && userText.trim()) {
+                  // Store last transcript ID to avoid duplicates
+                  const transcriptId = data.user_transcription_event.transcript_id
+                  if (transcriptId && window.BellaAITranscriptTracking.lastUserTranscriptId === transcriptId) {
+                    console.log('[BellaAI] Skipping duplicate user transcript')
+                    return
+                  }
+                  window.BellaAITranscriptTracking.lastUserTranscriptId = transcriptId
+                  
+                  addMessageToChat(userText, true)
+                }
+              }
+              
+              // Handle agent responses (what the AI says)
+              else if (data.type === 'agent_response' && data.agent_response_event) {
+                const botText = data.agent_response_event.agent_response
+                console.log('[BellaAI] Agent response:', botText)
+                
+                // Check for duplicates using response ID if available
+                const responseId = data.agent_response_event.response_id
+                if (responseId && window.BellaAITranscriptTracking.lastAgentResponseId === responseId) {
+                  console.log('[BellaAI] Skipping duplicate agent response')
+                  return
+                }
+                window.BellaAITranscriptTracking.lastAgentResponseId = responseId
+                
+                if (botText && botText.trim()) {
+                  addMessageToChat(botText, false)
+                }
+              }
+              
+              // Handle ping/pong for keeping connection alive
+              else if (data.type === 'ping') {
+                console.log('[BellaAI] Ping received, sending pong')
+                lastPingTime = Date.now()
+                // Send pong response with same event_id - CRITICAL
+                if (data.ping_event && data.ping_event.event_id) {
+                  ws.send(JSON.stringify({
+                    type: 'pong',
+                    event_id: data.ping_event.event_id
+                  }))
+                }
+              }
+              
+            } catch (e) {
+              console.error('[BellaAI] Error processing WebSocket message:', e)
+            }
+          }
+          
+          // WebSocket error handler
+          ws.onerror = function(error) {
+            console.error('[BellaAI] WebSocket error:', error)
+            if (!isEnded) attemptReconnect()
+          }
+          
+          // WebSocket close handler
+          ws.onclose = function(event) {
+            console.log('[BellaAI] WebSocket closed:', event.code, event.reason)
+            if (!isEnded) {
+              if (event.code === 1000) {
+                cleanup('Voice chat completed')
+              } else if (audioChunksSent === 0) {
+                cleanup('No audio detected, please try again')
+              } else {
+                attemptReconnect()
+              }
+            }
+          }
+        }
+        
+        // Start the voice session
+        (async function startVoice() {
+          try {
+            updateStatus('Requesting microphone access...')
+            
+            // Reset audio and transcript tracking variables
+            window.BellaAIVoiceChatAudio.stop();
+            window.BellaAITranscriptTracking.reset();
+            
+            // Get microphone access
+            micStream = await navigator.mediaDevices.getUserMedia({ 
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+              } 
+            })
+            
+            // Create audio context
+            audioContext = new (window.AudioContext || window.webkitAudioContext)()
+            console.log('[BellaAI] AudioContext created with sampleRate:', audioContext.sampleRate)
+            
+            // Set up audio processing pipeline
+            const source = audioContext.createMediaStreamSource(micStream)
+            
+            // Analyser to detect silence
+            analyserNode = audioContext.createAnalyser()
+            analyserNode.fftSize = 256
+            source.connect(analyserNode)
+            
+            // ScriptProcessor for audio data
+            processor = audioContext.createScriptProcessor(4096, 1, 1)
+            source.connect(processor)
+            processor.connect(audioContext.destination)
+            
+            updateStatus('Connecting to Audio...')
+            
+            // Initialize WebSocket connection
+            initializeWebSocket()
+            
+            // Set up silence detection
+            const dataArray = new Uint8Array(analyserNode.frequencyBinCount)
+            
+            // Check for audio activity every 100ms
+            silenceTimer = setInterval(() => {
+              if (isEnded) return
+              analyserNode.getByteFrequencyData(dataArray)
+              
+              // Check if there's audio activity (non-zero frequency data)
+              const sum = dataArray.reduce((a, b) => a + b, 0)
+              const average = sum / dataArray.length
+              
+              // If average is above threshold, consider it as activity
+              const previousActivity = hasActivity
+              hasActivity = average > 5 // Low threshold to detect even quiet speech
+              
+              // Update indicator based on activity change
+              if (hasActivity && canSendAudio) {
+                if (!previousActivity) {
+                  // Just started talking
+                  updateStatus('Listening...', '#c00')
+                  if (indicator) {
+                    indicator.style.animation = 'recording-pulse 1s infinite'
+                  }
+                } else {
+                  // If sound is detected, show recording indicator
+                  updateStatus('Listening...', '#c00')
+                  indicator.style.animation = 'pulse 1s infinite'
+                  indicator.style.background = '#c00'
+                }
+              } else if (canSendAudio && previousActivity) {
+                // Just stopped talking
+                updateStatus('Listening...', '#090')
+                if (indicator) {
+                  indicator.style.animation = ''
+                }
+              }
+            }, 100)
+            
+            // Audio processor - collects audio data and sends to WebSocket
+            processor.onaudioprocess = async function(e) {
+              if (isEnded || !ws || ws.readyState !== 1 || !canSendAudio) return
+              
+              // Get audio data from the buffer
+              let input = e.inputBuffer.getChannelData(0)
+              
+              // Resample to 16kHz if needed
+              if (audioContext.sampleRate !== 16000) {
+                try {
+                  input = await resampleTo16kHz(input, audioContext.sampleRate)
+                } catch (err) {
+                  console.error('[BellaAI] Resampling error:', err)
+                  // Continue with original audio
+                }
+              }
+              
+              // Convert to 16-bit PCM and then to base64
+              const pcm16 = floatTo16BitPCM(input)
+              const base64 = int16ToBase64(pcm16)
+              
+              // Send as user_audio_chunk - EXACT FORMAT
+              ws.send(JSON.stringify({ 
+                user_audio_chunk: base64
+              }))
+              
+              audioChunksSent++
+              if (audioChunksSent % 25 === 0) {
+                console.log('[BellaAI] Sent', audioChunksSent, 'audio chunks')
+              }
+            }
+            
+          } catch (err) {
+            console.error('[BellaAI] Error in voice session:', err)
+            cleanup('Error: ' + (err.message || 'Could not start voice session'))
+          }
+        })()
+      }
+      // --- End Conversational AI Integration ---
+
     })();
