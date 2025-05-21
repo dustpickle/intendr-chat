@@ -735,6 +735,9 @@ window.BellaAITranscriptTracking = {
         pointer-events: all;
         visibility: visible;
       }
+      .bellaai-chat-widget .chat-container.overtake-modal {
+        height: 100% !important;
+      }
       .bellaai-chat-widget .brand-header {
         padding: 16px;
         display: flex;
@@ -766,6 +769,7 @@ window.BellaAITranscriptTracking = {
         display: flex;
         flex-direction: column;
         height: 100%;
+        justify-content: space-around;
       }
       .bellaai-chat-widget .chat-messages {
         flex: 1;
@@ -1586,6 +1590,11 @@ window.BellaAITranscriptTracking = {
         overlayDiv.style.opacity = '0';
         overlayDiv.style.animation = 'bellaai-fadein 0.4s forwards';
         chatContainer.classList.add('overtake-modal');
+        
+        // Add CSS variables directly to the element for colors
+        chatContainer.style.setProperty('--chat--color-primary', config.style.primaryColor);
+        chatContainer.style.setProperty('--chat--color-secondary', config.style.secondaryColor);
+        
         chatContainer.style.position = 'relative';
         chatContainer.style.left = '';
         chatContainer.style.top = '';
@@ -1616,9 +1625,14 @@ window.BellaAITranscriptTracking = {
         toggleButton.classList.add('hidden');
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
-            document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
         localStorage.setItem('bellaaiOvertakeShown', '1');
         showChat();
+        
+        // Call the function to update button styles after modal is shown
+        setTimeout(() => {
+          updateInputButtonStyles();
+        }, 100);
       }
 
       function hideOvertakeModal() {
@@ -1733,6 +1747,10 @@ window.BellaAITranscriptTracking = {
           align-items: center;
           justify-content: center;
         }
+        .overtake-modal .chat-input button#bellaai-voice-button {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: white;
+        }
         .overtake-modal .chat-input button[type="submit"] svg {
           fill: #fff;
           stroke: #fff;
@@ -1749,6 +1767,10 @@ window.BellaAITranscriptTracking = {
           word-wrap: break-word;
           font-size: 14px;
           line-height: 1.5;
+        }
+        .overtake-modal .chat-messages {
+          display: flex;
+          flex-direction: column;
         }
         @media (max-width: 600px) {
           .overtake-modal {
@@ -1770,6 +1792,15 @@ window.BellaAITranscriptTracking = {
           max-height: 60vh;
           display: flex;
           flex-direction: column;
+        }
+        .chat-container.overtake-modal {
+          height: 100% !important;
+        }
+        .chat-interface {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-around;
         }
         .overtake-modal .chat-messages {
           flex: 1 1 0%;
@@ -3075,4 +3106,177 @@ window.BellaAITranscriptTracking = {
         }
       }
 
+      function updateChatUI(message, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = isUser ? 'chat-message user' : 'chat-message bot';
+        
+        if (isUser) {
+          msgDiv.style.alignSelf = 'flex-end';
+          if (chatContainer.classList.contains('overtake-modal')) {
+            // Ensure proper styling for user messages in overtake modal
+            msgDiv.style.background = `linear-gradient(135deg, ${config.style.primaryColor} 0%, ${config.style.secondaryColor} 100%)`;
+            msgDiv.style.color = '#fff';
+          }
+        } else {
+          msgDiv.style.alignSelf = 'flex-start';
+        }
+
+        msgDiv.innerHTML = formatMessage(message);
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // Function to add a message to the chat container
+      function addMessage(message, isUser = false) {
+        updateChatUI(message, isUser);
+        
+        // Save the chat session
+        const savedSession = localStorage.getItem('bellaaiChatSession') || '{"messages":[]}';
+        const sessionData = JSON.parse(savedSession);
+        
+        // Add the new message
+        sessionData.messages.push({
+          type: isUser ? 'user' : 'bot',
+          content: message,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Save back to localStorage
+        localStorage.setItem('bellaaiChatSession', JSON.stringify(sessionData));
+      }
+
+      // Update the buttons in the input box to ensure they show properly
+      function updateInputButtonStyles() {
+        const voiceButton = document.getElementById('bellaai-voice-button');
+        const submitButton = submitBtn; // Reference to the submit button
+        
+        if (chatContainer.classList.contains('overtake-modal')) {
+          // Apply gradient background in overtake modal
+          if (voiceButton) {
+            voiceButton.style.background = `linear-gradient(135deg, ${config.style.primaryColor} 0%, ${config.style.secondaryColor} 100%)`;
+            voiceButton.style.color = '#fff';
+          }
+          
+          if (submitButton) {
+            submitButton.style.background = `linear-gradient(135deg, ${config.style.primaryColor} 0%, ${config.style.secondaryColor} 100%)`;
+            submitButton.style.color = '#fff';
+          }
+        }
+      }
+      
+      function showOvertakeModal() {
+        // ... existing code ...
+        
+        // Call the function to update button styles after modal is shown
+        setTimeout(() => {
+          updateInputButtonStyles();
+        }, 100);
+      }
+
+      // Create the UI components for the chat window
+      function createChatUI() {
+        // ... existing code ...
+        
+        chatInput = document.createElement('div');
+        chatInput.className = 'chat-input';
+        
+        // ... existing code ...
+        
+        // Voice button
+        const voiceButton = document.createElement('button');
+        voiceButton.id = 'bellaai-voice-button';
+        voiceButton.type = 'button';
+        voiceButton.style.display = config.voice.enabled ? 'block' : 'none';
+        voiceButton.style.background = `linear-gradient(135deg, ${config.style.primaryColor} 0%, ${config.style.secondaryColor} 100%)`;
+        voiceButton.style.color = 'white';
+        voiceButton.style.border = 'none';
+        voiceButton.style.borderRadius = '50%';
+        voiceButton.style.width = '40px';
+        voiceButton.style.height = '40px';
+        voiceButton.style.marginRight = '8px';
+        voiceButton.style.cursor = 'pointer';
+        voiceButton.style.textAlign = 'center';
+        voiceButton.style.fontSize = '18px';
+        voiceButton.style.flexShrink = '0';
+        
+        // ... existing code ...
+        
+        // Submit button
+        submitBtn = document.createElement('button');
+        submitBtn.type = 'submit';
+        submitBtn.style.background = `linear-gradient(135deg, ${config.style.primaryColor} 0%, ${config.style.secondaryColor} 100%)`;
+        submitBtn.style.color = '#fff';
+        submitBtn.style.border = 'none';
+        submitBtn.style.borderRadius = '8px';
+        submitBtn.style.padding = '0 18px';
+        submitBtn.style.cursor = 'pointer';
+        submitBtn.style.fontWeight = '500';
+        submitBtn.style.fontSize = '16px';
+        submitBtn.style.height = '40px';
+        submitBtn.style.minWidth = '40px';
+        submitBtn.style.display = 'flex';
+        submitBtn.style.alignItems = 'center';
+        submitBtn.style.justifyContent = 'center';
+        
+        // ... existing code ...
+      }
+      
+      // Add an event listener for when the chat container changes classes
+      const chatContainerObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'class') {
+            updateInputButtonStyles();
+          }
+        });
+      });
+      
+      // Start observing after the chat container is created
+      function startObservingChatContainer() {
+        if (chatContainer && !isObserving) {
+          chatContainerObserver.observe(chatContainer, { attributes: true });
+          isObserving = true;
+        }
+      }
+      
+      // Variable to track if we're already observing
+      let isObserving = false;
+
     })();
+
+    // ... existing code ...
+      // Update init function to start observing
+      function init() {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initChat);
+        } else {
+          initChat();
+        }
+      }
+
+      function initChat() {
+        if (document.getElementById('bellaai-chat-container')) {
+          return;
+        }
+        
+        document.head.appendChild(styleElement);
+        if (modalStyles) document.head.appendChild(modalStyles);
+        
+        createChatUI();
+        document.body.appendChild(chatContainer);
+        
+        // Start observing the chat container for class changes
+        startObservingChatContainer();
+        
+        // Check if we should auto-open (first time visitor)
+        if (!localStorage.getItem('bellaaiShown') && config.autoOpen) {
+          localStorage.setItem('bellaaiShown', '1');
+          setTimeout(showChat, 2000);
+        }
+        
+        // Check if we should restore minimized state
+        if (localStorage.getItem('bellaaiMinimized') === '1') {
+          toggleButton.classList.remove('hidden');
+          chatContainer.classList.add('hidden');
+        }
+      }
+// ... existing code ...
