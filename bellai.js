@@ -1075,7 +1075,7 @@ window.BellaAITranscriptTracking = {
       // Style the phone button
       phoneButton.style.position = 'fixed';
       phoneButton.style.bottom = '20px';
-      phoneButton.style.right = config.style.position === 'left' ? '20px' : '85px'; // Position to the right of the chat button
+      phoneButton.style.right = config.style.position === 'left' ? '20px' : '20px'; // Position independently
       phoneButton.style.width = '60px';
       phoneButton.style.height = '60px';
       phoneButton.style.borderRadius = '50%';
@@ -1090,10 +1090,8 @@ window.BellaAITranscriptTracking = {
       phoneButton.style.zIndex = '2147483646';
       phoneButton.style.padding = '0';
       
-      // Adjust the position of the chat toggle button to make room for the phone button
-      if (config.style.position !== 'left') {
-        toggleButton.style.right = '95px'; // Move chat button to the left
-      }
+      // Remove the position adjustment of the chat toggle button
+      // Let both buttons sit in their natural positions
       
       // Phone button click handler
       phoneButton.onclick = function(e) {
@@ -1106,31 +1104,27 @@ window.BellaAITranscriptTracking = {
           return;
         }
         
-        // Create tooltip
+        // Create tooltip - use a more compact style matching the in-chat tooltip
         const tooltip = document.createElement('div');
         tooltip.id = 'bellaai-phone-tooltip';
-        tooltip.style.position = 'absolute';
-        tooltip.style.bottom = '75px';
-        tooltip.style.right = config.style.position === 'left' ? '0' : '0';
+        tooltip.style.position = 'fixed';
+        tooltip.style.bottom = '90px'; // Position above the button
+        tooltip.style.right = config.style.position === 'left' ? '20px' : '20px';
         tooltip.style.background = 'white';
         tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
         tooltip.style.borderRadius = '8px';
-        tooltip.style.padding = '15px';
+        tooltip.style.padding = '10px';
         tooltip.style.zIndex = '2147483646';
-        tooltip.style.width = '220px';
+        tooltip.style.width = '210px';
         
         tooltip.innerHTML = `
-          <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;">We'll call you right away</div>
-          <p style="font-size:0.9rem;color:#666;margin-bottom:12px;">Enter your phone number and we'll connect you with a product specialist.</p>
-          <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;font-size:0.9rem;">
-          <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:6px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:0.9rem;border:none;cursor:pointer;">Call Me Now</button>
+          <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Phone</div>
+          <div id="bellaai-phone-input-container">
+            <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;">
+            <button id="bellaai-direct-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;">Start Call</button>
+          </div>
           <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
-        
-        // Position the tooltip above the button
-        tooltip.style.position = 'fixed';
-        tooltip.style.bottom = '90px'; // Position above the button
-        tooltip.style.right = config.style.position === 'left' ? '20px' : '10px';
         
         // Add the tooltip to the body, not as a child of the button
         document.body.appendChild(tooltip);
