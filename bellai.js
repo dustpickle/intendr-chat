@@ -1090,6 +1090,11 @@ window.BellaAITranscriptTracking = {
       phoneButton.style.zIndex = '2147483646';
       phoneButton.style.padding = '0';
       
+      // Adjust the position of the chat toggle button to make room for the phone button
+      if (config.style.position !== 'left') {
+        toggleButton.style.right = '95px'; // Move chat button to the left
+      }
+      
       // Phone button click handler
       phoneButton.onclick = function(e) {
         e.stopPropagation();
@@ -1122,12 +1127,13 @@ window.BellaAITranscriptTracking = {
           <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
         
-        // Position the tooltip appropriately
-        tooltip.style.transform = 'translateX(-45%)';
+        // Position the tooltip above the button
+        tooltip.style.position = 'fixed';
+        tooltip.style.bottom = '90px'; // Position above the button
+        tooltip.style.right = config.style.position === 'left' ? '20px' : '10px';
         
-        // Add the tooltip to the phone button
-        phoneButton.style.position = 'relative';
-        phoneButton.appendChild(tooltip);
+        // Add the tooltip to the body, not as a child of the button
+        document.body.appendChild(tooltip);
         
         // Close tooltip when clicking outside
         document.addEventListener('click', function closeDirectTooltip(e) {
