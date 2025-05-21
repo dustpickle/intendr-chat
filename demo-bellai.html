@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BellaAI Chat Widget Demo</title>
+  <style>
+    body { font-family: sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    .demo-header { padding: 2rem; text-align: center; background: #003f72; color: #fff; }
+    .demo-content { max-width: 600px; margin: 2rem auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="demo-header">
+    <h1>BellaAI Chat Widget Demo</h1>
+    <p>Test the chat widget locally with your configuration.</p>
+  </div>
+  <div class="demo-content">
+    <p>This is a simple page to test the BellaAI chat widget. The widget should appear in the bottom right corner.</p>
+  </div>
+  <script>
+    window.ChatWidgetConfig = {
+      webhook: { url: 'https://automation.cloudcovehosting.com/webhook/chat' },
+      branding: {
+        logo: 'https://cdn-icons-png.flaticon.com/512/5962/5962463.png',
+        name: 'Bella : Product Specialist',
+        welcomeText: ''
+      },
+      style: {
+        primaryColor: '#003f72',
+        secondaryColor: '#003f72',
+        position: 'right',
+        backgroundColor: '#ffffff',
+        fontColor: '#333333'
+      },
+      dealer: {
+        name: 'Nissan of Stockton',
+        phone: '555-123-4567',
+        website: 'https://nissanofstockton.com',
+        searchPage: '/search',
+        provider: 'BellaAI',
+        dealerId: 'dealer-001'
+      },
+      overtake: false
+    }
+  </script>
+  <script src="./bellai.js"></script>
+</body>
+</html> 

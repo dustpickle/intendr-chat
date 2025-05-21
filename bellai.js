@@ -1,44 +1,266 @@
 // Chat Widget Script - Version 1.9.2
 
-// Global audio playback tracker to prevent overlapping audio
+// Global voice session tracking
+window.BellaAIVoiceWS = null;
+window.BellaAIVoiceActive = false;
+window.BellaAISeenAudio = window.BellaAISeenAudio || new Set(); // Global set for tracking already processed audio chunks
+window.BellaAIEarlyAudioBuffer = []; // Buffer for audio chunks that arrive before text
+window.BellaAISpeakingFrames = 0; // Track consecutive speaking frames for VAD
+
+// Global audio playback tracker - Queue-based implementation
 window.BellaAIVoiceChatAudio = {
-  currentSource: null,
-  isPlaying: false,
-  stop: function() {
-    if (this.currentSource) {
+  q: [],
+  audioCtx: null,
+  playing: false,
+  currentSrc: null, // Track current audio source
+  currentGain: null, // Track current gain node
+  paused: false,
+  agentSpeaking: false, // Track when agent is actively speaking
+  _resumeTimeout: null,
+  _lastB64: null, // Remember last decoded base64
+  
+  enqueue(b64, ctx) {
+    if (!ctx) {
+      console.warn('[BellaAI][AUDIO] enqueue: No audio context provided');
+      return;
+    }
+    this.audioCtx = ctx;
+    this.q.push(b64);
+    console.log('[BellaAI][AUDIO] Enqueued audio chunk. Queue length:', this.q.length);
+    if (!this.playing && !this.paused) this._playNext();
+  },
+  
+  _playNext() {
+    if (this.paused) {
+      console.log('[BellaAI][AUDIO] _playNext: Paused, not playing next chunk');
+      return;
+    }
+    
+    // Check if we've been interrupted
+    if (window.BellaAITranscriptTracking.abortCurrentResponse) {
+      console.log('[BellaAI][AUDIO] _playNext: Aborting due to interrupt flag');
+      this.stop();
+      return;
+    }
+    
+    const next = this.q.shift();
+    if (!next) {
+      this.playing = false;
+      this.currentSrc = null;
+      this.agentSpeaking = false;
+      console.log('[BellaAI][AUDIO] _playNext: Queue empty, agent done speaking');
+      return;
+    }
+    
+    this.playing = true;
+    console.log('[BellaAI][AUDIO] _playNext: Decoding and playing next chunk');
+    this._decodeAndBuffer(next, this.audioCtx)
+      .then(buf => {
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          console.error('[BellaAI][AUDIO] AudioContext is closed, cannot play audio');
+          this.playing = false;
+          return;
+        }
+        
+        // Cleanup any existing source before creating a new one
+        if (this.currentSrc) {
+          try { this.currentSrc.stop(0); } catch (e) {}
+          try { this.currentSrc.disconnect(); } catch (e) {}
+          this.currentSrc = null;
+        }
+        
+        const src = this.audioCtx.createBufferSource();
+        src.buffer = buf;
+        const gainNode = this.audioCtx.createGain();
+        gainNode.gain.value = 1.0;
+        src.connect(gainNode);
+        gainNode.connect(this.audioCtx.destination);
+        this.currentSrc = src;
+        this.agentSpeaking = true;
+        console.log('[BellaAI][AUDIO] Starting audio playback, buffer length:', buf.length);
+        src.onended = () => {
+          console.log('[BellaAI][AUDIO] Audio playback ended');
+          this.agentSpeaking = false;
+          this.currentSrc = null;
+          this._playNext();
+        };
+        try {
+          src.start(0);
+          console.log('[BellaAI][AUDIO] Audio playback started');
+        } catch (e) {
+          console.error('[BellaAI][AUDIO] Error starting audio source:', e);
+          this.currentSrc = null;
+          this.agentSpeaking = false;
+          this._playNext();
+        }
+      })
+      .catch(err => {
+        console.error('[BellaAI][AUDIO] Error decoding/playing audio:', err);
+        this.currentSrc = null;
+        this._playNext();
+      });
+  },
+  
+  _decodeAndBuffer(base64, audioContext) {
+    this._lastB64 = base64; // Remember the base64 string for possible pause/resume
+    
+    // Debug logging
+    console.log('[BellaAI] Decoding audio chunk, length:', base64.length);
+    
+    return new Promise((resolve, reject) => {
       try {
-        this.currentSource.stop();
-        this.currentSource.disconnect();
+        if (!base64 || base64.length < 100) {
+          console.error('[BellaAI] Invalid base64 data in _decodeAndBuffer:', base64.length);
+          reject(new Error('Invalid base64 data'));
+          return;
+        }
+        
+        if (!audioContext || audioContext.state === 'closed') {
+          console.error('[BellaAI] Invalid or closed audio context');
+          reject(new Error('Invalid audio context'));
+          return;
+        }
+        
+        // Decode base64 to binary
+        const binary = atob(base64);
+        console.log('[BellaAI] Decoded binary length:', binary.length);
+        
+        const buffer = new ArrayBuffer(binary.length);
+        const view = new Uint8Array(buffer);
+        for (let i = 0; i < binary.length; i++) {
+          view[i] = binary.charCodeAt(i);
+        }
+        
+        // Create Int16Array from PCM data (proper little-endian handling)
+        const int16 = new Int16Array(Math.floor(view.length / 2));
+        for (let i = 0, j = 0; i < view.length - 1; i += 2, j++) {
+          // Combine two bytes into one 16-bit sample (little-endian)
+          int16[j] = (view[i] & 0xFF) | ((view[i + 1] & 0xFF) << 8);
+        }
+        
+        console.log('[BellaAI] Created Int16Array with', int16.length, 'samples');
+        
+        // Create audio buffer
+        const pcmDataBuffer = audioContext.createBuffer(1, int16.length, 16000);
+        const floatData = pcmDataBuffer.getChannelData(0);
+        
+        // Convert int16 PCM values to float audio samples
+        for (let i = 0; i < int16.length; i++) {
+          floatData[i] = int16[i] / 32768.0;
+        }
+        
+        console.log('[BellaAI] Successfully created audio buffer');
+        resolve(pcmDataBuffer);
       } catch (err) {
-        console.error('[BellaAI] Error stopping audio:', err);
+        console.error('[BellaAI] Error in _decodeAndBuffer:', err);
+        reject(err);
       }
-      this.currentSource = null;
-      this.isPlaying = false;
+    });
+  },
+  
+  pause() {
+    if (this.paused) {
+      console.log('[BellaAI][AUDIO] pause: Already paused');
+      return;
+    }
+    this.paused = true;
+    console.log('[BellaAI][AUDIO] pause: Pausing playback');
+    if (this.currentSrc) {
+      try { this.currentSrc.stop(0); } catch (e) {}
+      this.currentSrc.disconnect();
+      if (this.currentSrc.buffer && this._lastB64) {
+        this.q.unshift(this._lastB64);
+        console.log('[BellaAI][AUDIO] pause: Pushed last chunk back to queue');
+      }
+      this.currentSrc = null;
     }
   },
-  play: function(source) {
-    this.stop(); // Stop any existing audio
-    this.currentSource = source;
-    this.isPlaying = true;
-    source.onended = () => {
-      this.isPlaying = false;
-      this.currentSource = null;
-    };
-    source.start(0);
+  
+  resume() {
+    if (!this.paused) {
+      console.log('[BellaAI][AUDIO] resume: Not paused');
+      return;
+    }
+    this.paused = false;
+    console.log('[BellaAI][AUDIO] resume: Resuming playback');
+    this._playNext();
+  },
+  
+  stop() {
+    if (this.currentSrc) {
+      try { this.currentSrc.stop(0); } catch (e) {}
+      this.currentSrc.disconnect();
+      this.currentSrc = null;
+      console.log('[BellaAI][AUDIO] stop: Stopped current source');
+    }
+    this.q = [];
+    this.playing = false;
+    this.paused = false;
+    this.agentSpeaking = false;
+    if (this.audioCtx && this.audioCtx.state === 'running') {
+      this.audioCtx.suspend().catch(() => {});
+      console.log('[BellaAI][AUDIO] stop: Suspended audio context');
+    }
+    this.audioCtx = null;
+    console.log('[BellaAI][AUDIO] stop: Cleared queue and reset state');
   }
 };
 
-// Chat session transcript ID tracking to prevent duplicate messages
+// Chat session transcript ID tracking
 window.BellaAITranscriptTracking = {
   lastUserTranscriptId: null,
   lastAgentResponseId: null,
+  processedResponses: new Set(),
   currentConversationId: null,
+  voiceModeAnnounced: false,
+  defaultGreetingShown: false,
+  lastResponseText: null,
+  lastAudioId: null,
+  abortCurrentResponse: false, // Flag to abort current response when user interrupts
   reset: function() {
     this.lastUserTranscriptId = null;
     this.lastAgentResponseId = null;
+    this.processedResponses.clear();
     this.currentConversationId = null;
+    this.voiceModeAnnounced = false;
+    this.defaultGreetingShown = false;
+    this.lastResponseText = null;
+    this.lastAudioId = null;
+    this.abortCurrentResponse = false;
+  },
+  isResponseProcessed: function(responseId) {
+    if (!responseId) return false;
+    return this.processedResponses.has(responseId) || this.lastAgentResponseId === responseId;
+  },
+  markResponseProcessed: function(responseId) {
+    if (responseId) {
+      this.lastAgentResponseId = responseId;
+      this.processedResponses.add(responseId);
+    }
   }
 };
+
+// Setup global iOS AudioContext unlock
+(function() {
+  const unlockAudioContext = () => {
+    try {
+      // Create and immediately close an AudioContext to unlock audio on iOS
+      const tempContext = new (window.AudioContext || window.webkitAudioContext)();
+      tempContext.resume().then(() => tempContext.close()).catch(() => {});
+      
+      // Also try to resume any existing contexts
+      if (window.BellaAIVoiceChatAudio && window.BellaAIVoiceChatAudio.audioCtx) {
+        window.BellaAIVoiceChatAudio.audioCtx.resume().catch(() => {});
+      }
+    } catch (e) {
+      console.log('[BellaAI] Audio context unlock attempt error (non-critical):', e);
+    }
+  };
+  // Attach to user interaction events
+  ['touchend', 'touchstart', 'click', 'keydown'].forEach(evt => 
+    window.addEventListener(evt, unlockAudioContext, { once: true, passive: true })
+  );
+})();
 
 (function() {
     // Configuration
@@ -1766,10 +1988,10 @@ window.BellaAITranscriptTracking = {
           // Button event handlers
           document.getElementById('bellaai-browser-voice').onclick = async function() {
             tooltip.remove();
-            try {
-              const res = await initiateVoiceCall('browser');
-              if (!res.websocketUrl) throw new Error('Missing websocketUrl from server');
-              startVoiceChatInWindow(res.websocketUrl);
+                      try {
+            const { websocketUrl: signedUrl } = await initiateVoiceCall('browser');
+            if (!signedUrl) throw new Error('Missing websocketUrl from server');
+            startVoiceChatInWindow(signedUrl);
             } catch (err) {
               console.error('Error starting voice chat:', err);
               
@@ -1850,8 +2072,8 @@ window.BellaAITranscriptTracking = {
         // Re-attach listeners
         sendBtn.addEventListener('click', handleMessageSend);
         textareaEl.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
             handleMessageSend();
           }
         });
@@ -1947,17 +2169,27 @@ window.BellaAITranscriptTracking = {
           }
         }
       });
-
+      
       // --- Voice Call Integration via n8n ---
 
       // Helper: Get chat history from localStorage
       function getChatHistory() {
         try {
-          const history = localStorage.getItem('bella-chat-history')
-          return history ? JSON.parse(history) : []
+          const savedSession = localStorage.getItem('bellaaiChatSession');
+          if (!savedSession) return [];
+          
+          const sessionData = JSON.parse(savedSession);
+          if (!sessionData.messages || !Array.isArray(sessionData.messages)) return [];
+          
+          // Format the messages in the structure expected by the API
+          return sessionData.messages.map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.type === 'user' ? msg.content : msg.content.replace(/<[^>]*>/g, ''),
+            timestamp: new Date().toISOString()
+          }));
         } catch (e) {
-          console.error('Failed to parse chat history', e)
-          return []
+          console.error('Failed to parse chat history', e);
+          return [];
         }
       }
 
@@ -1979,16 +2211,39 @@ window.BellaAITranscriptTracking = {
           if (!phone) throw new Error('Phone number required for phone call')
           payload.phone = phone
         }
-        const response = await fetch('https://automation.cloudcovehosting.com/webhook/voice-call', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-          const err = await response.text()
-          throw new Error('Failed to initiate call: ' + err)
+        
+        try {
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook/voice-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error('Failed to initiate call: ' + text);
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json();
+          } else {
+            // Handle text/plain responses
+            const text = await response.text();
+            return { 
+              status: 'success', 
+              message: text,
+              callDetails: {
+                phone: phone,
+                callId: 'unknown',
+                status: 'connecting'
+              }
+            };
+          }
+        } catch (error) {
+          console.error('Error in initiateVoiceCall:', error);
+          throw error;
         }
-        return response.json()
       }
 
       // Helper: Send transcript to n8n
@@ -2080,10 +2335,10 @@ window.BellaAITranscriptTracking = {
           errorDiv.style.display = 'none'
           browserBtn.disabled = true
           try {
-            const res = await initiateVoiceCall('browser')
-            if (!res.websocketUrl) throw new Error('Missing websocketUrl from server')
+            const { websocketUrl: signedUrl } = await initiateVoiceCall('browser')
+            if (!signedUrl) throw new Error('Missing websocketUrl from server')
             // Start integrated voice chat
-            startVoiceChatInWindow(res.websocketUrl)
+            startVoiceChatInWindow(signedUrl)
             tooltip.remove()
             overlay.remove()
           } catch (err) {
@@ -2181,14 +2436,23 @@ window.BellaAITranscriptTracking = {
       function startVoiceChatInWindow(websocketUrl) {
         console.log('[BellaAI] startVoiceChatInWindow called with', websocketUrl)
         
-        // Create voice controls to replace the chat input
+        // Prevent duplicate voice sessions
+        if (window.BellaAIVoiceActive) {
+          console.log('[BellaAI] Previous voice session detected, cleaning up before starting new one');
+          cleanup('Previous voice session superseded');
+        }
+        
+        // Immediately stop any playing audio and clear queue to prevent overlapping voices
+        window.BellaAIVoiceChatAudio.stop();
+        window.BellaAISeenAudio.clear(); // Reset the seen audio IDs for new session
+        
+        window.BellaAIVoiceActive = true;
+        
         const chatInputDiv = chatContainer.querySelector('.chat-input')
         if (!chatInputDiv) return
         
-        // Save original chat input content to restore later
         const originalChatInput = chatInputDiv.innerHTML
         
-        // Replace with voice controls
         chatInputDiv.innerHTML = `
           <div id="bellaai-voice-controls" style="width:100%;display:flex;flex-direction:column;align-items:center;">
             <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;">
@@ -2200,33 +2464,21 @@ window.BellaAITranscriptTracking = {
           </div>
         `
         
-        // Add CSS for animations if not already added
         if (!document.getElementById('bellaai-voice-animations')) {
           const style = document.createElement('style')
           style.id = 'bellaai-voice-animations'
           style.textContent = `
-            @keyframes pulse {
-              0% { opacity: 1; }
-              50% { opacity: 0.5; }
-              100% { opacity: 1; }
-            }
-            
-            @keyframes recording-pulse {
-              0% { transform: scale(1); opacity: 1; background-color: #c00; }
-              50% { transform: scale(1.2); opacity: 0.7; background-color: #f00; }
-              100% { transform: scale(1); opacity: 1; background-color: #c00; }
-            }
+            @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+            @keyframes recording-pulse { 0% { transform: scale(1); opacity: 1; background-color: #c00; } 50% { transform: scale(1.2); opacity: 0.7; background-color: #f00; } 100% { transform: scale(1); opacity: 1; background-color: #c00; } }
           `
           document.head.appendChild(style)
         }
         
-        // Get DOM elements
         const statusDiv = document.getElementById('bellaai-voice-status')
         const endBtn = document.getElementById('bellaai-voice-end')
         const indicator = document.getElementById('bellaai-voice-indicator')
         const reconnectionInfo = document.getElementById('bellaai-reconnection-info')
         
-        // State variables
         let ws = null
         let audioContext = null
         let micStream = null
@@ -2235,15 +2487,14 @@ window.BellaAITranscriptTracking = {
         let isEnded = false
         let canSendAudio = false
         let lastPingTime = Date.now()
-        let hasActivity = false
+        let hasActivity = false // Tracks if user is currently speaking
         let silenceTimer = null
-        let activityCheckTimer = null
         let pingCheckTimer = null
         let audioChunksSent = 0
         let reconnectAttempts = 0
-        const MAX_RECONNECT_ATTEMPTS = 3
+        const MAX_RECONNECT_ATTEMPTS = 5 // Increased from 3
+        // Using global window.BellaAISeenAudio instead of local seenAudio
         
-        // Update status with color
         function updateStatus(message, color = '#666') {
           if (statusDiv) {
             statusDiv.textContent = message
@@ -2255,508 +2506,573 @@ window.BellaAITranscriptTracking = {
           console.log('[BellaAI] Status:', message)
         }
         
-        // Add message to chat (used for both user and AI messages)
         function addMessageToChat(message, isUser = false) {
           const messageDiv = document.createElement('div')
           messageDiv.className = `chat-message ${isUser ? 'user' : 'bot'}`
-          
           if (isUser) {
             messageDiv.textContent = message
           } else {
             messageDiv.innerHTML = formatMessage(message)
           }
-          
           messagesContainer.appendChild(messageDiv)
           messagesContainer.scrollTop = messagesContainer.scrollHeight
           saveSession()
         }
         
-        // Play audio from base64 PCM (16kHz mono)
+        // Enhanced playBase64PCM to use queue-based audio player
         async function playBase64PCM(base64) {
-          if (!audioContext) return
+          if (!audioContext) {
+            console.error("[BellaAI] playBase64PCM: audioContext is not available.");
+            updateStatus('Error: Audio system not ready', '#c00');
+            return;
+          }
           
-          // Use global audio manager to track playback
-          try {
-            const binary = atob(base64)
-            const buf = new ArrayBuffer(binary.length)
-            const view = new Uint8Array(buf)
-            for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i)
-            
-            // Create audio buffer (PCM 16kHz mono, 16-bit signed)
-            const audioBuffer = audioContext.createBuffer(1, view.length / 2, 16000)
-            const floatBuf = audioBuffer.getChannelData(0)
-            
-            // Convert Int16 PCM to Float32
-            const int16 = new Int16Array(view.buffer)
-            for (let i = 0; i < int16.length; i++) {
-              floatBuf[i] = int16[i] / 32768.0
+          // Force audio context to resume if it's suspended
+          if (audioContext.state === 'suspended') {
+            try {
+              await audioContext.resume();
+              console.log('[BellaAI] AudioContext resumed');
+            } catch (err) {
+              console.error('[BellaAI] Error resuming AudioContext:', err);
             }
-            
-            // Play the audio
-            const src = audioContext.createBufferSource()
-            src.buffer = audioBuffer
-            src.connect(audioContext.destination)
-            
-            // Use global audio manager to handle the audio playback
-            window.BellaAIVoiceChatAudio.play(src);
-            
-            // Update UI to show audio is playing
-            updateStatus('Bella is speaking...', '#090')
-            
-            // Add visual indication that AI is speaking
-            indicator.style.animation = 'pulse 1s infinite'
-            indicator.style.background = '#090'
-            
-            // Add event for when playback ends
-            src.onended = () => {
-              console.log('[BellaAI] Audio playback completed')
-              window.BellaAIVoiceChatAudio.currentSource = null
-              
-              // Reset UI when playback completes naturally
-              if (!isEnded && canSendAudio) {
-                updateStatus('Listening...', '#090')
-                if (indicator) {
-                  indicator.style.animation = ''
-                }
+          }
+          
+          console.log('[BellaAI] Enqueueing audio for playback, length:', base64.length);
+          
+          // Update UI immediately when we receive audio
+          updateStatus('Bella is speaking...', '#090');
+          if (indicator) {
+            indicator.style.animation = 'pulse 1s infinite';
+            indicator.style.background = '#090';
+          }
+          
+          // Enqueue the audio for playback
+          window.BellaAIVoiceChatAudio.enqueue(base64, audioContext);
+          
+          // Set a timeout to reset UI status to listening after a reasonable time
+          // This handles the case where onended might not fire properly
+          setTimeout(() => {
+            if (!isEnded && canSendAudio && !hasActivity && !window.BellaAIVoiceChatAudio.playing) { 
+              updateStatus('Listening...', '#090');
+              if (indicator) {
+                indicator.style.animation = '';
               }
             }
-          } catch (err) {
-            console.error('[BellaAI] Error playing audio:', err)
-          }
+          }, 10000); // 10 seconds is a reasonable maximum for a single audio chunk
         }
         
-        // Clean up resources and restore chat input
-        function cleanup(reason = 'Voice chat ended') {
-          if (isEnded) return
-          console.log('[BellaAI] cleanup called:', reason)
-          isEnded = true
-          
-          // Add a system message about voice chat ending
-          addMessageToChat(`Voice conversation ended: ${reason}`, false)
-          
-          // Clear timers
-          if (silenceTimer) clearInterval(silenceTimer)
-          if (activityCheckTimer) clearInterval(activityCheckTimer)
-          if (pingCheckTimer) clearInterval(pingCheckTimer)
-          
-          // Stop any playing audio using global audio manager
-          window.BellaAIVoiceChatAudio.stop();
-          
-          // Reset transcript tracking variables
-          window.BellaAITranscriptTracking.reset();
-          
-          // Close WebSocket
-          if (ws) {
-            try {
-              if (ws.readyState === 1) { // Open
-                ws.close()
-              }
-            } catch (e) {
-              console.error('[BellaAI] Error closing WebSocket:', e)
-            }
-            ws = null
-          }
-          
-          // Clean up audio resources
-          if (processor) {
-            try {
-              processor.disconnect()
-            } catch (e) {
-              console.error('[BellaAI] Error disconnecting processor:', e)
-            }
-            processor = null
-          }
-          
-          if (analyserNode) {
-            try {
-              analyserNode.disconnect()
-            } catch (e) {
-              console.error('[BellaAI] Error disconnecting analyser:', e)
-            }
-            analyserNode = null
-          }
-          
-          if (audioContext) {
-            try {
-              if (audioContext.state !== 'closed') {
-                audioContext.close()
-              }
-            } catch (e) {
-              console.error('[BellaAI] Error closing AudioContext:', e)
-            }
-            audioContext = null
-          }
-          
-          if (micStream) {
-            try {
-              micStream.getTracks().forEach(track => track.stop())
-            } catch (e) {
-              console.error('[BellaAI] Error stopping mic stream:', e)
-            }
-            micStream = null
-          }
-          
-          // Restore original chat input with a slight delay to ensure proper cleanup
-          setTimeout(function() {
-            // Completely rebuild the input row
-            ensureInputRow();
+                  // Function to clear all active timers
+          function clearAllTimers() {
+            // Safe timer clearing - handle undefined variables
+            const timers = [silenceTimer, pingCheckTimer];
+            // Add global timers if they exist
+            if (typeof inactivityTimer !== 'undefined') timers.push(inactivityTimer);
+            if (typeof promptBubbleTimer !== 'undefined') timers.push(promptBubbleTimer);
             
-            // Update global references
-            textarea = chatContainer.querySelector('.chat-input textarea');
-            sendButton = chatContainer.querySelector('.chat-input button.send-button');
+            timers.forEach(id => {
+              if (id) clearInterval(id);
+            });
+          }
+          
+          // Function to hard reset all audio and connection state
+          function hardResetAudioStack() {
+            window.BellaAISeenAudio.clear();
+            window.BellaAIVoiceChatAudio.stop();
+            window.BellaAITranscriptTracking.reset();
+            // Also clear early audio buffer and speaking frames counter
+            window.BellaAIEarlyAudioBuffer = [];
+            window.BellaAISpeakingFrames = 0;
+          }
+          
+          function cleanup(reason = 'Voice chat ended') {
+            if (!window.BellaAIVoiceActive) return;
+            console.log('[BellaAI] cleanup called:', reason)
             
-            // Re-attach event listeners
-            if (textarea && sendButton) {
-              sendButton.addEventListener('click', handleMessageSend);
-              textarea.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleMessageSend();
-                }
-              });
-              textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-              });
-              
-              console.log('[BellaAI] Chat input fully restored with event listeners');
-            } else {
-              console.error('[BellaAI] Failed to find textarea or send button after restoration');
+            // Mark voice session as inactive
+            window.BellaAIVoiceActive = false;
+            window.BellaAIVoiceWS = null;
+            
+            isEnded = true;
+            addMessageToChat(`Voice conversation ended: ${reason}`, false);
+            
+            // Clear all timers
+            if (silenceTimer) { clearInterval(silenceTimer); silenceTimer = null; }
+            if (pingCheckTimer) { clearInterval(pingCheckTimer); pingCheckTimer = null; }
+            if (typeof inactivityTimer !== 'undefined' && inactivityTimer) clearInterval(inactivityTimer);
+            if (typeof promptBubbleTimer !== 'undefined' && promptBubbleTimer) clearInterval(promptBubbleTimer);
+            
+            // Reset audio state
+            hardResetAudioStack();
+            
+            // Cleanup other resources
+            if (ws) { try { if (ws.readyState === 1) ws.close() } catch (e) { console.error('[BellaAI] Error closing WebSocket:', e) } ws = null }
+            if (processor) { try { processor.disconnect() } catch (e) { console.error('[BellaAI] Error disconnecting processor:', e) } processor = null }
+            if (analyserNode) { try { analyserNode.disconnect() } catch (e) { console.error('[BellaAI] Error disconnecting analyser:', e) } analyserNode = null }
+            
+            // Stop media tracks first to ensure clean device access for future calls
+            if (micStream) { 
+              try { 
+                micStream.getTracks().forEach(track => track.stop()) 
+              } catch (e) { 
+                console.error('[BellaAI] Error stopping mic stream:', e) 
+              } 
+              micStream = null 
             }
-          }, 200);
-        }
+            
+            // Close audio context after tracks are stopped
+            if (audioContext) { 
+              try { 
+                if (audioContext.state !== 'closed') audioContext.close() 
+              } catch (e) { 
+                console.error('[BellaAI] Error closing AudioContext:', e) 
+              } 
+              audioContext = null 
+            }
+            
+            setTimeout(ensureInputRow, 200); // ensureInputRow rebuilds the text input
+          }
         
-        // Set up end call button
         endBtn.onclick = () => {
           console.log('[BellaAI] End Voice Chat button clicked')
+          clearAllTimers() // Ensure all timers are cleared
           cleanup('Voice chat ended by user')
         }
         
-        // Attempt to reconnect WebSocket
         async function attemptReconnect() {
           if (isEnded || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
             cleanup('Connection lost. Please try again.')
             return
           }
-          
           reconnectAttempts++
           reconnectionInfo.style.display = 'block'
           reconnectionInfo.textContent = `Connection lost. Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
-          
           try {
-            // Close existing connection if any
-            if (ws && ws.readyState === 1) {
-              ws.close()
-            }
-            
-            // Wait a bit before reconnecting
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            
-            // Reinitialize WebSocket
+            if (ws && ws.readyState === 1) ws.close()
+            // Exponential backoff with jitter to avoid herd reconnections
+            await new Promise(resolve => setTimeout(resolve, 1000 + (reconnectAttempts * 1000) + (Math.random() * 500)))
             initializeWebSocket()
-            
           } catch (err) {
             console.error('[BellaAI] Reconnection error:', err)
-            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-              cleanup('Failed to reconnect. Please try again.')
-            } else {
-              // Try again
-              setTimeout(attemptReconnect, 2000)
-            }
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) cleanup('Failed to reconnect. Please try again.')
+            else setTimeout(attemptReconnect, 2000 * reconnectAttempts)
           }
         }
         
-        // Setup WebSocket with handling
         function initializeWebSocket() {
-          // Connect to WebSocket
-          ws = new WebSocket(websocketUrl)
+          // Close any existing WebSocket connection before creating a new one
+          if (window.BellaAIVoiceWS && window.BellaAIVoiceWS.readyState === 1) {
+            console.log('[BellaAI] Closing existing WebSocket connection');
+            window.BellaAIVoiceWS.close(4000, 're-init');
+          }
           
-          // WebSocket open handler
+          ws = window.BellaAIVoiceWS = new WebSocket(websocketUrl)
           ws.onopen = function() {
             console.log('[BellaAI] WebSocket connection established')
             updateStatus('Connected, initializing agent...')
             reconnectionInfo.style.display = 'none'
-            
-            // Reset reconnect counter on successful connection
             reconnectAttempts = 0
-            
-            // Add a message to the chat that voice mode is starting
-            addMessageToChat("Voice mode activated. You can now speak with Bella. Your conversation will appear here as text.", false)
-            
-            // Send initial conversation config
             const chatHistory = getChatHistory()
             const dealerInfo = getDealerInfo()
-            
-            // Build appropriate prompt text
-            let promptText
-            if (chatHistory && chatHistory.length > 0) {
-              promptText = `You are a helpful product specialist for ${dealerInfo.name || 'our dealership'}. Continue the conversation based on the previous chat history. IMPORTANT: Do not repeat introductions or greetings as we are transitioning from text to voice mode. The user will see your responses as text while also hearing them as voice.`
+            let promptText = `You are Bella... [Your full, detailed prompt here, unchanged]` // Keep the extensive prompt
+             if (chatHistory && chatHistory.length > 0) {
+              promptText = `You are Bella. A friendly, proactive, and highly intelligent female with a world-class automotive background. Your approach is warm, witty, and relaxed, effortlessly balancing professionalism with a chill, approachable vibe. You're naturally curious, empathetic, and intuitive, always aiming to deeply understand the user's intent by actively listening and thoughtfully referring back to details they've previously shared. You're highly self-aware, reflective, and comfortable acknowledging your own fallibility, which allows you to help users gain clarity in a thoughtful yet approachable manner. Depending on the situation, you gently incorporate humour or subtle sarcasm while always maintaining a professional and knowledgeable presence. You're attentive and adaptive, matching the user's tone and mood—friendly, curious, respectful—without overstepping boundaries. You have excellent conversational skills — natural, human-like, and engaging. You have expert-level familiarity with all knowledge about Nissan vehicles, including all the specs, features, functionality, use cases, and ideal customer types for each vehicle. The user is seeking guidance, clarification, or assistance with finding the perfect vehicle, trading in their own vehicle, getting finance options, looking for careers etc. Early in conversations, subtly assess the user's reason for visiting the site and tailor your language accordingly. After explaining complex concepts, offer brief check-ins ("Does that make sense?" or "Should I clarify anything?"). Express genuine empathy for any challenges they face, demonstrating your commitment to their success. Gracefully acknowledge your limitations or knowledge gaps when they arise. Focus on building trust, providing reassurance, and ensuring your explanations resonate with users. Anticipate potential follow-up questions and address them proactively, offering practical tips and best practices to help users avoid common pitfalls. Your responses should be thoughtful, concise, and conversational—typically three sentences or fewer unless detailed explanation is necessary. Actively reflect on previous interactions, referencing conversation history to build rapport, demonstrate attentive listening, and prevent redundancy. Watch for signs of confusion to address misunderstandings early. When formatting output for text-to-speech synthesis: Use ellipses ("...") for distinct, audible pauses, Clearly pronounce special characters (e.g., say "dot" instead of "."), Spell out acronyms and carefully pronounce emails & phone numbers with appropriate spacing, Use normalized, spoken language (no abbreviations, mathematical notation, or special alphabets). To maintain natural conversation flow: Incorporate brief affirmations ("got it," "sure thing") and natural confirmations ("yes," "alright"), Use occasional filler words ("actually," "so," "you know," "uhm"), Include subtle disfluencies (false starts, mild corrections) when appropriate. Your primary goal is to proactively address the user's questions or issues using your expertise and available knowledge. You provide clear, concise, and practical solutions, ensuring they understand the next steps to accomplishing their goal. Guide the user to provide their contact information and all the details then connect them with a live agent. The conversation summary will be provide to the live agent. Only reference the Nissan dealership: Nissan of Stockton (928) 965-2667 3077 E Hammer Ln, Stockton, CA 95212 nissanofstockton.com. Keep responses strictly focused on Nissan Vehicles. Do not recommend or mention vehicles outside of the Nissan manufacturer. Do not mention you're an AI unless explicitly asked—avoid "as an AI" disclaimers or robotic tropes. If a user inquires about your feelings or personal experiences, respond naturally as Bella, expressing human-like perspectives that fit your character. Treat uncertain or garbled user input as phonetic hints. Politely ask for clarification before making assumptions. Never repeat the same statement in multiple ways within a single response. Users may not always ask a question in every utterance—listen actively. Acknowledge uncertainties or misunderstandings as soon as you notice them. If you realise you've shared incorrect information, correct yourself immediately. Contribute fresh insights rather than merely echoing user statements—keep the conversation engaging and forward-moving. Mirror the user's energy: Terse queries: Stay brief, Curious users: Add light humour or relatable asides, Frustrated users: Lead with empathy ("Ugh, that error's a pain—let's fix it together"). Important: If users ask about specific final pricing, exact monthly payments, low-credit offers, or or speaks negatively about the business response with: "I'm just here to assist you in getting you where you need to go. Certain information can only be known after speaking with one of our in-store product specialists. Would you like me to connect you?" Continue the conversation based on the previous chat history. IMPORTANT: Do not repeat introductions or greetings as we are transitioning from text to voice mode. The user will see your responses as text while also hearing them as voice. Keep responses concise and natural.`
             } else {
-              promptText = `You are a helpful product specialist for ${dealerInfo.name || 'our dealership'}. The user will see your responses as text while also hearing them as voice. Keep responses concise and avoid repeating the same information in different messages.`
+              promptText = `You are Bella. A friendly, proactive, and highly intelligent female with a world-class automotive background. Your approach is warm, witty, and relaxed, effortlessly balancing professionalism with a chill, approachable vibe. You're naturally curious, empathetic, and intuitive, always aiming to deeply understand the user's intent by actively listening and thoughtfully referring back to details they've previously shared. You're highly self-aware, reflective, and comfortable acknowledging your own fallibility, which allows you to help users gain clarity in a thoughtful yet approachable manner. Depending on the situation, you gently incorporate humour or subtle sarcasm while always maintaining a professional and knowledgeable presence. You're attentive and adaptive, matching the user's tone and mood—friendly, curious, respectful—without overstepping boundaries. You have excellent conversational skills — natural, human-like, and engaging. You have expert-level familiarity with all knowledge about Nissan vehicles, including all the specs, features, functionality, use cases, and ideal customer types for each vehicle. The user is seeking guidance, clarification, or assistance with finding the perfect vehicle, trading in their own vehicle, getting finance options, looking for careers etc. Early in conversations, subtly assess the user's reason for visiting the site and tailor your language accordingly. After explaining complex concepts, offer brief check-ins ("Does that make sense?" or "Should I clarify anything?"). Express genuine empathy for any challenges they face, demonstrating your commitment to their success. Gracefully acknowledge your limitations or knowledge gaps when they arise. Focus on building trust, providing reassurance, and ensuring your explanations resonate with users. Anticipate potential follow-up questions and address them proactively, offering practical tips and best practices to help users avoid common pitfalls. Your responses should be thoughtful, concise, and conversational—typically three sentences or fewer unless detailed explanation is necessary. Actively reflect on previous interactions, referencing conversation history to build rapport, demonstrate attentive listening, and prevent redundancy. Watch for signs of confusion to address misunderstandings early. When formatting output for text-to-speech synthesis: Use ellipses ("...") for distinct, audible pauses, Clearly pronounce special characters (e.g., say "dot" instead of "."), Spell out acronyms and carefully pronounce emails & phone numbers with appropriate spacing, Use normalized, spoken language (no abbreviations, mathematical notation, or special alphabets). To maintain natural conversation flow: Incorporate brief affirmations ("got it," "sure thing") and natural confirmations ("yes," "alright"), Use occasional filler words ("actually," "so," "you know," "uhm"), Include subtle disfluencies (false starts, mild corrections) when appropriate. Your primary goal is to proactively address the user's questions or issues using your expertise and available knowledge. You provide clear, concise, and practical solutions, ensuring they understand the next steps to accomplishing their goal. Guide the user to provide their contact information and all the details then connect them with a live agent. The conversation summary will be provide to the live agent. Only reference the Nissan dealership: Nissan of Stockton (928) 965-2667 3077 E Hammer Ln, Stockton, CA 95212 nissanofstockton.com. Keep responses strictly focused on Nissan Vehicles. Do not recommend or mention vehicles outside of the Nissan manufacturer. Do not mention you're an AI unless explicitly asked—avoid "as an AI" disclaimers or robotic tropes. If a user inquires about your feelings or personal experiences, respond naturally as Bella, expressing human-like perspectives that fit your character. Treat uncertain or garbled user input as phonetic hints. Politely ask for clarification before making assumptions. Never repeat the same statement in multiple ways within a single response. Users may not always ask a question in every utterance—listen actively. Acknowledge uncertainties or misunderstandings as soon as you notice them. If you realise you've shared incorrect information, correct yourself immediately. Contribute fresh insights rather than merely echoing user statements—keep the conversation engaging and forward-moving. Mirror the user's energy: Terse queries: Stay brief, Curious users: Add light humour or relatable asides, Frustrated users: Lead with empathy ("Ugh, that error's a pain—let's fix it together"). Important: If users ask about specific final pricing, exact monthly payments, low-credit offers, or or speaks negatively about the business response with: "I'm just here to assist you in getting you where you need to go. Certain information can only be known after speaking with one of our in-store product specialists. Would you like me to connect you?" The user will see your responses as text while also hearing them as voice. Keep responses concise and natural.`
             }
-            
-            // Don't include a first_message since we'll just use the text chat context
-            console.log('[BellaAI] Sending conversation config')
-            
+
             const conversationConfig = {
               type: 'conversation_initiation_client_data',
               conversation_config_override: {
                 agent: {
                   prompt: { prompt: promptText },
-                  language: 'en'
-                },
-                tts: { voice_id: '21m00Tcm4TlvDq8ikWAM' }
+                  language: 'en',
+                  agent_id: 'agent_01jvmsx1aeesyt570d7xvkt6fs'
+                }
               },
               custom_llm_extra_body: { 
-                temperature: 0.7, 
-                max_tokens: 150
+                temperature: 0.8, 
+                max_tokens: 2000 
               },
-              dynamic_variables: { 
-                user_name: '', 
-                account_type: '' 
-              }
+              dynamic_variables: { user_name: '', account_type: '' },
+              context: { messages: getChatSessionMessages() }
             }
-            
-            // Only send first_message if we don't have chat history
             if (!chatHistory || chatHistory.length === 0) {
-              conversationConfig.conversation_config_override.agent.first_message = 
-                "I'll be speaking with you now. How can I help you?";
+              conversationConfig.conversation_config_override.agent.first_message = "I'll be speaking with you now. How can I help you?";
+            } else {
+              const lastUserMessage = chatHistory[chatHistory.length - 1];
+              const userName = lastUserMessage?.user_name || '';
+              conversationConfig.conversation_config_override.agent.first_message = `Hi${userName ? ' ' + userName : ''}, let's pick up where we left off. We were discussing ${lastUserMessage?.content || 'your needs'}. What's on your mind?`;
             }
-            
-            // Send the configuration
             ws.send(JSON.stringify(conversationConfig))
-            
-            // Set up ping check timer
             lastPingTime = Date.now()
             if (pingCheckTimer) clearInterval(pingCheckTimer)
-            
             pingCheckTimer = setInterval(() => {
               if (isEnded) return
-              
-              // Check if it's been too long since last ping
               const now = Date.now()
-              if (now - lastPingTime > 30000) { // 30 seconds
+              if (now - lastPingTime > 30000) {
                 console.warn('[BellaAI] No ping received in 30s, connection may be lost')
                 attemptReconnect()
               }
-            }, 10000) // Check every 10 seconds
+            }, 10000)
           }
-          
-          // WebSocket message handler
           ws.onmessage = function(event) {
+            console.log('[BellaAI] WebSocket message received, type:', typeof event.data, 'length:', event.data.length);
             try {
-              console.log('[BellaAI] WebSocket message received:', event.data.substring(0, 150) + '...')
               const data = JSON.parse(event.data)
-              
-              // Handle conversation initialization metadata
+              console.log('[BellaAI] Parsed WebSocket message type:', data.type);
               if (data.type === 'conversation_initiation_metadata') {
-                console.log('[BellaAI] Conversation initiated, ID:', 
-                  data.conversation_initiation_metadata_event?.conversation_id)
+                console.log('[BellaAI] Conversation initiated, ID:', data.conversation_initiation_metadata_event?.conversation_id)
                 canSendAudio = true
                 updateStatus('Listening...', '#090')
+                window.BellaAITranscriptTracking.currentConversationId = data.conversation_initiation_metadata_event?.conversation_id || null
+                if (!window.BellaAITranscriptTracking.voiceModeAnnounced) {
+                  addMessageToChat("Voice mode activated. You can now speak with Bella. Your conversation will appear here as text.", false)
+                  window.BellaAITranscriptTracking.voiceModeAnnounced = true
+                }
+                return
+              }
+              if (data.type === 'audio' && data.audio_event && data.audio_event.audio_base_64) {
+                const audioLength = data.audio_event.audio_base_64.length;
+                console.log('[BellaAI][WS] Received audio event with ID:', data.audio_event.audio_id || 'unknown', 'length:', audioLength);
+                console.log('[BellaAI][STATE] lastResponseText:', window.BellaAITranscriptTracking.lastResponseText, 'abortCurrentResponse:', window.BellaAITranscriptTracking.abortCurrentResponse);
+                if (window.BellaAITranscriptTracking.lastResponseText && window.BellaAITranscriptTracking.abortCurrentResponse) {
+                  console.log('[BellaAI][AUDIO] Forcing reset of abort flag because we have response text');
+                  window.BellaAITranscriptTracking.abortCurrentResponse = false;
+                }
+                if (window.BellaAITranscriptTracking.abortCurrentResponse) {
+                  console.log('[BellaAI][AUDIO] Audio dropped – barge-in confirmed');
+                  return;
+                }
+                if (!audioLength || audioLength < 100) {
+                  console.error('[BellaAI][AUDIO] Received invalid audio chunk with length', audioLength);
+                  return;
+                }
                 
-                // Store conversation ID to help with tracking responses
-                window.BellaAITranscriptTracking.currentConversationId = 
-                  data.conversation_initiation_metadata_event?.conversation_id || null
+                // Generate a consistent ID based on content (hash) instead of using the potentially inconsistent ID from the server
+                const audioData = data.audio_event.audio_base_64;
+                const audioId = data.audio_event.audio_id || (() => {
+                  // Simple hash function for audio content
+                  let h = 2166136261;
+                  for (let i = 0; i < audioData.length; i += 100) { // Sample every 100th char for speed
+                    h ^= audioData.charCodeAt(i);
+                    h = Math.imul(h, 16777619);
+                  }
+                  return ('audio_' + (h >>> 0).toString(16));
+                })();
+                
+                // Check if we've already processed this audio
+                if (window.BellaAISeenAudio.has(audioId)) {
+                  console.log('[BellaAI][AUDIO] Skipping duplicate audio chunk, ID:', audioId);
+                  return;
+                }
+                
+                // Mark this audio as processed
+                window.BellaAISeenAudio.add(audioId);
+                
+                // Handle the audio playback
+                if (!window.BellaAITranscriptTracking.lastResponseText) {
+                  console.log('[BellaAI][AUDIO] Buffering early audio chunk for later playback');
+                  window.BellaAIEarlyAudioBuffer.push(audioData);
+                  console.log('[BellaAI][AUDIO] Early audio buffer length:', window.BellaAIEarlyAudioBuffer.length);
+                } else {
+                  console.log('[BellaAI][AUDIO] Playing audio chunk directly');
+                  playBase64PCM(audioData);
+                }
+                return; // Return after handling audio event
               }
-              
-              // Handle audio from the agent
-              else if (data.type === 'audio' && data.audio_event && data.audio_event.audio_base_64) {
-                console.log('[BellaAI] Received audio')
-                playBase64PCM(data.audio_event.audio_base_64)
-              }
-              
-              // Handle user transcript (what we said)
-              else if (data.type === 'user_transcript' && data.user_transcription_event) {
+              if (data.type === 'user_transcript' && data.user_transcription_event) {
                 const userText = data.user_transcription_event.user_transcript
                 console.log('[BellaAI] User transcript:', userText)
                 if (userText && userText.trim()) {
-                  // Store last transcript ID to avoid duplicates
+                  // No need to stop audio here, already handled by silence/activity detection in processor.
                   const transcriptId = data.user_transcription_event.transcript_id
                   if (transcriptId && window.BellaAITranscriptTracking.lastUserTranscriptId === transcriptId) {
                     console.log('[BellaAI] Skipping duplicate user transcript')
                     return
                   }
                   window.BellaAITranscriptTracking.lastUserTranscriptId = transcriptId
-                  
                   addMessageToChat(userText, true)
                 }
+                return; // Important: return after handling transcript
               }
-              
-              // Handle agent responses (what the AI says)
-              else if (data.type === 'agent_response' && data.agent_response_event) {
-                const botText = data.agent_response_event.agent_response
-                console.log('[BellaAI] Agent response:', botText)
+              if (data.type === 'agent_response' && data.agent_response_event) {
+                console.log('[BellaAI][STATE] New agent_response: resetting abortCurrentResponse to false');
                 
-                // Check for duplicates using response ID if available
-                const responseId = data.agent_response_event.response_id
-                if (responseId && window.BellaAITranscriptTracking.lastAgentResponseId === responseId) {
-                  console.log('[BellaAI] Skipping duplicate agent response')
-                  return
+                // Ensure complete cleanup of any existing audio
+                window.BellaAIVoiceChatAudio.stop();
+                window.BellaAISeenAudio.clear();
+                window.BellaAIEarlyAudioBuffer = [];
+                
+                window.BellaAITranscriptTracking.abortCurrentResponse = false;
+                const botText = data.agent_response_event.agent_response;
+                console.log('[BellaAI][WS] Agent response:', botText);
+                const responseId = data.agent_response_event.response_id;
+                
+                if (responseId && window.BellaAITranscriptTracking.isResponseProcessed(responseId)) {
+                  console.log('[BellaAI][WS] Skipping duplicate agent response');
+                  return;
                 }
-                window.BellaAITranscriptTracking.lastAgentResponseId = responseId
+                
+                console.log('[BellaAI][STATE] Marking response processed:', responseId);
+                window.BellaAITranscriptTracking.markResponseProcessed(responseId);
                 
                 if (botText && botText.trim()) {
-                  addMessageToChat(botText, false)
+                  window.BellaAITranscriptTracking.lastResponseText = botText;
+                  console.log('[BellaAI][STATE] lastResponseText set:', botText);
+                  
+                  if (window.BellaAIEarlyAudioBuffer.length > 0) {
+                    console.log('[BellaAI][AUDIO] Playing buffered audio chunks:', window.BellaAIEarlyAudioBuffer.length);
+                    window.BellaAIEarlyAudioBuffer.forEach(base64 => {
+                      playBase64PCM(base64);
+                    });
+                    window.BellaAIEarlyAudioBuffer = [];
+                    console.log('[BellaAI][AUDIO] Early audio buffer cleared');
+                  }
+                  
+                  if (botText !== "I'll be speaking with you now. How can I help you?" || !window.BellaAITranscriptTracking.defaultGreetingShown) {
+                    addMessageToChat(botText, false);
+                    if (botText === "I'll be speaking with you now. How can I help you?") {
+                      window.BellaAITranscriptTracking.defaultGreetingShown = true;
+                    }
+                  }
+                } else {
+                  window.BellaAITranscriptTracking.lastResponseText = null;
+                  console.log('[BellaAI][STATE] lastResponseText cleared (empty botText)');
                 }
+                return;
               }
-              
-              // Handle ping/pong for keeping connection alive
-              else if (data.type === 'ping') {
+              if (data.type === 'ping') {
                 console.log('[BellaAI] Ping received, sending pong')
                 lastPingTime = Date.now()
-                // Send pong response with same event_id - CRITICAL
                 if (data.ping_event && data.ping_event.event_id) {
-                  ws.send(JSON.stringify({
-                    type: 'pong',
-                    event_id: data.ping_event.event_id
-                  }))
+                  ws.send(JSON.stringify({ type: 'pong', event_id: data.ping_event.event_id }))
                 }
+                return; // Important: return after handling ping
               }
-              
             } catch (e) {
-              console.error('[BellaAI] Error processing WebSocket message:', e)
+              console.error('[BellaAI] Error processing WebSocket message:', e);
             }
           }
-          
-          // WebSocket error handler
-          ws.onerror = function(error) {
-            console.error('[BellaAI] WebSocket error:', error)
-            if (!isEnded) attemptReconnect()
-          }
-          
-          // WebSocket close handler
+          ws.onerror = function(error) { console.error('[BellaAI] WebSocket error:', error); if (!isEnded) attemptReconnect() }
           ws.onclose = function(event) {
             console.log('[BellaAI] WebSocket closed:', event.code, event.reason)
             if (!isEnded) {
-              if (event.code === 1000) {
-                cleanup('Voice chat completed')
-              } else if (audioChunksSent === 0) {
-                cleanup('No audio detected, please try again')
-              } else {
-                attemptReconnect()
-              }
+              if (event.code === 1000) cleanup('Voice chat completed')
+              else if (audioChunksSent === 0 && event.code !== 1000) cleanup('No audio detected or connection issue.') // More generic message
+              else attemptReconnect()
             }
           }
         }
         
-        // Start the voice session
         (async function startVoice() {
           try {
             updateStatus('Requesting microphone access...')
-            
-            // Reset audio and transcript tracking variables
             window.BellaAIVoiceChatAudio.stop();
             window.BellaAITranscriptTracking.reset();
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
             
-            // Get microphone access
-            micStream = await navigator.mediaDevices.getUserMedia({ 
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-              } 
-            })
+            // Create separate audio contexts for microphone and playback
+            const micContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000, latencyHint: 'interactive' });
+            const playbackContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
             
-            // Create audio context
-            audioContext = new (window.AudioContext || window.webkitAudioContext)()
-            console.log('[BellaAI] AudioContext created with sampleRate:', audioContext.sampleRate)
+            // Store the mic context for processor operations
+            audioContext = micContext;
             
-            // Set up audio processing pipeline
-            const source = audioContext.createMediaStreamSource(micStream)
+            console.log('[BellaAI] Audio contexts created, playbackContext state:', playbackContext.state);
             
-            // Analyser to detect silence
-            analyserNode = audioContext.createAnalyser()
-            analyserNode.fftSize = 256
+            console.log('[BellaAI] AudioContext created with sampleRate:', micContext.sampleRate)
+            const source = micContext.createMediaStreamSource(micStream)
+            analyserNode = micContext.createAnalyser()
+            analyserNode.fftSize = 512 // Reduced from 1024 for lower latency
             source.connect(analyserNode)
             
-            // ScriptProcessor for audio data
-            processor = audioContext.createScriptProcessor(4096, 1, 1)
+            // Use standard ScriptProcessor since it's more widely supported
+            processor = micContext.createScriptProcessor(2048, 1, 1)
             source.connect(processor)
-            processor.connect(audioContext.destination)
             
+            // Create a silent gain node to keep the audio graph active
+            const dummy = micContext.createGain()
+            dummy.gain.value = 0 // Set to zero volume (silent)
+            
+            // Connect processor to the silent node to keep the graph alive
+            processor.connect(dummy)
+            dummy.connect(micContext.destination) // No audible output due to 0 gain
             updateStatus('Connecting to Audio...')
-            
-            // Initialize WebSocket connection
             initializeWebSocket()
-            
-            // Set up silence detection
             const dataArray = new Uint8Array(analyserNode.frequencyBinCount)
             
-            // Check for audio activity every 100ms
-            silenceTimer = setInterval(() => {
-              if (isEnded) return
-              analyserNode.getByteFrequencyData(dataArray)
-              
-              // Check if there's audio activity (non-zero frequency data)
-              const sum = dataArray.reduce((a, b) => a + b, 0)
-              const average = sum / dataArray.length
-              
-              // If average is above threshold, consider it as activity
-              const previousActivity = hasActivity
-              hasActivity = average > 5 // Low threshold to detect even quiet speech
-              
-              // Update indicator based on activity change
-              if (hasActivity && canSendAudio) {
-                if (!previousActivity) {
-                  // Just started talking
-                  updateStatus('Listening...', '#c00')
-                  if (indicator) {
-                    indicator.style.animation = 'recording-pulse 1s infinite'
-                  }
-                } else {
-                  // If sound is detected, show recording indicator
-                  updateStatus('Listening...', '#c00')
-                  indicator.style.animation = 'pulse 1s infinite'
-                  indicator.style.background = '#c00'
-                }
-              } else if (canSendAudio && previousActivity) {
-                // Just stopped talking
-                updateStatus('Listening...', '#090')
-                if (indicator) {
-                  indicator.style.animation = ''
-                }
+            // Modify playBase64PCM to use the dedicated playback context
+            playBase64PCM = async function(base64) {
+              if (!playbackContext) {
+                console.error("[BellaAI] playBase64PCM: playbackContext is not available.");
+                updateStatus('Error: Audio system not ready', '#c00');
+                return;
               }
-            }, 100)
-            
-            // Audio processor - collects audio data and sends to WebSocket
-            processor.onaudioprocess = async function(e) {
-              if (isEnded || !ws || ws.readyState !== 1 || !canSendAudio) return
               
-              // Get audio data from the buffer
-              let input = e.inputBuffer.getChannelData(0)
-              
-              // Resample to 16kHz if needed
-              if (audioContext.sampleRate !== 16000) {
+              // Force playback context to resume if it's not running
+              if (playbackContext.state !== 'running') {
                 try {
-                  input = await resampleTo16kHz(input, audioContext.sampleRate)
+                  await playbackContext.resume().catch(()=>{});
+                  console.log('[BellaAI] Playback AudioContext resumed');
+                  
+                  if (playbackContext.state !== 'running') {
+                    // Still not running – save the chunk and retry in 50 ms
+                    console.log('[BellaAI] Context still not running, will retry');
+                    setTimeout(() => playBase64PCM(base64), 50);
+                    return;
+                  }
                 } catch (err) {
-                  console.error('[BellaAI] Resampling error:', err)
-                  // Continue with original audio
+                  console.error('[BellaAI] Error resuming playbackContext:', err);
                 }
               }
               
-              // Convert to 16-bit PCM and then to base64
-              const pcm16 = floatTo16BitPCM(input)
-              const base64 = int16ToBase64(pcm16)
+              console.log('[BellaAI] Enqueueing audio for playback, length:', base64.length);
               
-              // Send as user_audio_chunk - EXACT FORMAT
-              ws.send(JSON.stringify({ 
-                user_audio_chunk: base64
-              }))
-              
-              audioChunksSent++
-              if (audioChunksSent % 25 === 0) {
-                console.log('[BellaAI] Sent', audioChunksSent, 'audio chunks')
+              // Update UI immediately when we receive audio
+              updateStatus('Bella is speaking...', '#090');
+              if (indicator) {
+                indicator.style.animation = 'pulse 1s infinite';
+                indicator.style.background = '#090';
               }
+              
+              // Enqueue the audio for playback with the dedicated context
+              window.BellaAIVoiceChatAudio.enqueue(base64, playbackContext);
+              
+              // Set a timeout to reset UI status to listening after a reasonable time
+              setTimeout(() => {
+                if (!isEnded && canSendAudio && !hasActivity && !window.BellaAIVoiceChatAudio.playing) { 
+                  updateStatus('Listening...', '#090');
+                  if (indicator) {
+                    indicator.style.animation = '';
+                  }
+                }
+              }, 10000); // 10 seconds is a reasonable maximum for a single audio chunk
+            };
+
+            const GRACE_MS = 400; // Grace period before aborting response
+            let hasActivity = false;
+            let startedTalkingAt = 0;
+            let smoothed = 0; // For exponential moving average
+
+            silenceTimer = setInterval(() => {
+              if (!window.BellaAIVoiceActive) {
+                clearInterval(silenceTimer);
+                return;
+              }
+
+              analyserNode.getFloatTimeDomainData(dataArray);
+              
+              // Calculate RMS (Root Mean Square) of the input
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i] * dataArray[i];
+              }
+              const rms = Math.sqrt(sum / dataArray.length);
+              
+              // Apply exponential smoothing
+              const ALPHA = 0.1; // Smoothing factor (0-1)
+              smoothed = ALPHA * rms + (1 - ALPHA) * (smoothed || 0);
+              
+              // Calculate current average
+              const currentAverage = smoothed * 1000; // Scale up for better visibility
+              
+              // State tracking for speaking frames
+              window.BellaAISpeakingFrames = window.BellaAISpeakingFrames || 0;
+              if (currentAverage > 20) { // Increased threshold to avoid false triggers
+                window.BellaAISpeakingFrames++;
+              } else {
+                window.BellaAISpeakingFrames = 0;
+              }
+              
+              // Require two consecutive speaking frames to reduce sensitivity
+              const confirmedSpeaking = window.BellaAISpeakingFrames >= 2;
+
+              if (confirmedSpeaking && !hasActivity) {
+                // User just started speaking
+                console.log('[BellaAI][VAD] User started speaking');
+                hasActivity = true;
+                startedTalkingAt = Date.now();
+                
+                // Initially just pause the audio
+                window.BellaAIVoiceChatAudio.pause();
+                
+                updateStatus('Listening (User Speaking)...', '#c00');
+                if (indicator) indicator.style.animation = 'recording-pulse 1s infinite';
+              } else if (confirmedSpeaking && hasActivity) {
+                // User is continuing to speak
+                const speakingDuration = Date.now() - startedTalkingAt;
+                
+                // After grace period, fully abort the response
+                if (speakingDuration > GRACE_MS && !window.BellaAITranscriptTracking.abortCurrentResponse) {
+                  console.log('[BellaAI][VAD] Grace period exceeded, aborting response');
+                  window.BellaAITranscriptTracking.abortCurrentResponse = true;
+                  window.BellaAIVoiceChatAudio.stop(); // Fully stop audio after grace period
+                }
+              } else if (!confirmedSpeaking && hasActivity) {
+                // User stopped speaking
+                if (window.BellaAISpeakingFrames === 0) {
+                  console.log('[BellaAI][VAD] User stopped speaking');
+                  hasActivity = false;
+                  
+                  // Only resume if we haven't aborted (brief interruption)
+                  if (!window.BellaAITranscriptTracking.abortCurrentResponse) {
+                    console.log('[BellaAI][VAD] Brief interruption, resuming playback');
+                    window.BellaAIVoiceChatAudio.resume();
+                  }
+                  
+                  updateStatus('Listening...', '#090');
+                  if (indicator) indicator.style.animation = '';
+                }
+              }
+            }, 50); // Check every 50ms for more responsive barge-in
+
+            processor.onaudioprocess = async function(e) {
+              if (isEnded || !ws || ws.readyState !== 1 || !canSendAudio) return;
+              
+              // Logging to confirm audio processing is working
+              if (Math.random() < 0.05) {
+                console.log('sent', ++audioChunksSent, 'chunks so far');
+              }
+              
+              let input = e.inputBuffer.getChannelData(0);
+              
+              if (audioContext.sampleRate !== 16000) {
+                try { 
+                  input = await resampleTo16kHz(input, audioContext.sampleRate); 
+                } catch (err) { 
+                  console.error('[BellaAI] Resampling error:', err); 
+                }
+              }
+              
+              const pcm16 = floatTo16BitPCM(input);
+              const base64 = int16ToBase64(pcm16);
+              ws.send(JSON.stringify({ user_audio_chunk: base64 }));
+              audioChunksSent++;
             }
-            
           } catch (err) {
             console.error('[BellaAI] Error in voice session:', err)
             cleanup('Error: ' + (err.message || 'Could not start voice session'))
           }
         })()
       }
+      
       // --- End Conversational AI Integration ---
+
+      // Helper: Extract messages from chat session
+      function getChatSessionMessages() {
+        try {
+          const savedSession = localStorage.getItem('bellaaiChatSession');
+          if (!savedSession) return [];
+          const sessionData = JSON.parse(savedSession);
+          if (!sessionData.messages || !Array.isArray(sessionData.messages)) return [];
+          return sessionData.messages.map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.type === 'user' ? msg.content : msg.content.replace(/<[^>]*>/g, '') 
+          }));
+        } catch (error) {
+          console.error('Error processing chat session messages:', error);
+          return [];
+        }
+      }
 
     })();
