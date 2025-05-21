@@ -1490,25 +1490,33 @@ window.BellaAITranscriptTracking = {
             const originalUrl = redirectMatch[1].trim();
             const redirectUrl = appendUtmToUrl(originalUrl);
 
-            // Show 'Redirecting you now...' message
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.innerHTML = formatMessage('Redirecting you now...');
-            messagesContainer.appendChild(botMessageDiv);
-
-            // Show follow-up message
-            const followUpDiv = document.createElement('div');
-            followUpDiv.className = 'chat-message bot';
-            followUpDiv.innerHTML = formatMessage("Our product specialists are ready to help you explore your options and answer any questions. What's the best phone number to reach you at?");
-            messagesContainer.appendChild(followUpDiv);
-
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            saveSession();
+            // First, show the message with the redirect URL removed
+            const cleanedMessage = botReply.replace(/\[REDIRECT\][\s\S]*?\[\/REDIRECT\]/g, '').trim();
+            if (cleanedMessage) {
+              const botMessageDiv = document.createElement('div');
+              botMessageDiv.className = 'chat-message bot';
+              botMessageDiv.innerHTML = formatMessage(cleanedMessage);
+              messagesContainer.appendChild(botMessageDiv);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
             
-            // Redirect after a short delay
+            // Then show 'Redirecting you now...' message
             setTimeout(() => {
-              window.location.href = redirectUrl;
-            }, 2000);
+              const redirectMsgDiv = document.createElement('div');
+              redirectMsgDiv.className = 'chat-message bot';
+              redirectMsgDiv.innerHTML = formatMessage('Redirecting you now...');
+              messagesContainer.appendChild(redirectMsgDiv);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              
+              // Save session before redirecting
+              saveSession();
+              
+              // Redirect after a 3 second delay
+              setTimeout(() => {
+                window.location.href = redirectUrl;
+              }, 3000);
+            }, 1000); // Wait 1 second before showing the redirect message
+            
             return;
           }
 
