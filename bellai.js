@@ -1058,6 +1058,11 @@ window.BellaAITranscriptTracking = {
         </div>
       `;
       
+      // Position the chat toggle button to the left of where phone button will be
+      if (config.style.position !== 'left') {
+        toggleButton.style.right = '85px';
+      }
+      
       widgetContainer.appendChild(chatContainer);
       widgetContainer.appendChild(toggleButton);
       
@@ -1072,10 +1077,10 @@ window.BellaAITranscriptTracking = {
         </div>
       `;
       
-      // Style the phone button
+      // Style the phone button - keep at original position
       phoneButton.style.position = 'fixed';
       phoneButton.style.bottom = '20px';
-      phoneButton.style.right = config.style.position === 'left' ? '20px' : '20px'; // Position independently
+      phoneButton.style.right = config.style.position === 'left' ? '20px' : '20px'; // Right side positioning
       phoneButton.style.width = '60px';
       phoneButton.style.height = '60px';
       phoneButton.style.borderRadius = '50%';
