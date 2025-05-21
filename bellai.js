@@ -2217,24 +2217,32 @@ window.BellaAITranscriptTracking = {
 
       // Helper: Get dealer info from config
       function getDealerInfo() {
-        return config.dealer || {}
+        console.log('Getting dealer info from config:', config.dealer);
+        // Return the actual dealer config without fallback values
+        return config.dealer;
       }
 
       // Helper: Initiate voice call via n8n
       async function initiateVoiceCall(callType, phone) {
+        // Get dealer info directly from config to ensure we have the latest values
         const chatHistory = getChatHistory()
-        const dealerInfo = getDealerInfo()
+        const dealerInfo = config.dealer
+        console.log('[BellaAI] Initiating voice call with dealer info:', dealerInfo)
+        
         const payload = {
           type: callType,
           chatHistory,
           dealerInfo
         }
+        
         if (callType === 'phone') {
           if (!phone) throw new Error('Phone number required for phone call')
           payload.phone = phone
         }
         
         try {
+          console.log('[BellaAI] Sending voice call payload:', JSON.stringify(payload))
+          
           const response = await fetch('https://automation.cloudcovehosting.com/webhook/voice-call', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2271,7 +2279,7 @@ window.BellaAITranscriptTracking = {
       // Helper: Send transcript to n8n
       function sendTranscriptToN8N(transcript) {
         const chatHistory = getChatHistory()
-        const dealerInfo = getDealerInfo()
+        const dealerInfo = config.dealer
         fetch('https://automation.cloudcovehosting.com/webhook/voice-transcript', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
