@@ -1060,6 +1060,125 @@ window.BellaAITranscriptTracking = {
       
       widgetContainer.appendChild(chatContainer);
       widgetContainer.appendChild(toggleButton);
+      
+      // Create phone call button
+      const phoneButton = document.createElement('button');
+      phoneButton.className = `chat-toggle phone-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
+      phoneButton.innerHTML = `
+        <div class="chat-toggle-content">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        </div>
+      `;
+      
+      // Style the phone button
+      phoneButton.style.position = 'fixed';
+      phoneButton.style.bottom = '20px';
+      phoneButton.style.right = config.style.position === 'left' ? '20px' : '85px'; // Position to the right of the chat button
+      phoneButton.style.width = '60px';
+      phoneButton.style.height = '60px';
+      phoneButton.style.borderRadius = '50%';
+      phoneButton.style.display = 'flex';
+      phoneButton.style.alignItems = 'center';
+      phoneButton.style.justifyContent = 'center';
+      phoneButton.style.background = 'linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%)';
+      phoneButton.style.color = 'white';
+      phoneButton.style.border = 'none';
+      phoneButton.style.cursor = 'pointer';
+      phoneButton.style.boxShadow = '0 4px 12px rgba(133, 79, 255, 0.3)';
+      phoneButton.style.zIndex = '2147483646';
+      phoneButton.style.padding = '0';
+      
+      // Phone button click handler
+      phoneButton.onclick = function(e) {
+        e.stopPropagation();
+        
+        // Remove any existing tooltip
+        const existingTooltip = document.getElementById('bellaai-phone-tooltip');
+        if (existingTooltip) {
+          existingTooltip.remove();
+          return;
+        }
+        
+        // Create tooltip
+        const tooltip = document.createElement('div');
+        tooltip.id = 'bellaai-phone-tooltip';
+        tooltip.style.position = 'absolute';
+        tooltip.style.bottom = '75px';
+        tooltip.style.right = config.style.position === 'left' ? '0' : '0';
+        tooltip.style.background = 'white';
+        tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+        tooltip.style.borderRadius = '8px';
+        tooltip.style.padding = '15px';
+        tooltip.style.zIndex = '2147483646';
+        tooltip.style.width = '220px';
+        
+        tooltip.innerHTML = `
+          <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;">We'll call you right away</div>
+          <p style="font-size:0.9rem;color:#666;margin-bottom:12px;">Enter your phone number and we'll connect you with a product specialist.</p>
+          <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;font-size:0.9rem;">
+          <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:6px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:0.9rem;border:none;cursor:pointer;">Call Me Now</button>
+          <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
+        `;
+        
+        // Position the tooltip appropriately
+        tooltip.style.transform = 'translateX(-45%)';
+        
+        // Add the tooltip to the phone button
+        phoneButton.style.position = 'relative';
+        phoneButton.appendChild(tooltip);
+        
+        // Close tooltip when clicking outside
+        document.addEventListener('click', function closeDirectTooltip(e) {
+          if (!tooltip.contains(e.target) && e.target !== phoneButton) {
+            tooltip.remove();
+            document.removeEventListener('click', closeDirectTooltip);
+          }
+        });
+        
+        // Handle the call button click
+        document.getElementById('bellaai-direct-start-call').onclick = async function() {
+          const phone = document.getElementById('bellaai-direct-phone-input').value.trim();
+          const errorDiv = document.getElementById('bellaai-direct-call-error');
+          
+          if (!phone) {
+            errorDiv.textContent = 'Please enter your phone number.';
+            errorDiv.style.display = 'block';
+            return;
+          }
+          
+          try {
+            // Disable input while processing
+            document.getElementById('bellaai-direct-phone-input').disabled = true;
+            document.getElementById('bellaai-direct-start-call').disabled = true;
+            document.getElementById('bellaai-direct-start-call').textContent = 'Connecting...';
+            
+            await initiateVoiceCall('phone', phone);
+            
+            // Show success message
+            errorDiv.style.color = '#090';
+            errorDiv.textContent = 'Call initiated! Please answer your phone.';
+            errorDiv.style.display = 'block';
+            
+            // Remove tooltip after a delay
+            setTimeout(() => {
+              tooltip.remove();
+            }, 3000);
+            
+          } catch (err) {
+            errorDiv.textContent = err.message || "Couldn't connect your call. Please try again.";
+            errorDiv.style.display = 'block';
+            
+            // Re-enable input
+            document.getElementById('bellaai-direct-phone-input').disabled = false;
+            document.getElementById('bellaai-direct-start-call').disabled = false;
+            document.getElementById('bellaai-direct-start-call').textContent = 'Call Me Now';
+          }
+        };
+      };
+      
+      widgetContainer.appendChild(phoneButton);
       document.body.appendChild(widgetContainer);
       
       // Get references to elements
@@ -1927,16 +2046,9 @@ window.BellaAITranscriptTracking = {
         // Voice button with microphone and phone icons
         const voiceBtn = document.createElement('button');
         voiceBtn.type = 'button';
-        voiceBtn.title = 'Transfer to Voice';
+        voiceBtn.title = 'Transfer to Phone';
         voiceBtn.id = 'bellaai-voice-button';
         voiceBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
-          <span style="margin:0 2px;">/</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
           </svg>
@@ -1981,23 +2093,8 @@ window.BellaAITranscriptTracking = {
           tooltip.style.width = '210px';
           
           tooltip.innerHTML = `
-            <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Voice</div>
-            <button id="bellaai-browser-voice" style="width:100%;margin-bottom:6px;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" y1="19" x2="12" y2="23"></line>
-                <line x1="8" y1="23" x2="16" y2="23"></line>
-              </svg>
-              Start Voice Chat
-            </button>
-            <button id="bellaai-phone-voice" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-              Call my Phone
-            </button>
-            <div id="bellaai-phone-input-container" style="display:none;margin-top:6px;">
+            <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Phone</div>
+            <div id="bellaai-phone-input-container">
               <input type="tel" id="bellaai-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;">
               <button id="bellaai-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;">Start Call</button>
             </div>
@@ -2014,31 +2111,6 @@ window.BellaAITranscriptTracking = {
               document.removeEventListener('click', closeTooltip);
             }
           });
-          
-          // Button event handlers
-          document.getElementById('bellaai-browser-voice').onclick = async function() {
-            tooltip.remove();
-                      try {
-            const { websocketUrl: signedUrl } = await initiateVoiceCall('browser');
-            if (!signedUrl) throw new Error('Missing websocketUrl from server');
-            startVoiceChatInWindow(signedUrl);
-            } catch (err) {
-              console.error('Error starting voice chat:', err);
-              
-              // Show error message in chat
-              const errorMsg = document.createElement('div');
-              errorMsg.className = 'chat-message bot';
-              errorMsg.innerHTML = formatMessage("I couldn't start the voice chat. Please try again later.");
-              messagesContainer.appendChild(errorMsg);
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-          };
-          
-          document.getElementById('bellaai-phone-voice').onclick = function() {
-            document.getElementById('bellaai-phone-input-container').style.display = 'block';
-            document.getElementById('bellaai-browser-voice').style.display = 'none';
-            document.getElementById('bellaai-phone-voice').style.display = 'none';
-          };
           
           document.getElementById('bellaai-start-call').onclick = async function() {
             const phone = document.getElementById('bellaai-phone-input').value.trim();
@@ -2316,25 +2388,10 @@ window.BellaAITranscriptTracking = {
         tooltip.style.width = '280px'
         tooltip.style.maxWidth = '90vw'
         
-        // Add tooltip content
+        // Add tooltip content - Removed browser voice option, only kept phone
         tooltip.innerHTML = `
-          <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;text-align:center;">Transfer to Voice</div>
-          <button id="bellaai-browser-voice" style="width:100%;margin-bottom:10px;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              <line x1="12" y1="19" x2="12" y2="23"></line>
-              <line x1="8" y1="23" x2="16" y2="23"></line>
-            </svg>
-            Start Voice Chat
-          </button>
-          <button id="bellaai-phone-voice" style="width:100%;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            Call my Phone
-          </button>
-          <div id="bellaai-phone-form" style="display:none;margin-top:10px;">
+          <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;text-align:center;">Transfer to Phone</div>
+          <div id="bellaai-phone-form">
             <input id="bellaai-phone-input" type="tel" placeholder="Enter your phone number" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;font-size:0.95rem;" />
             <button id="bellaai-start-call" style="width:100%;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;">Start Call</button>
           </div>
@@ -2362,35 +2419,10 @@ window.BellaAITranscriptTracking = {
         }
         
         // Add button handlers
-        const browserBtn = document.getElementById('bellaai-browser-voice')
-        const phoneBtn = document.getElementById('bellaai-phone-voice')
         const phoneForm = document.getElementById('bellaai-phone-form')
         const phoneInput = document.getElementById('bellaai-phone-input')
         const errorDiv = document.getElementById('bellaai-voice-error')
         const cancelBtn = document.getElementById('bellaai-voice-cancel')
-        
-        browserBtn.onclick = async function() {
-          errorDiv.style.display = 'none'
-          browserBtn.disabled = true
-          try {
-            const { websocketUrl: signedUrl } = await initiateVoiceCall('browser')
-            if (!signedUrl) throw new Error('Missing websocketUrl from server')
-            // Start integrated voice chat
-            startVoiceChatInWindow(signedUrl)
-            tooltip.remove()
-            overlay.remove()
-          } catch (err) {
-            errorDiv.textContent = err.message
-            errorDiv.style.display = 'block'
-            browserBtn.disabled = false
-          }
-        }
-        
-        phoneBtn.onclick = function() {
-          phoneForm.style.display = 'block'
-          phoneBtn.style.display = 'none'
-          browserBtn.style.display = 'none'
-        }
         
         phoneForm.onsubmit = function(e) {
           e.preventDefault()
