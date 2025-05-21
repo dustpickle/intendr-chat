@@ -3267,8 +3267,14 @@ window.BellaAITranscriptTracking = {
         // Start observing the chat container for class changes
         startObservingChatContainer();
         
+        // Check if we should display the overtake modal
+        if (shouldShowOvertake()) {
+          setTimeout(() => {
+            showOvertakeModal();
+          }, 400); // slight delay for effect
+        }
         // Check if we should auto-open (first time visitor)
-        if (!localStorage.getItem('bellaaiShown') && config.autoOpen) {
+        else if (!localStorage.getItem('bellaaiShown') && config.autoOpen) {
           localStorage.setItem('bellaaiShown', '1');
           setTimeout(showChat, 2000);
         }
