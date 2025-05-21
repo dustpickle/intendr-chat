@@ -1120,19 +1120,44 @@ window.BellaAITranscriptTracking = {
         tooltip.style.borderRadius = '8px';
         tooltip.style.padding = '10px';
         tooltip.style.zIndex = '2147483646';
-        tooltip.style.width = '210px';
+        tooltip.style.width = '200px'; // Slightly narrower to prevent overflow
+        tooltip.style.boxSizing = 'border-box'; // Include padding in width calculation
+        
+        // Add a CSS pointer to connect tooltip to phone button
+        const pointerStyle = document.createElement('style');
+        pointerStyle.textContent = `
+          #bellaai-phone-tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: 30px;
+            margin-left: -10px;
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+          }
+        `;
+        document.head.appendChild(pointerStyle);
         
         tooltip.innerHTML = `
-          <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Phone</div>
-          <div id="bellaai-phone-input-container">
-            <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;">
-            <button id="bellaai-direct-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;">Start Call</button>
+          <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Call Me Now!</div>
+          <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
+            <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;box-sizing:border-box;">
+            <button id="bellaai-direct-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
           </div>
           <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
         
         // Add the tooltip to the body, not as a child of the button
         document.body.appendChild(tooltip);
+        
+        // Correctly position the tooltip after it's been created
+        const phoneRect = phoneButton.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Position tooltip to align the pointer with the center of the phone button
+        tooltip.style.right = `${window.innerWidth - phoneRect.right - (phoneRect.width / 2) + 30}px`;
         
         // Close tooltip when clicking outside
         document.addEventListener('click', function closeDirectTooltip(e) {
@@ -1159,7 +1184,7 @@ window.BellaAITranscriptTracking = {
             document.getElementById('bellaai-direct-start-call').disabled = true;
             document.getElementById('bellaai-direct-start-call').textContent = 'Connecting...';
             
-            await initiateVoiceCall('phone', phone);
+            await initiateVoiceCall('phone_raw', phone);
             
             // Show success message
             errorDiv.style.color = '#090';
@@ -1178,7 +1203,7 @@ window.BellaAITranscriptTracking = {
             // Re-enable input
             document.getElementById('bellaai-direct-phone-input').disabled = false;
             document.getElementById('bellaai-direct-start-call').disabled = false;
-            document.getElementById('bellaai-direct-start-call').textContent = 'Call Me Now';
+            document.getElementById('bellaai-direct-start-call').textContent = 'Start Call';
           }
         };
       };
@@ -2088,20 +2113,38 @@ window.BellaAITranscriptTracking = {
           const tooltip = document.createElement('div');
           tooltip.id = 'bellaai-voice-tooltip';
           tooltip.style.position = 'absolute';
-          tooltip.style.bottom = '50px';
+          tooltip.style.bottom = '60px'; // Increased from 50px to move up
           tooltip.style.left = '0';
           tooltip.style.background = 'white';
           tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
           tooltip.style.borderRadius = '8px';
           tooltip.style.padding = '10px';
           tooltip.style.zIndex = '9999';
-          tooltip.style.width = '210px';
+          tooltip.style.width = '200px'; // Slightly reduced width
+          tooltip.style.boxSizing = 'border-box'; // Include padding in width calculation
+          
+          // Add a CSS pointer to connect tooltip to voice button
+          const pointerStyle = document.createElement('style');
+          pointerStyle.textContent = `
+            #bellaai-voice-tooltip::after {
+              content: '';
+              position: absolute;
+              bottom: -10px;
+              left: 15px;
+              margin-left: -10px;
+              border-width: 10px 10px 0;
+              border-style: solid;
+              border-color: white transparent transparent transparent;
+              filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+            }
+          `;
+          document.head.appendChild(pointerStyle);
           
           tooltip.innerHTML = `
             <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Phone</div>
-            <div id="bellaai-phone-input-container">
-              <input type="tel" id="bellaai-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;">
-              <button id="bellaai-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;">Start Call</button>
+            <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
+              <input type="tel" id="bellaai-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;box-sizing:border-box;">
+              <button id="bellaai-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
             </div>
           `;
           
@@ -2314,15 +2357,41 @@ window.BellaAITranscriptTracking = {
         const dealerInfo = config.dealer
         console.log('[BellaAI] Initiating voice call with dealer info:', dealerInfo)
         
-        const payload = {
-          type: callType,
-          chatHistory,
-          dealerInfo
+        // Extract chatbot ID from webhook URL (between /webhook/ and /chat)
+        let chatbotId = '';
+        try {
+          const webhookUrl = config.webhook.url;
+          const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
+          if (matches && matches[1]) {
+            chatbotId = matches[1];
+          }
+        } catch (err) {
+          console.error('[BellaAI] Error extracting chatbot ID:', err);
         }
         
-        if (callType === 'phone') {
-          if (!phone) throw new Error('Phone number required for phone call')
-          payload.phone = phone
+        let payload = {};
+        
+        if (callType === 'phone_raw') {
+          // For direct phone calls, only include the chatbot ID and phone number
+          payload = {
+            type: callType,
+            phone: phone,
+            chatbotId: chatbotId
+          };
+        } else {
+          // For regular phone calls from chat, include chat history and session ID
+          payload = {
+            type: callType,
+            chatHistory,
+            dealerInfo,
+            sessionId: currentSessionId,
+            chatbotId: chatbotId // Add chatbotId to regular phone calls as well
+          };
+          
+          if (callType === 'phone') {
+            if (!phone) throw new Error('Phone number required for phone call');
+            payload.phone = phone;
+          }
         }
         
         try {
