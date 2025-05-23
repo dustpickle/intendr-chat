@@ -2376,7 +2376,8 @@ window.BellaAITranscriptTracking = {
           payload = {
             type: callType,
             phone: phone,
-            chatbotId: chatbotId
+            chatbotId: chatbotId,
+            dealerInfo: dealerInfo // Add dealer info to phone_raw calls
           };
         } else {
           // For regular phone calls from chat, include chat history and session ID
