@@ -2364,6 +2364,8 @@ window.BellaAITranscriptTracking = {
           const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
           if (matches && matches[1]) {
             chatbotId = matches[1];
+            // Remove /chat suffix if present
+            chatbotId = chatbotId.replace(/\/chat$/, '');
           }
         } catch (err) {
           console.error('[BellaAI] Error extracting chatbot ID:', err);
