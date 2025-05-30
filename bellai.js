@@ -1604,7 +1604,12 @@ window.BellaAITranscriptTracking = {
           // Send to webhook
             const response = await fetch(config.webhook.url, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+              },
               body: JSON.stringify(messageData)
             });
             
@@ -2400,7 +2405,12 @@ window.BellaAITranscriptTracking = {
           
           const response = await fetch('https://automation.cloudcovehosting.com/webhook/voice-call', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type'
+            },
             body: JSON.stringify(payload)
           });
           
