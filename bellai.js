@@ -1719,13 +1719,7 @@ window.BellaAITranscriptTracking = {
       function sendInitialMessages() {
         const dealerName = config.dealer.name || '[DealerName]';
         const messages = [
-          `Hi! I'm Bella, your AI assistant at ${dealerName}. I'm here to help you find your perfect vehicle or assist with any service needs. What brings you in today?`,
-          `I can help you with:`,
-          `• Finding your ideal vehicle`,
-          `• Scheduling service appointments`,
-          `• Answering questions about our inventory`,
-          `• Providing pricing and financing information`,
-          `How can I assist you today?`
+          `Hi I am Bella, I am here to make your online shopping experience with ${dealerName} easy, but most of all save your time and money. Are you here to find a new vehicle or service your current one?`
         ];
 
         messages.forEach((message, index) => {
