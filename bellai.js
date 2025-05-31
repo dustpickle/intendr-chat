@@ -1141,10 +1141,11 @@ window.BellaAITranscriptTracking = {
         document.head.appendChild(pointerStyle);
         
         tooltip.innerHTML = `
-          <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Call Me Now!</div>
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;color:#333;">Prefer to talk on the phone?</div>
+          <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
           <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
-            <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;box-sizing:border-box;">
-            <button id="bellaai-direct-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
+            <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:1rem;box-sizing:border-box;">
+            <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
           </div>
           <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
@@ -1157,7 +1158,17 @@ window.BellaAITranscriptTracking = {
         const tooltipRect = tooltip.getBoundingClientRect();
         
         // Position tooltip to align the pointer with the center of the phone button
-        tooltip.style.right = `${window.innerWidth - phoneRect.right - (phoneRect.width / 2) + 30}px`;
+        // Add mobile-specific positioning
+        if (window.innerWidth <= 600) {
+          tooltip.style.width = '280px';
+          tooltip.style.right = '20px';
+          tooltip.style.left = 'auto';
+          tooltip.style.transform = 'none';
+          tooltip.style.bottom = '90px';
+          tooltip.style.top = 'auto';
+        } else {
+          tooltip.style.right = `${window.innerWidth - phoneRect.right - (phoneRect.width / 2) + 30}px`;
+        }
         
         // Close tooltip when clicking outside
         document.addEventListener('click', function closeDirectTooltip(e) {
@@ -2144,11 +2155,13 @@ window.BellaAITranscriptTracking = {
           document.head.appendChild(pointerStyle);
           
           tooltip.innerHTML = `
-            <div style="font-size:0.9rem;font-weight:600;margin-bottom:8px;color:#333;">Transfer to Phone</div>
+            <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;color:#333;">Prefer to talk on the phone?</div>
+            <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
             <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
-              <input type="tel" id="bellaai-phone-input" placeholder="Your phone number" style="width:100%;padding:8px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:0.85rem;box-sizing:border-box;">
-              <button id="bellaai-start-call" style="width:100%;padding:8px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:0.85rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
+              <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:1rem;box-sizing:border-box;">
+              <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
             </div>
+            <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
           `;
           
           // Position the tooltip
@@ -2163,8 +2176,8 @@ window.BellaAITranscriptTracking = {
             }
           });
           
-          document.getElementById('bellaai-start-call').onclick = async function() {
-            const phone = document.getElementById('bellaai-phone-input').value.trim();
+          document.getElementById('bellaai-direct-start-call').onclick = async function() {
+            const phone = document.getElementById('bellaai-direct-phone-input').value.trim();
             if (!phone) return;
             
             try {
