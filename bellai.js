@@ -1361,29 +1361,42 @@ window.BellaAITranscriptTracking = {
       function cleanHtmlContent(element) {
         if (!element) return '';
         
-        // Clone the element to avoid modifying the original
-        const clone = element.cloneNode(true);
+        // Clone the entire document body to get all content
+        const clone = document.body.cloneNode(true);
         
-        // Remove script tags
-        const scripts = clone.getElementsByTagName('script');
-        while (scripts.length > 0) {
-          scripts[0].parentNode.removeChild(scripts[0]);
-        }
+        // Remove all chat containers and their contents
+        const chatContainers = clone.querySelectorAll('.chat-container');
+        chatContainers.forEach(container => container.remove());
         
-        // Remove style tags
-        const styles = clone.getElementsByTagName('style');
-        while (styles.length > 0) {
-          styles[0].parentNode.removeChild(styles[0]);
-        }
+        // Remove all script, style, and other non-content elements
+        const elementsToRemove = [
+          'script', 'style', 'noscript', 'iframe', 'svg', 'img', 
+          'button', 'input', 'select', 'textarea', 'form',
+          'link', 'meta', 'head', 'style', 'script'
+        ];
         
-        // Get text content and clean it
+        elementsToRemove.forEach(selector => {
+          const elements = clone.querySelectorAll(selector);
+          elements.forEach(el => el.remove());
+        });
+        
+        // Get all text content
         let text = clone.textContent || clone.innerText;
         
-        // Remove extra whitespace
-        text = text.replace(/\s+/g, ' ').trim();
+        // Clean up the text
+        text = text
+          .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+          .replace(/\n+/g, ' ')  // Replace newlines with space
+          .replace(/\t+/g, ' ')  // Replace tabs with space
+          .replace(/\r+/g, ' ')  // Replace carriage returns with space
+          .replace(/\s+/g, ' ')  // Clean up any remaining multiple spaces
+          .trim();
         
         // Remove any remaining HTML tags
         text = text.replace(/<[^>]*>/g, '');
+        
+        // Remove any special characters that might be causing issues
+        text = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
         
         return text;
       }
@@ -1438,22 +1451,16 @@ window.BellaAITranscriptTracking = {
       // Function to generate page summary with caching
       async function generatePageSummary() {
         try {
-          const mainContent = document.querySelector('main, #main, .main-content, .content');
-          if (!mainContent) {
-            console.log('No main content found on page');
-            return null;
-          }
-
           // Get navigation links
           const navigationLinks = collectNavigationLinks();
 
           // Get page type
           const pageType = determinePageType();
 
-          // Clean the content
-          const cleanedContent = cleanHtmlContent(mainContent);
+          // Clean the entire page content
+          const cleanedContent = cleanHtmlContent(document.body);
           if (!cleanedContent) {
-            console.log('No text content found in main content');
+            console.log('No text content found on page');
             return null;
           }
 
