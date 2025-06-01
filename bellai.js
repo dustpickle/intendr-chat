@@ -669,6 +669,9 @@ window.BellaAITranscriptTracking = {
         --chat--color-primary: ${config.style.primaryColor};
         --chat--color-secondary: ${config.style.secondaryColor};
       }
+      div#notificationDisplay {
+        display: none !important;
+      }
       .bellaai-chat-widget {
         font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
