@@ -603,36 +603,16 @@ window.BellaAITranscriptTracking = {
     
     function startInactivityTimer() {
       clearTimeout(inactivityTimer);
-      
-      if (!inactivityMessageSent) {
-        inactivityTimer = setTimeout(function() {
-          if (chatContainer.classList.contains('open') && currentSessionId) {
-            // Keep the original inactivity message
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.innerHTML = formatMessage("Do you have any questions I can help with?");
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            inactivityMessageSent = true;
-            saveSession();
-          }
-        }, INACTIVITY_TIMEOUT);
-      }
     }
     
     function resetInactivityTimer() {
       if (chatContainer.classList.contains('open')) {
         clearTimeout(inactivityTimer);
-        
-        if (!inactivityMessageSent) {
-          startInactivityTimer();
-        }
+        startInactivityTimer();
       }
     }
     
     function resetInactivityState() {
-      inactivityMessageSent = false;
       clearTimeout(inactivityTimer);
       startInactivityTimer();
     }
@@ -1676,7 +1656,7 @@ window.BellaAITranscriptTracking = {
             setTimeout(() => {
               const redirectMsgDiv = document.createElement('div');
               redirectMsgDiv.className = 'chat-message bot';
-              redirectMsgDiv.innerHTML = formatMessage('Redirecting you now...');
+              redirectMsgDiv.innerHTML = formatMessage('Redirecting you now... If you see anything on this page that interests you, let me know and I will give you more details. ');
               messagesContainer.appendChild(redirectMsgDiv);
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
               
@@ -1726,7 +1706,7 @@ window.BellaAITranscriptTracking = {
       function sendInitialMessages() {
         const dealerName = config.dealer.name || '[DealerName]';
         const messages = [
-          `Hi I am Bella, I am here to make your online shopping experience with ${dealerName} easy, but most of all save your time and money. Are you here to find a new vehicle or service your current one?`
+          `Hi I am Bella! I am here to make your online shopping experience with ${dealerName} easy, but most of all save your time and money. Are you here to find a new vehicle or service your current one?`
         ];
 
         messages.forEach((message, index) => {
