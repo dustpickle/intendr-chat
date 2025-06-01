@@ -665,9 +665,11 @@ window.BellaAITranscriptTracking = {
     
     // Styles
     const styles = `
-      .bellaai-chat-widget {
+      :root {
         --chat--color-primary: ${config.style.primaryColor};
         --chat--color-secondary: ${config.style.secondaryColor};
+      }
+      .bellaai-chat-widget {
         font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
       .bellaai-chat-widget .chat-container {
@@ -720,8 +722,9 @@ window.BellaAITranscriptTracking = {
         display: flex;
         align-items: center;
         gap: 12px;
-        border-bottom: 1px solid rgba(133, 79, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         position: relative;
+        background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
       }
       .bellaai-chat-widget .close-button {
         position: absolute;
@@ -732,15 +735,18 @@ window.BellaAITranscriptTracking = {
         border: none;
         cursor: pointer;
         font-size: 20px;
-        opacity: 0.6;
+        opacity: 0.8;
+        color: #ffffff;
       }
       .bellaai-chat-widget .brand-header img {
         width: 32px;
         height: 32px;
+        filter: brightness(0) invert(1);
       }
       .bellaai-chat-widget .brand-header span {
         font-size: 18px;
         font-weight: 500;
+        color: #ffffff;
       }
       .bellaai-chat-widget .chat-interface {
         display: flex;
@@ -1125,7 +1131,7 @@ window.BellaAITranscriptTracking = {
           <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
           <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
             <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:1rem;box-sizing:border-box;">
-            <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
+            <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2);">Start Call</button>
           </div>
           <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
@@ -2146,7 +2152,7 @@ window.BellaAITranscriptTracking = {
             <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
             <div id="bellaai-phone-input-container" style="width:100%;box-sizing:border-box;">
               <input type="tel" id="bellaai-direct-phone-input" placeholder="Your phone number" style="width:100%;padding:10px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:1rem;box-sizing:border-box;">
-              <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;">Start Call</button>
+              <button id="bellaai-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2);">Start Call</button>
             </div>
             <div id="bellaai-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
           `;
@@ -2478,7 +2484,7 @@ window.BellaAITranscriptTracking = {
           <div style="font-size:1rem;font-weight:600;margin-bottom:12px;color:#333;text-align:center;">Transfer to Phone</div>
           <div id="bellaai-phone-form">
             <input id="bellaai-phone-input" type="tel" placeholder="Enter your phone number" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;font-size:0.95rem;" />
-            <button id="bellaai-start-call" style="width:100%;padding:10px;border-radius:6px;background:${config.style.primaryColor};color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;">Start Call</button>
+            <button id="bellaai-start-call" style="width:100%;padding:10px;border-radius:6px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2);">Start Call</button>
           </div>
           <div id="bellaai-voice-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
           <button id="bellaai-voice-cancel" style="display:block;margin:10px auto 0;background:none;border:none;color:#666;cursor:pointer;font-size:0.9rem;">Cancel</button>
@@ -2614,7 +2620,7 @@ window.BellaAITranscriptTracking = {
               <div id="bellaai-voice-indicator" style="width:12px;height:12px;background:#ccc;border-radius:50%;margin-right:8px;"></div>
               <div id="bellaai-voice-status" style="color:#666;font-size:0.9rem;text-align:center;">Initializing...</div>
             </div>
-            <button id="bellaai-voice-end" style="width:100%;padding:0.75rem 0;border-radius:8px;background:#003f72;color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;">End Voice Chat</button>
+            <button id="bellaai-voice-end" style="width:100%;padding:0.75rem 0;border-radius:8px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2);">End Voice Chat</button>
             <div id="bellaai-reconnection-info" style="margin-top:0.5rem;font-size:0.8rem;color:#666;display:none;text-align:center;">Connection lost. Attempting to reconnect...</div>
           </div>
         `
