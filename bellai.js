@@ -1480,17 +1480,16 @@ window.BellaAITranscriptTracking = {
           };
 
           // Generate summary
-          const params = new URLSearchParams({
-            content: cleanedContent,
-            metadata: JSON.stringify(metadata)
-          });
-
-          const response = await fetch('https://automation.cloudcovehosting.com/webhook-test/pagecontext?' + params.toString(), {
-            method: 'GET',
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext', {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Origin': window.location.origin
-            }
+            },
+            body: JSON.stringify({
+              content: cleanedContent,
+              metadata: metadata
+            })
           });
 
           if (!response.ok) {
