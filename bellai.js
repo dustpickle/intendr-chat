@@ -672,6 +672,9 @@ window.BellaAITranscriptTracking = {
       div#notificationDisplay {
         display: none !important;
       }
+      iframe#c1-leads-assistant {
+        display: none !important;
+      }
       .bellaai-chat-widget {
         font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
@@ -1482,7 +1485,7 @@ window.BellaAITranscriptTracking = {
             metadata: JSON.stringify(metadata)
           });
 
-          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext?' + params.toString(), {
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook-test/pagecontext?' + params.toString(), {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -2075,6 +2078,9 @@ window.BellaAITranscriptTracking = {
 
       // Call initChat on page load
       initChat();
+
+      // Generate page summary on load
+      generatePageSummary();
 
       // Ensure chat input row markup and send button are correct
       // (Rebuild input row if needed)
