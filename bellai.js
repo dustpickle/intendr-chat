@@ -325,7 +325,7 @@ window.BellaAITranscriptTracking = {
     // Function to check if chat was manually closed
     function checkIfChatWasManuallyClosed() {
       try {
-        const chatState = localStorage.getItem('bellaaiChatState');
+        const chatState = sessionStorage.get('bellaaiChatState');
         if (chatState) {
           const state = JSON.parse(chatState);
           return state.manuallyClosed || false;
@@ -343,7 +343,7 @@ window.BellaAITranscriptTracking = {
           manuallyClosed: manuallyClosed,
           timestamp: new Date().getTime()
         };
-        localStorage.setItem('bellaaiChatState', JSON.stringify(state));
+        sessionStorage.set('bellaaiChatState', JSON.stringify(state));
       } catch (error) {
         console.error('Error saving chat state:', error);
       }
@@ -508,7 +508,34 @@ window.BellaAITranscriptTracking = {
     
     // Session persistence
     let currentSessionId = '';
-    
+    let sessionStorage = {
+      get: function(key) {
+        if (!isLocalStorageAvailable()) return null;
+        try {
+          return localStorage.getItem(key);
+        } catch (e) {
+          console.warn('Error reading from localStorage:', e);
+          return null;
+        }
+      },
+      set: function(key, value) {
+        if (!isLocalStorageAvailable()) return;
+        try {
+          localStorage.setItem(key, value);
+        } catch (e) {
+          console.warn('Error writing to localStorage:', e);
+        }
+      },
+      remove: function(key) {
+        if (!isLocalStorageAvailable()) return;
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          console.warn('Error removing from localStorage:', e);
+        }
+      }
+    };
+
     function saveSession() {
       if (currentSessionId) {
         try {
@@ -523,22 +550,21 @@ window.BellaAITranscriptTracking = {
                 };
               }),
             inactivityMessageSent: inactivityMessageSent,
-            promptBubbleShown: promptBubbleShown, // Save prompt bubble state
+            promptBubbleShown: promptBubbleShown,
             timestamp: new Date().getTime(),
-            // Store UTM parameters with the session
             utmParameters: window.initialUtmParameters || {}
           };
           
-          localStorage.setItem('bellaaiChatSession', JSON.stringify(sessionData));
+          sessionStorage.set('bellaaiChatSession', JSON.stringify(sessionData));
         } catch (error) {
           console.error('Error saving chat session:', error);
         }
       }
     }
-    
+
     function loadSession() {
       try {
-        const savedSession = localStorage.getItem('bellaaiChatSession');
+        const savedSession = sessionStorage.get('bellaaiChatSession');
         if (savedSession) {
           const sessionData = JSON.parse(savedSession);
           
@@ -584,14 +610,13 @@ window.BellaAITranscriptTracking = {
             }
             
             return true;
-          } else {
-            // Session too old, clear it
-            localStorage.removeItem('bellaaiChatSession');
           }
+          // Session too old, clear it
+          sessionStorage.remove('bellaaiChatSession');
         }
       } catch (error) {
         console.error('Error loading saved chat session:', error);
-        localStorage.removeItem('bellaaiChatSession');
+        sessionStorage.remove('bellaaiChatSession');
       }
       return false;
     }
@@ -3248,3 +3273,15 @@ window.BellaAITranscriptTracking = {
       }
 
     })();
+
+    // Check if localStorage is available and working
+    function isLocalStorageAvailable() {
+      try {
+        const testKey = '__test__';
+        localStorage.setItem(testKey, testKey);
+        localStorage.removeItem(testKey);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
