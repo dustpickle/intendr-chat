@@ -608,7 +608,7 @@ window.BellaAITranscriptTracking = {
     function resetInactivityTimer() {
       if (chatContainer.classList.contains('open')) {
         clearTimeout(inactivityTimer);
-        startInactivityTimer();
+          startInactivityTimer();
       }
     }
     
@@ -847,7 +847,7 @@ window.BellaAITranscriptTracking = {
       }
     .bellaai-chat-widget .chat-toggle {
       position: fixed;
-      bottom: 20px;
+      bottom: 60px;
       right: 20px;
       display: flex;
       align-items: center;
@@ -863,6 +863,9 @@ window.BellaAITranscriptTracking = {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       opacity: 1;
       transform: scale(1);
+    }
+    .bellaai-chat-widget .phone-toggle {
+      bottom: 60px !important;
     }
     
     .bellaai-chat-widget .chat-toggle.hidden {
@@ -1105,7 +1108,7 @@ window.BellaAITranscriptTracking = {
         const tooltip = document.createElement('div');
         tooltip.id = 'bellaai-phone-tooltip';
         tooltip.style.position = 'fixed';
-        tooltip.style.bottom = '90px'; // Position above the button
+        tooltip.style.bottom = '130px'; // Position above the button (60px + 70px for tooltip height)
         tooltip.style.right = config.style.position === 'left' ? '20px' : '20px';
         tooltip.style.background = 'white';
         tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
@@ -1656,11 +1659,11 @@ window.BellaAITranscriptTracking = {
             // First, show the message with the redirect URL removed
             const cleanedMessage = botReply.replace(/\[REDIRECT\][\s\S]*?\[\/REDIRECT\]/g, '').trim();
             if (cleanedMessage) {
-              const botMessageDiv = document.createElement('div');
-              botMessageDiv.className = 'chat-message bot';
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
               botMessageDiv.innerHTML = formatMessage(cleanedMessage);
-              messagesContainer.appendChild(botMessageDiv);
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
             // Then show 'Redirecting you now...' message
@@ -1672,8 +1675,8 @@ window.BellaAITranscriptTracking = {
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
               
               // Save session before redirecting
-              saveSession();
-              
+            saveSession();
+            
               // Redirect after a 3 second delay
               setTimeout(() => {
                 window.location.href = redirectUrl;
@@ -1727,7 +1730,7 @@ window.BellaAITranscriptTracking = {
             botMessageDiv.innerHTML = formatMessage(message);
             messagesContainer.appendChild(botMessageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            saveSession();
+          saveSession();
           }, index * 1000); // Send each message with a 1-second delay
         });
       }
@@ -1790,7 +1793,7 @@ window.BellaAITranscriptTracking = {
         toggleButton.classList.add('hidden');
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
-        document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
         localStorage.setItem('bellaaiOvertakeShown', '1');
         showChat();
       }
