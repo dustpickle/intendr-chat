@@ -1,27 +1,19 @@
 <script>
+    // Your specific webhook and business configuration
     window.ChatWidgetConfig = {
       webhook: {
-          url: 'https://automation.cloudcovehosting.com/webhook/8b680ba8-6a58-4a67-bb8a-d1673be51273/chat',
+          url: 'https://automation.cloudcovehosting.com/webhook/b1bdfe90-cbf0-4d3a-8e4b-fa3359344b57/chat',
           route: 'general'
       },
-      style: {
-          primaryColor: '#003f72',
-          secondaryColor: '#003f72',
-          position: 'right',
-          backgroundColor: '#ffffff',
-          fontColor: '#333333'
-    },
-    dealer: {
-      name: 'ABC Dealership',
-      phone: '(928) 965-2667',
-      website: 'https://www.nissanofstockton.com/',
-      searchPage: 'https://www.nissanofstockton.com/new-vehicles/',
-      provider: 'DealerInspire',
-      dealerId: 'ABC123',
-      brand: 'Nissan'
-    },
-    overtake: true, // Enable modal takeover
-    overtakePath: '/chat-test' // Set to '/chat-test' for testing, change to '/' for homepage
+      business: {
+          name: 'Your Business Name',
+          phone: '+1-555-REAL-NUM',
+          website: 'https://yourbusiness.com',
+          searchPage: 'https://yourbusiness.com/products',
+          provider: 'Your Company'
+      },
+      overtake: true,
+      overtakePath: '/'
     };
   </script>
-  <script src="./bellai.js"></script>
+  <script src="./chatembed-client.js"></script>
