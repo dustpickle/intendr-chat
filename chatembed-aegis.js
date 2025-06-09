@@ -231,7 +231,7 @@ window.aegisAnalytics = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  const corePath = window.ChatWidgetCorePath || 'https://cdn.jsdelivr.net/gh/dustpickle/n8n-chat-embed/chatembed.min.js';
+  const corePath = window.ChatWidgetCorePath || 'https://cdn.jsdelivr.net/gh/dustpickle/n8n-chat-embed/chatembed.js';
   const script = document.createElement('script');
   script.src = corePath;
   script.onload = function() {
