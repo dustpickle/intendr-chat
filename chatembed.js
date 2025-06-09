@@ -128,6 +128,101 @@ window.IntendrPhoneCallActive = false;
     // Initialize session ID early for analytics tracking
     let currentSessionId = '';
     
+    // Analytics tracking function (declared early to avoid reference errors)
+    async function trackAnalyticsEvent(eventType, additionalData = {}) {
+      try {
+        // Extract chatbot ID from webhook URL
+        let chatbotId = '';
+        try {
+          const webhookUrl = config.webhook.url;
+          const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
+          if (matches && matches[1]) {
+            chatbotId = matches[1].replace(/\/chat$/, '');
+          }
+        } catch (err) {
+          console.error('Error extracting chatbot ID for analytics:', err);
+          return;
+        }
+
+        if (!chatbotId) {
+          console.warn('No chatbot ID found for analytics tracking');
+          return;
+        }
+
+        // Prepare tracking data
+        const trackingData = {
+          chatbotId: chatbotId,
+          sessionId: currentSessionId || 'temp_' + Date.now(),
+          event: eventType,
+          metadata: {
+            userAgent: navigator.userAgent,
+            utmParams: window.initialUtmParameters || {},
+            pageUrl: window.location.href,
+            referrer: document.referrer || null,
+            fingerprint: generateBrowserFingerprint(),
+            language: navigator.language,
+            screenResolution: screen.width + 'x' + screen.height,
+            ip: userIP,
+            timestamp: new Date().toISOString(),
+            ...additionalData
+          }
+        };
+
+        // Log the payload being sent for debugging
+        console.log('📊 [Analytics] Sending payload:', JSON.stringify(trackingData, null, 2));
+        console.log('📊 [Analytics] Event type:', eventType, '| Timestamp:', new Date().toLocaleTimeString());
+
+        // Send to analytics API
+        const response = await fetch('https://intendr.ai/api/analytics/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(trackingData)
+        });
+
+        if (response.ok) {
+          console.log(`✅ [Analytics] ${eventType} tracked successfully - Status: ${response.status}`);
+        } else {
+          console.warn(`❌ [Analytics] Failed to track ${eventType} - Status: ${response.status}`);
+          console.warn(`❌ [Analytics] Response:`, await response.text());
+        }
+      } catch (error) {
+        console.warn('🚨 [Analytics] Tracking error:', error);
+      }
+    }
+
+    // Generate browser fingerprint for deduplication
+    function generateBrowserFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Browser fingerprint', 2, 2);
+        
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + 'x' + screen.height,
+          new Date().getTimezoneOffset(),
+          canvas.toDataURL()
+        ].join('|');
+        
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < fingerprint.length; i++) {
+          const char = fingerprint.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        
+        return 'fp_' + Math.abs(hash).toString(36);
+      } catch (error) {
+        return 'fp_' + Math.random().toString(36).substring(2, 15);
+      }
+    }
+    
     // Track visitor (once per page load/session)
     const visitorTrackingKey = 'intendr_visitor_tracked_session';
     const sessionKey = window.sessionStorage.getItem(visitorTrackingKey);
@@ -454,100 +549,7 @@ window.IntendrPhoneCallActive = false;
       }
     }
 
-    // Analytics tracking function
-    async function trackAnalyticsEvent(eventType, additionalData = {}) {
-      try {
-        // Extract chatbot ID from webhook URL
-        let chatbotId = '';
-        try {
-          const webhookUrl = config.webhook.url;
-          const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
-          if (matches && matches[1]) {
-            chatbotId = matches[1].replace(/\/chat$/, '');
-          }
-        } catch (err) {
-          console.error('Error extracting chatbot ID for analytics:', err);
-          return;
-        }
 
-        if (!chatbotId) {
-          console.warn('No chatbot ID found for analytics tracking');
-          return;
-        }
-
-        // Prepare tracking data
-        const trackingData = {
-          chatbotId: chatbotId,
-          sessionId: currentSessionId || 'temp_' + Date.now(),
-          event: eventType,
-          metadata: {
-            userAgent: navigator.userAgent,
-            utmParams: window.initialUtmParameters || {},
-            pageUrl: window.location.href,
-            referrer: document.referrer || null,
-            fingerprint: generateBrowserFingerprint(),
-            language: navigator.language,
-            screenResolution: screen.width + 'x' + screen.height,
-            ip: userIP,
-            timestamp: new Date().toISOString(),
-            ...additionalData
-          }
-        };
-
-        // Log the payload being sent for debugging
-        console.log('📊 [Analytics] Sending payload:', JSON.stringify(trackingData, null, 2));
-        console.log('📊 [Analytics] Event type:', eventType, '| Timestamp:', new Date().toLocaleTimeString());
-
-        // Send to analytics API
-        const response = await fetch('https://intendr.ai/api/analytics/track', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(trackingData)
-        });
-
-        if (response.ok) {
-          console.log(`✅ [Analytics] ${eventType} tracked successfully - Status: ${response.status}`);
-        } else {
-          console.warn(`❌ [Analytics] Failed to track ${eventType} - Status: ${response.status}`);
-          console.warn(`❌ [Analytics] Response:`, await response.text());
-        }
-      } catch (error) {
-        console.warn('🚨 [Analytics] Tracking error:', error);
-      }
-    }
-
-    // Generate browser fingerprint for deduplication
-    function generateBrowserFingerprint() {
-      try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillText('Browser fingerprint', 2, 2);
-        
-        const fingerprint = [
-          navigator.userAgent,
-          navigator.language,
-          screen.width + 'x' + screen.height,
-          new Date().getTimezoneOffset(),
-          canvas.toDataURL()
-        ].join('|');
-        
-        // Simple hash function
-        let hash = 0;
-        for (let i = 0; i < fingerprint.length; i++) {
-          const char = fingerprint.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
-          hash = hash & hash;
-        }
-        
-        return 'fp_' + Math.abs(hash).toString(36);
-      } catch (error) {
-        return 'fp_' + Math.random().toString(36).substring(2, 15);
-      }
-    }
 
     // Enhanced lead conversion tracking
     function trackLeadConversion(leadData) {
