@@ -125,6 +125,25 @@ window.IntendrPhoneCallActive = false;
     if (window.IntendrChatWidgetInitialized) return;
     window.IntendrChatWidgetInitialized = true;
     
+    // Track visitor (once per session)
+    const visitorTrackingKey = `intendr_visitor_tracked_${currentSessionId}`;
+    if (!sessionStorage.getItem(visitorTrackingKey)) {
+      trackAnalyticsEvent('visitor');
+      sessionStorage.setItem(visitorTrackingKey, 'true');
+    }
+    
+    // Track page visibility changes (after initial visitor tracking)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        // User came back to page - track as visitor again if new session
+        const visitorTrackingKey = `intendr_visitor_tracked_${currentSessionId}`;
+        if (!sessionStorage.getItem(visitorTrackingKey)) {
+          trackAnalyticsEvent('visitor');
+          sessionStorage.setItem(visitorTrackingKey, 'true');
+        }
+      }
+    });
+    
     // Flag to track if user has manually closed the chat in this session
     let userManuallyClosedChat = false;
     
@@ -430,6 +449,109 @@ window.IntendrPhoneCallActive = false;
         });
       }
     }
+
+    // Analytics tracking function
+    async function trackAnalyticsEvent(eventType, additionalData = {}) {
+      try {
+        // Extract chatbot ID from webhook URL
+        let chatbotId = '';
+        try {
+          const webhookUrl = config.webhook.url;
+          const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
+          if (matches && matches[1]) {
+            chatbotId = matches[1].replace(/\/chat$/, '');
+          }
+        } catch (err) {
+          console.error('Error extracting chatbot ID for analytics:', err);
+          return;
+        }
+
+        if (!chatbotId) {
+          console.warn('No chatbot ID found for analytics tracking');
+          return;
+        }
+
+        // Prepare tracking data
+        const trackingData = {
+          chatbotId: chatbotId,
+          sessionId: currentSessionId,
+          event: eventType,
+          metadata: {
+            userAgent: navigator.userAgent,
+            utmParams: window.initialUtmParameters || {},
+            pageUrl: window.location.href,
+            referrer: document.referrer || null,
+            fingerprint: generateBrowserFingerprint(),
+            language: navigator.language,
+            screenResolution: screen.width + 'x' + screen.height,
+            ip: userIP,
+            timestamp: new Date().toISOString(),
+            ...additionalData
+          }
+        };
+
+        // Send to analytics API
+        const response = await fetch('/api/analytics/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(trackingData)
+        });
+
+        if (response.ok) {
+          console.log(`Analytics: ${eventType} tracked successfully`);
+        } else {
+          console.warn(`Analytics: Failed to track ${eventType}`);
+        }
+      } catch (error) {
+        console.warn('Analytics tracking error:', error);
+      }
+    }
+
+    // Generate browser fingerprint for deduplication
+    function generateBrowserFingerprint() {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Browser fingerprint', 2, 2);
+        
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + 'x' + screen.height,
+          new Date().getTimezoneOffset(),
+          canvas.toDataURL()
+        ].join('|');
+        
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < fingerprint.length; i++) {
+          const char = fingerprint.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        
+        return 'fp_' + Math.abs(hash).toString(36);
+      } catch (error) {
+        return 'fp_' + Math.random().toString(36).substring(2, 15);
+      }
+    }
+
+    // Enhanced lead conversion tracking
+    function trackLeadConversion(leadData) {
+      trackAnalyticsEvent('lead_conversion', {
+        leadId: leadData.id || null,
+        leadEmail: leadData.email || null,
+        leadPhone: leadData.phone || null,
+        conversionSource: 'chat_widget'
+      });
+    }
+
+    // Make trackLeadConversion available globally for external use
+    window.IntendrTrackLeadConversion = trackLeadConversion;
     
     // Format message with links and markdown
     function formatMessage(text) {
@@ -1386,6 +1508,20 @@ window.IntendrPhoneCallActive = false;
       });
 
       closeButton.addEventListener('click', function() {
+        // Track session end before closing
+        const messagesContainer = document.querySelector('.chat-messages');
+        const userMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.user') : [];
+        const botMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.bot') : [];
+        
+        if (userMessages.length > 0) {
+          trackAnalyticsEvent('session_end', {
+            messageCount: userMessages.length + botMessages.length,
+            userMessageCount: userMessages.length,
+            botMessageCount: botMessages.length,
+            sessionDuration: Date.now() - (new Date().getTime() || Date.now())
+          });
+        }
+
         if (overlayDiv) {
           hideOvertakeModal();
         } else {
@@ -1715,6 +1851,24 @@ window.IntendrPhoneCallActive = false;
       // Send message function
       async function sendMessage(message) {
         if (!message.trim()) return;
+        
+        // Track session start or update
+        const messagesContainer = document.querySelector('.chat-messages');
+        const userMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.user') : [];
+        
+        if (userMessages.length === 0) {
+          // First message - track session start
+          await trackAnalyticsEvent('session_start', {
+            firstMessage: message.trim()
+          });
+        } else {
+          // Subsequent messages - track session update
+          await trackAnalyticsEvent('session_update', {
+            messageCount: userMessages.length + 1,
+            userMessageCount: userMessages.length + 1,
+            latestMessage: message.trim()
+          });
+        }
         
         // Execute beforeSendMessage hook if provided
         if (INTENDR_HOOKS.beforeSendMessage && typeof INTENDR_HOOKS.beforeSendMessage === 'function') {
@@ -2197,6 +2351,20 @@ window.IntendrPhoneCallActive = false;
           showChat();
         });
         closeButton.addEventListener('click', function() {
+          // Track session end before closing
+          const messagesContainer = document.querySelector('.chat-messages');
+          const userMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.user') : [];
+          const botMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.bot') : [];
+          
+          if (userMessages.length > 0) {
+            trackAnalyticsEvent('session_end', {
+              messageCount: userMessages.length + botMessages.length,
+              userMessageCount: userMessages.length,
+              botMessageCount: botMessages.length,
+              sessionDuration: Date.now() - (new Date().getTime() || Date.now())
+            });
+          }
+
           hideChat();
           userManuallyClosedChat = true;
           saveChatState(true);
