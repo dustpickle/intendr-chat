@@ -40,8 +40,7 @@ const CUSTOM_CLIENT_CONFIG = {
   // API Endpoints (usually client-specific)
   endpoints: {
     pageContext: 'https://automation.cloudcovehosting.com/webhook/intendr-pagecontext',
-    voiceCall: 'https://automation.cloudcovehosting.com/webhook/intendr-call',
-    analytics: 'https://client-analytics.example.com/api/track'
+    voiceCall: 'https://automation.cloudcovehosting.com/webhook/intendr-call'
   },
   
   // Behavior Settings
@@ -90,9 +89,7 @@ window.ChatWidgetCustomConfig = {
         return message + ' [AEGIS_PRIORITY]';
       }
       
-      if (window.aegisAnalytics) {
-        window.aegisAnalytics.trackMessage('user_message', message);
-      }
+      // Core widget already handles comprehensive analytics tracking
       
       return message;
     },
@@ -103,35 +100,21 @@ window.ChatWidgetCustomConfig = {
         messageElement.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)';
       }
       
-      if (window.aegisAnalytics) {
-        window.aegisAnalytics.trackMessage('bot_response', message);
-      }
+      // Core widget already handles comprehensive analytics tracking
     },
     
               beforePhoneCall: async function(callType, phone) {
-      if (window.aegisAnalytics) {
-        window.aegisAnalytics.trackPhoneCall('initiated', callType, phone);
-      }
+      // Core widget already handles comprehensive analytics tracking
       
       return true;
     },
     
         afterPhoneCall: async function(callType, phone, result) {
-      if (window.aegisAnalytics) {
-        window.aegisAnalytics.trackPhoneCall('completed', callType, phone, result);
-      }
+      // Core widget already handles comprehensive analytics tracking
       
       if (result.status === 'success') {
-        fetch(CUSTOM_CLIENT_CONFIG.endpoints.crm, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: phone,
-            callType: callType,
-            timestamp: new Date().toISOString(),
-            result: result
-          })
-        }).catch(err => console.error('[Aegis] CRM sync failed:', err));
+        // Could add CRM integration here if needed
+        console.log('[Aegis] Phone call completed successfully:', { callType, phone, result });
       }
     },
     
@@ -196,42 +179,13 @@ window.ChatWidgetConfig = {
   ]
 };
 
-// Analytics setup
-window.aegisAnalytics = {
-  trackMessage: function(type, message) {
-    fetch(CUSTOM_CLIENT_CONFIG.endpoints.analytics, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'chat_message',
-        type: type,
-        message: message,
-        timestamp: new Date().toISOString(),
-        url: window.location.href
-      })
-    }).catch(err => console.error('[Aegis] Analytics failed:', err));
-  },
-  
-  trackPhoneCall: function(action, callType, phone, result = null) {
-    fetch(CUSTOM_CLIENT_CONFIG.endpoints.analytics, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'phone_call',
-        action: action,
-        callType: callType,
-        phone: phone,
-        result: result,
-        timestamp: new Date().toISOString(),
-        url: window.location.href
-      })
-    }).catch(err => console.error('[Aegis] Analytics failed:', err));
-  }
-};
+// Note: Analytics are handled by the core widget automatically
+// The core widget tracks all events and sends them to /api/analytics/track
+// with the chatbot ID automatically extracted from the webhook URL
 
 // Auto-load core widget
 function loadCoreWidget() {
-  const corePath = window.ChatWidgetCorePath || 'https://cdn.jsdelivr.net/gh/dustpickle/n8n-chat-embed/chatembed.js';
+  const corePath = window.ChatWidgetCorePath || 'chatembed.js';
   const script = document.createElement('script');
   script.src = corePath;
   script.onload = function() {

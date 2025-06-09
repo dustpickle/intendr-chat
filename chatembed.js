@@ -125,22 +125,26 @@ window.IntendrPhoneCallActive = false;
     if (window.IntendrChatWidgetInitialized) return;
     window.IntendrChatWidgetInitialized = true;
     
-    // Track visitor (once per session)
-    const visitorTrackingKey = `intendr_visitor_tracked_${currentSessionId}`;
-    if (!sessionStorage.getItem(visitorTrackingKey)) {
+    // Initialize session ID early for analytics tracking
+    let currentSessionId = '';
+    
+    // Track visitor (once per page load/session)
+    const visitorTrackingKey = 'intendr_visitor_tracked_session';
+    const sessionKey = window.sessionStorage.getItem(visitorTrackingKey);
+    if (!sessionKey) {
+      console.log('🎯 [Analytics] New visitor detected - tracking page load event');
       trackAnalyticsEvent('visitor');
-      sessionStorage.setItem(visitorTrackingKey, 'true');
+      window.sessionStorage.setItem(visitorTrackingKey, 'true');
+    } else {
+      console.log('🔄 [Analytics] Returning visitor - skipping duplicate tracking');
     }
     
     // Track page visibility changes (after initial visitor tracking)
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
-        // User came back to page - track as visitor again if new session
-        const visitorTrackingKey = `intendr_visitor_tracked_${currentSessionId}`;
-        if (!sessionStorage.getItem(visitorTrackingKey)) {
-          trackAnalyticsEvent('visitor');
-          sessionStorage.setItem(visitorTrackingKey, 'true');
-        }
+        console.log('👁️ [Analytics] Page visibility changed - user returned to tab');
+        // User came back to page - track page view
+        trackAnalyticsEvent('page_view');
       }
     });
     
@@ -474,7 +478,7 @@ window.IntendrPhoneCallActive = false;
         // Prepare tracking data
         const trackingData = {
           chatbotId: chatbotId,
-          sessionId: currentSessionId,
+          sessionId: currentSessionId || 'temp_' + Date.now(),
           event: eventType,
           metadata: {
             userAgent: navigator.userAgent,
@@ -490,8 +494,12 @@ window.IntendrPhoneCallActive = false;
           }
         };
 
+        // Log the payload being sent for debugging
+        console.log('📊 [Analytics] Sending payload:', JSON.stringify(trackingData, null, 2));
+        console.log('📊 [Analytics] Event type:', eventType, '| Timestamp:', new Date().toLocaleTimeString());
+
         // Send to analytics API
-        const response = await fetch('/api/analytics/track', {
+        const response = await fetch('https://intendr.ai/api/analytics/track', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -500,12 +508,13 @@ window.IntendrPhoneCallActive = false;
         });
 
         if (response.ok) {
-          console.log(`Analytics: ${eventType} tracked successfully`);
+          console.log(`✅ [Analytics] ${eventType} tracked successfully - Status: ${response.status}`);
         } else {
-          console.warn(`Analytics: Failed to track ${eventType}`);
+          console.warn(`❌ [Analytics] Failed to track ${eventType} - Status: ${response.status}`);
+          console.warn(`❌ [Analytics] Response:`, await response.text());
         }
       } catch (error) {
-        console.warn('Analytics tracking error:', error);
+        console.warn('🚨 [Analytics] Tracking error:', error);
       }
     }
 
@@ -628,7 +637,6 @@ window.IntendrPhoneCallActive = false;
     }
     
     // Session persistence
-    let currentSessionId = '';
     let sessionStorage = {
       get: function(key) {
         if (!isLocalStorageAvailable()) return null;
