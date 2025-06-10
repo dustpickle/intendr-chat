@@ -1281,7 +1281,8 @@ window.IntendrPhoneCallActive = false;
 
         /* Defensive styles for thinking/typing indicator */
         .intendr-chat-widget .thinking {
-          background: #f0f0f0 !important;
+          background: white !important;
+          border: 1px solid #e0e0e0 !important;
           border-radius: 15px !important;
           padding: 8px 12px !important;
           margin: 8px 0 !important;
