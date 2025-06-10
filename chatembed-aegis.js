@@ -185,8 +185,8 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  // const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed.js';
-  const corePath = window.ChatWidgetCorePath || 'chatembed.js';
+  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed.js';
+  //const corePath = window.ChatWidgetCorePath || 'chatembed.js';
 
   const script = document.createElement('script');
   script.src = corePath;
