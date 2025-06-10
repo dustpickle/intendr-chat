@@ -149,6 +149,9 @@ window.IntendrPhoneCallActive = false;
           return;
         }
 
+        // Load tracking pixel dynamically (only once)
+        loadTrackingPixel(chatbotId);
+
         // Prepare tracking data
         const trackingData = {
           chatbotId: chatbotId,
@@ -222,8 +225,39 @@ window.IntendrPhoneCallActive = false;
         return 'fp_' + Math.random().toString(36).substring(2, 15);
       }
     }
+
+    // Dynamic tracking pixel loader
+    function loadTrackingPixel(chatbotId) {
+      // Check if tracking pixel is already loaded
+      if (window.IntendrTrackingInitialized) {
+        return;
+      }
+      
+      console.log('🎯 [Tracking Pixel] Loading tracking pixel for chatbot:', chatbotId);
+      
+      // Create script element for tracking pixel
+      const trackingScript = document.createElement('script');
+      trackingScript.src = 'https://intendr.ai/api/tracking-pixel';
+      trackingScript.setAttribute('data-chatbot-id', chatbotId);
+      trackingScript.async = true;
+      trackingScript.defer = true;
+      
+      // Add error handling
+      trackingScript.onerror = function() {
+        console.warn('🚨 [Tracking Pixel] Failed to load tracking pixel script');
+      };
+      
+      trackingScript.onload = function() {
+        console.log('✅ [Tracking Pixel] Tracking pixel loaded successfully');
+      };
+      
+      // Add to document head
+      document.head.appendChild(trackingScript);
+    }
     
-    // Track visitor (once per page load/session)
+    // Track visitor (once per page load/session) - COMMENTED OUT to avoid duplication
+    // The tracking pixel will handle visitor tracking automatically
+    /*
     const visitorTrackingKey = 'intendr_visitor_tracked_session';
     const sessionKey = window.sessionStorage.getItem(visitorTrackingKey);
     if (!sessionKey) {
@@ -233,6 +267,8 @@ window.IntendrPhoneCallActive = false;
     } else {
       console.log('🔄 [Analytics] Returning visitor - skipping duplicate tracking');
     }
+    */
+    console.log('🎯 [Analytics] Visitor tracking handled by dynamic tracking pixel');
     
     // Track page visibility changes (after initial visitor tracking)
     document.addEventListener('visibilitychange', function() {
