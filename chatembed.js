@@ -1246,13 +1246,13 @@ window.IntendrPhoneCallActive = false;
           width: 100% !important;
           min-height: 40px !important;
           max-height: 120px !important;
-          height: auto !important;
+          height: 40px !important;
           padding: 12px 50px 12px 16px !important;
           margin: 0 !important;
           border: 1px solid #e0e0e0 !important;
           border-radius: 25px !important;
           font-size: 14px !important;
-          line-height: 1.4 !important;
+          line-height: 1.2 !important;
           background: white !important;
           color: #333 !important;
           resize: none !important;
@@ -1261,9 +1261,10 @@ window.IntendrPhoneCallActive = false;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
           display: block !important;
           position: relative !important;
+          overflow: hidden !important;
           overflow-y: auto !important;
           word-wrap: break-word !important;
-          white-space: pre-wrap !important;
+          white-space: nowrap !important;
           vertical-align: top !important;
           text-align: left !important;
           letter-spacing: normal !important;
@@ -1276,6 +1277,36 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .chat-input textarea:focus {
           border-color: var(--chat--color-primary) !important;
           box-shadow: 0 0 0 2px rgba(133, 79, 255, 0.2) !important;
+        }
+
+        /* Defensive styles for thinking/typing indicator */
+        .intendr-chat-widget .thinking {
+          background: #f0f0f0 !important;
+          border-radius: 15px !important;
+          padding: 8px 12px !important;
+          margin: 8px 0 !important;
+          display: inline-block !important;
+          max-width: 80% !important;
+          box-sizing: border-box !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          font-size: 14px !important;
+          line-height: 1.4 !important;
+          color: #666 !important;
+          text-align: left !important;
+          letter-spacing: normal !important;
+          word-spacing: normal !important;
+          text-indent: 0 !important;
+          text-transform: none !important;
+          text-decoration: none !important;
+        }
+
+        .intendr-chat-widget .thinking span {
+          margin: 0 !important;
+          padding: 0 !important;
+          font-family: inherit !important;
+          font-size: inherit !important;
+          line-height: inherit !important;
+          color: inherit !important;
         }
       `;
       
