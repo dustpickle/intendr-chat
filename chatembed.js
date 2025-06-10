@@ -1168,7 +1168,7 @@ window.IntendrPhoneCallActive = false;
         }
         /* Initial buttons styles */
         .intendr-chat-widget .initial-buttons-container {
-          padding: 16px;
+          padding: 10px 10px 0px 10px;
           border-top: 1px solid rgba(133, 79, 255, 0.1);
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -1313,7 +1313,6 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .initial-button,
         .intendr-chat-widget .action-button {
           padding: 12px 20px !important;
-          margin: 8px !important;
           border: none !important;
           border-radius: 8px !important;
           background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;
