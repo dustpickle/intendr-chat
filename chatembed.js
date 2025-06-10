@@ -1209,6 +1209,84 @@ window.IntendrPhoneCallActive = false;
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4);
         }
+
+        /* Defensive styles for widget overlays */
+        .intendr-widget-overlay {
+          all: initial !important;
+          position: fixed !important;
+          z-index: 2147483648 !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          box-sizing: border-box !important;
+        }
+
+        .intendr-widget-overlay * {
+          box-sizing: border-box !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+          outline: none !important;
+          font-family: inherit !important;
+          text-decoration: none !important;
+          list-style: none !important;
+          background: transparent !important;
+          color: inherit !important;
+        }
+
+        .intendr-widget-overlay input {
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          -moz-appearance: none !important;
+        }
+
+        .intendr-widget-overlay button {
+          cursor: pointer !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+        }
+
+        /* Strengthen chat input field protection */
+        .intendr-chat-widget .chat-input textarea {
+          all: unset !important;
+          width: 100% !important;
+          min-height: 40px !important;
+          max-height: 120px !important;
+          padding: 12px 50px 12px 16px !important;
+          border: 1px solid #e0e0e0 !important;
+          border-radius: 25px !important;
+          font-size: 14px !important;
+          line-height: 1.4 !important;
+          background: white !important;
+          color: #333 !important;
+          resize: none !important;
+          outline: none !important;
+          box-sizing: border-box !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          display: block !important;
+          position: relative !important;
+          overflow-y: auto !important;
+          word-wrap: break-word !important;
+          white-space: pre-wrap !important;
+        }
+
+        .intendr-chat-widget .chat-input textarea:focus {
+          border-color: var(--chat--color-primary) !important;
+          box-shadow: 0 0 0 2px rgba(133, 79, 255, 0.2) !important;
+        }
+
+        /* Strengthen button protection */
+        .intendr-chat-widget .chat-input button,
+        .intendr-chat-widget .chat-toggle {
+          all: unset !important;
+          cursor: pointer !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
       `;
       
       // Inject styles
@@ -1307,16 +1385,29 @@ window.IntendrPhoneCallActive = false;
         // Create tooltip - use a more compact style matching the in-chat tooltip
         const tooltip = document.createElement('div');
         tooltip.id = 'intendr-phone-tooltip';
-        tooltip.style.position = 'fixed';
-        tooltip.style.bottom = '130px'; // Position above the button (60px + 70px for tooltip height)
-        tooltip.style.right = config.style.position === 'left' ? '20px' : '20px';
-        tooltip.style.background = 'white';
-        tooltip.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
-        tooltip.style.borderRadius = '8px';
-        tooltip.style.padding = '10px';
-        tooltip.style.zIndex = '2147483646';
-        tooltip.style.width = '200px'; // Slightly narrower to prevent overflow
-        tooltip.style.boxSizing = 'border-box'; // Include padding in width calculation
+        tooltip.className = 'intendr-widget-overlay';
+        
+        // Apply defensive styles
+        Object.assign(tooltip.style, {
+          position: 'fixed',
+          bottom: '130px',
+          right: config.style.position === 'left' ? '20px' : '20px',
+          background: 'white',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+          borderRadius: '8px',
+          padding: '10px',
+          zIndex: '2147483646',
+          width: '200px',
+          boxSizing: 'border-box',
+          margin: '0',
+          border: 'none',
+          outline: 'none',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '14px',
+          lineHeight: '1.4',
+          color: '#333',
+          textAlign: 'left'
+        })
         
         // Add a CSS pointer to connect tooltip to phone button
         const pointerStyle = document.createElement('style');
@@ -1338,10 +1429,10 @@ window.IntendrPhoneCallActive = false;
         tooltip.innerHTML = `
           <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;color:#333;">Prefer to talk on the phone?</div>
           <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
-          <div id="intendr-phone-input-container" style="width:100%;box-sizing:border-box;">
-            <input type="tel" id="intendr-direct-phone-input" placeholder="(123) 123-1234" style="width:100%;padding:10px;border-radius:4px;border:1px solid #ccc;margin-bottom:6px;font-size:1rem;box-sizing:border-box;">
-            <div id="intendr-direct-phone-validation" style="color:#c00;margin-bottom:6px;text-align:left;display:none;font-size:0.85rem;"></div>
-            <button id="intendr-direct-start-call" style="width:100%;padding:10px;border-radius:4px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:1rem;border:none;cursor:pointer;box-sizing:border-box;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2);">Start Call</button>
+          <div id="intendr-phone-input-container" style="width:100% !important;box-sizing:border-box !important;margin:0 !important;padding:0 !important;">
+            <input type="tel" id="intendr-direct-phone-input" placeholder="(123) 123-1234" style="width:100% !important;padding:10px !important;border-radius:4px !important;border:1px solid #ccc !important;margin:0 0 6px 0 !important;font-size:1rem !important;box-sizing:border-box !important;font-family:inherit !important;line-height:normal !important;background:white !important;color:#333 !important;outline:none !important;text-align:left !important;">
+            <div id="intendr-direct-phone-validation" style="color:#c00 !important;margin:0 0 6px 0 !important;text-align:left !important;display:none !important;font-size:0.85rem !important;font-family:inherit !important;line-height:1.2 !important;padding:0 !important;"></div>
+            <button id="intendr-direct-start-call" style="width:100% !important;padding:10px !important;border-radius:4px !important;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;color:#fff !important;font-weight:500 !important;font-size:1rem !important;border:none !important;cursor:pointer !important;box-sizing:border-box !important;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2) !important;font-family:inherit !important;line-height:normal !important;text-align:center !important;margin:0 !important;outline:none !important;">Start Call</button>
           </div>
           <div id="intendr-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
         `;
@@ -2801,25 +2892,43 @@ window.IntendrPhoneCallActive = false;
         // Create tooltip container (speech bubble style)
         const tooltip = document.createElement('div')
         tooltip.id = 'intendr-voice-tooltip'
-        tooltip.style.position = 'fixed'
-        tooltip.style.bottom = (window.innerHeight - buttonRect.top + 16) + 'px' // 16px above button for arrow space
-        tooltip.style.left = (buttonRect.left + buttonRect.width/2 - 140) + 'px' // Center over button (280px width / 2 = 140px)
-        tooltip.style.background = 'white'
-        tooltip.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'
-        tooltip.style.borderRadius = '12px'
-        tooltip.style.padding = '20px'
-        tooltip.style.zIndex = '2147483648'
-        tooltip.style.width = '280px'
-        tooltip.style.maxWidth = '90vw'
+        tooltip.className = 'intendr-widget-overlay'  // Add defensive class
+        
+        // Apply defensive inline styles to override site CSS
+        Object.assign(tooltip.style, {
+          position: 'fixed',
+          bottom: (window.innerHeight - buttonRect.top + 16) + 'px',
+          left: (buttonRect.left + buttonRect.width/2 - 140) + 'px',
+          background: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          borderRadius: '12px',
+          padding: '20px',
+          zIndex: '2147483648',
+          width: '280px',
+          maxWidth: '90vw',
+          // Defensive resets
+          margin: '0',
+          border: 'none',
+          outline: 'none',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '16px',
+          lineHeight: '1.4',
+          color: '#333',
+          textAlign: 'left',
+          boxSizing: 'border-box',
+          transform: 'none',
+          transition: 'none',
+          animation: 'none'
+        })
         
         // Add speech bubble content with center arrow
         tooltip.innerHTML = `
-          <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;color:#444;text-align:left;">Prefer to talk on the phone?</div>
-          <div style="font-size:0.95rem;color:#666;margin-bottom:16px;line-height:1.4;">I can ring you now at the number you enter below to make things easier!</div>
-          <div id="intendr-phone-form">
-            <input id="intendr-phone-input" type="tel" placeholder="(123) 123-1234" required style="width:100%;padding:12px;border-radius:8px;border:1px solid #ddd;margin-bottom:12px;font-size:0.95rem;box-sizing:border-box;" />
-            <div id="intendr-phone-validation" style="color:#c00;margin-bottom:8px;text-align:left;display:none;font-size:0.85rem;"></div>
-            <button id="intendr-start-call" style="width:100%;padding:12px;border-radius:8px;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);color:#fff;font-weight:500;font-size:0.95rem;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(133, 79, 255, 0.3);">Start Call</button>
+          <div style="font-size:1.1rem !important;font-weight:600 !important;margin:0 0 8px 0 !important;color:#444 !important;text-align:left !important;font-family:inherit !important;line-height:1.3 !important;padding:0 !important;">Prefer to talk on the phone?</div>
+          <div style="font-size:0.95rem !important;color:#666 !important;margin:0 0 16px 0 !important;line-height:1.4 !important;font-family:inherit !important;text-align:left !important;padding:0 !important;">I can ring you now at the number you enter below to make things easier!</div>
+          <div id="intendr-phone-form" style="margin:0;padding:0;">
+            <input id="intendr-phone-input" type="tel" placeholder="(123) 123-1234" required style="width:100% !important;padding:12px !important;border-radius:8px !important;border:1px solid #ddd !important;margin:0 0 12px 0 !important;font-size:0.95rem !important;box-sizing:border-box !important;font-family:inherit !important;line-height:normal !important;background:white !important;color:#333 !important;outline:none !important;text-align:left !important;" />
+            <div id="intendr-phone-validation" style="color:#c00 !important;margin:0 0 8px 0 !important;text-align:left !important;display:none !important;font-size:0.85rem !important;font-family:inherit !important;line-height:1.2 !important;padding:0 !important;"></div>
+            <button id="intendr-start-call" style="width:100% !important;padding:12px !important;border-radius:8px !important;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;color:#fff !important;font-weight:500 !important;font-size:0.95rem !important;border:none !important;cursor:pointer !important;box-shadow:0 2px 8px rgba(133, 79, 255, 0.3) !important;font-family:inherit !important;line-height:normal !important;text-align:center !important;margin:0 !important;outline:none !important;">Start Call</button>
           </div>
           <div id="intendr-voice-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
           <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid white;"></div>
