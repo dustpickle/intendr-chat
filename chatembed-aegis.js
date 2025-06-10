@@ -185,8 +185,8 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed.js';
-  // const corePath = window.ChatWidgetCorePath || 'chatembed.js';
+  // const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed.js';
+  const corePath = window.ChatWidgetCorePath || 'chatembed.js';
 
   const script = document.createElement('script');
   script.src = corePath;
@@ -219,10 +219,13 @@ document.addEventListener('DOMContentLoaded', function() {
     .intendr-chat-widget #intendr-voice-button,
     .intendr-chat-widget .chat-toggle {
       background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      transition: background 0.3s ease !important;
     }
     
-    .intendr-chat-widget .chat-toggle:hover {
-      background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%) !important;
+    .intendr-chat-widget .chat-toggle:hover,
+    .intendr-chat-widget .chat-input button:hover,
+    .intendr-chat-widget #intendr-voice-button:hover {
+      background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
     }
     
     /* Aegis special styling */

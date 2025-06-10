@@ -1906,10 +1906,14 @@ window.IntendrPhoneCallActive = false;
           // Get current page context if available
           const currentPageContext = pageSummary || await generatePageSummary();
           
-          // Prepare message data
+          // Determine if this is the first message of the session
+          const isFirstMessage = userMessages.length === 0;
+          
+          // Prepare message data - only include chat history on first message or when explicitly needed
           const messageData = {
             chatInput: message,
             sessionId: currentSessionId,
+            isFirstMessage: isFirstMessage,
             metadata: {
               business: config.business,
               pageContext: currentPageContext,
@@ -1917,6 +1921,19 @@ window.IntendrPhoneCallActive = false;
               userIP: userIP
             }
           };
+          
+          // Only send chat history on first message or session restoration
+          if (isFirstMessage) {
+            const chatHistory = getChatHistory();
+            if (chatHistory.length > 0) {
+              messageData.chatHistory = chatHistory;
+              console.log('💬 [Chat Context] First message - sending full conversation history to n8n:', chatHistory);
+            } else {
+              console.log('🆕 [Chat Context] New session - no previous history to send');
+            }
+          } else {
+            console.log('🔄 [Chat Context] Continuing session - sending only current message and sessionId');
+          }
           
           // Send to webhook
             const response = await fetch(config.webhook.url, {
@@ -1930,7 +1947,34 @@ window.IntendrPhoneCallActive = false;
               body: JSON.stringify(messageData)
             });
             
-          if (!response.ok) throw new Error('Failed to send message');
+          if (!response.ok) {
+            // Check if it's a session-related error
+            const errorText = await response.text();
+            if (response.status === 404 || errorText.includes('session') || errorText.includes('unknown')) {
+              console.log('🔄 [Chat Context] Session not found in n8n - resending with full history');
+              
+              // Resend with full chat history
+              const chatHistory = getChatHistory();
+              messageData.chatHistory = chatHistory;
+              messageData.sessionRecovery = true;
+              
+              const retryResponse = await fetch(config.webhook.url, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                  'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: JSON.stringify(messageData)
+              });
+              
+              if (!retryResponse.ok) throw new Error('Failed to send message after retry');
+              response = retryResponse; // Use retry response for processing
+            } else {
+              throw new Error('Failed to send message: ' + errorText);
+            }
+          }
           
           // Try to parse as JSON, fallback to plain text
           let botReply = '';
@@ -2792,7 +2836,7 @@ window.IntendrPhoneCallActive = false;
         }
         
         // Add click listener with a slight delay to prevent immediate closing
-        setTimeout(() => {
+            setTimeout(() => {
           document.addEventListener('click', handleClickOutside)
         }, 100)
         
@@ -2855,7 +2899,7 @@ window.IntendrPhoneCallActive = false;
             } else {
               showValidationError(validation.error)
             }
-          } else {
+            } else {
             clearValidationError()
           }
         })
@@ -2871,8 +2915,8 @@ window.IntendrPhoneCallActive = false;
           const phone = phoneInput.value.trim()
           if (!phone) {
             showValidationError('Please enter your phone number.')
-            return
-          }
+                    return
+                  }
           
           const validation = validateUSPhoneNumber(phone)
           if (!validation.valid) {
@@ -2893,7 +2937,7 @@ window.IntendrPhoneCallActive = false;
               tooltip.remove()
               document.removeEventListener('click', handleClickOutside)
             }, 2000)
-          } catch (err) {
+                } catch (err) {
             errorDiv.textContent = err.message
             errorDiv.style.display = 'block'
             phoneInput.disabled = false
