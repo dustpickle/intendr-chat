@@ -273,20 +273,17 @@ window.IntendrPhoneCallActive = false;
 
     // Tracking pixel is now loaded immediately at script start (see above)
     
-    // Track visitor (once per page load/session) - COMMENTED OUT to avoid duplication
-    // The tracking pixel will handle visitor tracking automatically
-    /*
+    // Track visitor directly since tracking pixel has endpoint bug
     const visitorTrackingKey = 'intendr_visitor_tracked_session';
     const sessionKey = window.sessionStorage.getItem(visitorTrackingKey);
     if (!sessionKey) {
-      console.log('🎯 [Analytics] New visitor detected - tracking page load event');
+      console.log('🎯 [Analytics] New visitor detected - tracking page load event directly');
       trackAnalyticsEvent('visitor');
       window.sessionStorage.setItem(visitorTrackingKey, 'true');
     } else {
       console.log('🔄 [Analytics] Returning visitor - skipping duplicate tracking');
     }
-    */
-    console.log('🎯 [Analytics] Visitor tracking handled by dynamic tracking pixel');
+    console.log('🎯 [Analytics] Visitor tracking handled directly by chat widget (tracking pixel has endpoint bug)');
     
     // Track page visibility changes (after initial visitor tracking)
     document.addEventListener('visibilitychange', function() {
