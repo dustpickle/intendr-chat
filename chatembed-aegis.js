@@ -21,7 +21,7 @@ const CUSTOM_CLIENT_CONFIG = {
   // Business Information
   business: {
     name: 'Aegis Living',
-    phone: '+1-206-436-0727',
+    phone: '+18669232712',
     website: 'https://www.aegisliving.com',
     searchPage: 'https://www.aegisliving.com/locations',
     provider: 'Aegis Living',
@@ -30,8 +30,8 @@ const CUSTOM_CLIENT_CONFIG = {
   
   // Theme Colors & Styling
   theme: {
-    primaryColor: '#667eea',
-    secondaryColor: '#764ba2',
+    primaryColor: '#004174',
+    secondaryColor: '#1b7db6',
     position: 'right',
     backgroundColor: '#ffffff',
     fontColor: '#333333'
