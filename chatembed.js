@@ -1308,6 +1308,47 @@ window.IntendrPhoneCallActive = false;
           line-height: inherit !important;
           color: inherit !important;
         }
+
+        /* Defensive styles for action buttons */
+        .intendr-chat-widget .initial-button,
+        .intendr-chat-widget .action-button {
+          padding: 12px 20px !important;
+          margin: 8px !important;
+          border: none !important;
+          border-radius: 8px !important;
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;
+          color: white !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          line-height: 1.2 !important;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+          box-shadow: 0 2px 8px rgba(133, 79, 255, 0.3) !important;
+          display: inline-block !important;
+          text-align: center !important;
+          text-decoration: none !important;
+          box-sizing: border-box !important;
+          min-height: auto !important;
+          height: auto !important;
+          max-height: none !important;
+          vertical-align: top !important;
+          letter-spacing: normal !important;
+          word-spacing: normal !important;
+          text-indent: 0 !important;
+          text-transform: none !important;
+          outline: none !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+        }
+
+        .intendr-chat-widget .initial-button:hover,
+        .intendr-chat-widget .action-button:hover {
+          background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%) !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4) !important;
+        }
       `;
       
       // Inject styles
