@@ -66,7 +66,55 @@ function deepMerge(target, source) {
 // Simple phone call tracking
 window.IntendrPhoneCallActive = false;
 
-(function() {
+  // Load tracking pixel immediately for visitor tracking
+  (function() {
+    // Extract chatbot ID immediately from config
+    function getChatbotIdFromConfig() {
+      if (!window.ChatWidgetConfig?.webhook?.url) {
+        console.warn('No webhook URL found in ChatWidgetConfig');
+        return null;
+      }
+      
+      try {
+        const webhookUrl = window.ChatWidgetConfig.webhook.url;
+        const matches = webhookUrl.match(/\/webhook\/([^\/]+)/);
+        if (matches && matches[1]) {
+          return matches[1].replace(/\/chat$/, '');
+        }
+      } catch (err) {
+        console.error('Error extracting chatbot ID for tracking pixel:', err);
+      }
+      return null;
+    }
+    
+    const chatbotId = getChatbotIdFromConfig();
+    
+    if (chatbotId && !window.IntendrTrackingInitialized) {
+      console.log('🎯 [Tracking Pixel] Loading tracking pixel immediately for chatbot:', chatbotId);
+      
+      // Create script element for tracking pixel
+      const trackingScript = document.createElement('script');
+      trackingScript.src = 'https://intendr.ai/api/tracking-pixel';
+      trackingScript.setAttribute('data-chatbot-id', chatbotId);
+      trackingScript.async = true;
+      trackingScript.defer = true;
+      
+      // Add error handling
+      trackingScript.onerror = function() {
+        console.warn('🚨 [Tracking Pixel] Failed to load tracking pixel script');
+      };
+      
+      trackingScript.onload = function() {
+        console.log('✅ [Tracking Pixel] Tracking pixel loaded immediately and tracking visitors');
+      };
+      
+      // Add to document head
+      document.head.appendChild(trackingScript);
+    }
+  })();
+
+  // Main chat widget code
+  (function() {
     // Configuration
     const CHAT_VERSION = "2.0";
     console.log("ChatVersion:", CHAT_VERSION);
@@ -149,9 +197,6 @@ window.IntendrPhoneCallActive = false;
           return;
         }
 
-        // Load tracking pixel dynamically (only once)
-        loadTrackingPixel(chatbotId);
-
         // Prepare tracking data
         const trackingData = {
           chatbotId: chatbotId,
@@ -226,34 +271,7 @@ window.IntendrPhoneCallActive = false;
       }
     }
 
-    // Dynamic tracking pixel loader
-    function loadTrackingPixel(chatbotId) {
-      // Check if tracking pixel is already loaded
-      if (window.IntendrTrackingInitialized) {
-        return;
-      }
-      
-      console.log('🎯 [Tracking Pixel] Loading tracking pixel for chatbot:', chatbotId);
-      
-      // Create script element for tracking pixel
-      const trackingScript = document.createElement('script');
-      trackingScript.src = 'https://intendr.ai/api/tracking-pixel';
-      trackingScript.setAttribute('data-chatbot-id', chatbotId);
-      trackingScript.async = true;
-      trackingScript.defer = true;
-      
-      // Add error handling
-      trackingScript.onerror = function() {
-        console.warn('🚨 [Tracking Pixel] Failed to load tracking pixel script');
-      };
-      
-      trackingScript.onload = function() {
-        console.log('✅ [Tracking Pixel] Tracking pixel loaded successfully');
-      };
-      
-      // Add to document head
-      document.head.appendChild(trackingScript);
-    }
+    // Tracking pixel is now loaded immediately at script start (see above)
     
     // Track visitor (once per page load/session) - COMMENTED OUT to avoid duplication
     // The tracking pixel will handle visitor tracking automatically
