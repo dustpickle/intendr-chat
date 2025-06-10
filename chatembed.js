@@ -1287,7 +1287,10 @@ window.IntendrPhoneCallActive = false;
           padding: 8px 12px !important;
           margin: 8px 0 !important;
           display: inline-block !important;
-          max-width: 80% !important;
+          width: auto !important;
+          max-width: none !important;
+          float: left !important;
+          clear: both !important;
           box-sizing: border-box !important;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
           font-size: 14px !important;
@@ -1345,7 +1348,7 @@ window.IntendrPhoneCallActive = false;
 
         .intendr-chat-widget .initial-button:hover,
         .intendr-chat-widget .action-button:hover {
-          background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%) !important;
+          background: linear-gradient(135deg, var(--chat--color-secondary) 0%, var(--chat--color-primary) 100%) !important;
           transform: translateY(-2px) !important;
           box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4) !important;
         }
