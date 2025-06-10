@@ -1241,12 +1241,14 @@ window.IntendrPhoneCallActive = false;
           -moz-user-select: none !important;
         }
 
-        /* Defensive styles for chat input field */
+        /* Defensive styles for chat input textarea only */
         .intendr-chat-widget .chat-input textarea {
           width: 100% !important;
           min-height: 40px !important;
           max-height: 120px !important;
+          height: auto !important;
           padding: 12px 50px 12px 16px !important;
+          margin: 0 !important;
           border: 1px solid #e0e0e0 !important;
           border-radius: 25px !important;
           font-size: 14px !important;
@@ -1262,43 +1264,18 @@ window.IntendrPhoneCallActive = false;
           overflow-y: auto !important;
           word-wrap: break-word !important;
           white-space: pre-wrap !important;
-          /* Reset problematic properties that sites might override */
-          margin: 0 !important;
+          vertical-align: top !important;
+          text-align: left !important;
           letter-spacing: normal !important;
+          word-spacing: normal !important;
           text-indent: 0 !important;
           text-transform: none !important;
-          font-weight: normal !important;
-          font-style: normal !important;
-          vertical-align: baseline !important;
+          text-decoration: none !important;
         }
 
         .intendr-chat-widget .chat-input textarea:focus {
           border-color: var(--chat--color-primary) !important;
           box-shadow: 0 0 0 2px rgba(133, 79, 255, 0.2) !important;
-        }
-
-        /* Defensive styles for chat input button */
-        .intendr-chat-widget .chat-input button {
-          position: absolute !important;
-          right: 8px !important;
-          top: 50% !important;
-          transform: translateY(-50%) !important;
-          width: 32px !important;
-          height: 32px !important;
-          border-radius: 50% !important;
-          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;
-          color: white !important;
-          border: none !important;
-          cursor: pointer !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          font-size: 14px !important;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          outline: none !important;
-          box-sizing: border-box !important;
         }
       `;
       
