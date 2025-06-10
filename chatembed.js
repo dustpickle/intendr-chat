@@ -1210,26 +1210,22 @@ window.IntendrPhoneCallActive = false;
           box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4);
         }
 
-        /* Defensive styles for widget overlays */
+        /* Defensive styles for widget overlays only */
         .intendr-widget-overlay {
-          all: initial !important;
           position: fixed !important;
           z-index: 2147483648 !important;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
           box-sizing: border-box !important;
+          /* Reset common problematic properties */
+          margin: 0 !important;
+          transform: none !important;
+          animation: none !important;
+          transition: none !important;
         }
 
         .intendr-widget-overlay * {
           box-sizing: border-box !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          border: none !important;
-          outline: none !important;
           font-family: inherit !important;
-          text-decoration: none !important;
-          list-style: none !important;
-          background: transparent !important;
-          color: inherit !important;
         }
 
         .intendr-widget-overlay input {
@@ -1243,49 +1239,6 @@ window.IntendrPhoneCallActive = false;
           user-select: none !important;
           -webkit-user-select: none !important;
           -moz-user-select: none !important;
-        }
-
-        /* Strengthen chat input field protection */
-        .intendr-chat-widget .chat-input textarea {
-          all: unset !important;
-          width: 100% !important;
-          min-height: 40px !important;
-          max-height: 120px !important;
-          padding: 12px 50px 12px 16px !important;
-          border: 1px solid #e0e0e0 !important;
-          border-radius: 25px !important;
-          font-size: 14px !important;
-          line-height: 1.4 !important;
-          background: white !important;
-          color: #333 !important;
-          resize: none !important;
-          outline: none !important;
-          box-sizing: border-box !important;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-          display: block !important;
-          position: relative !important;
-          overflow-y: auto !important;
-          word-wrap: break-word !important;
-          white-space: pre-wrap !important;
-        }
-
-        .intendr-chat-widget .chat-input textarea:focus {
-          border-color: var(--chat--color-primary) !important;
-          box-shadow: 0 0 0 2px rgba(133, 79, 255, 0.2) !important;
-        }
-
-        /* Strengthen button protection */
-        .intendr-chat-widget .chat-input button,
-        .intendr-chat-widget .chat-toggle {
-          all: unset !important;
-          cursor: pointer !important;
-          user-select: none !important;
-          -webkit-user-select: none !important;
-          box-sizing: border-box !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
       `;
       
