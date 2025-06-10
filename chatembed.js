@@ -486,7 +486,7 @@ window.IntendrPhoneCallActive = false;
         if (!sessionRestored) {
           // Create new session
           inactivityMessageSent = false;
-          currentSessionId = generateUUID();
+          currentSessionId = generateSessionId();
           // Show initial messages immediately
           sendInitialMessages();
           // Generate page summary in background
@@ -547,6 +547,29 @@ window.IntendrPhoneCallActive = false;
           return v.toString(16);
         });
       }
+    }
+
+    // Generate session ID compatible with tracking pixel
+    function generateSessionId() {
+      // First, check if there's an existing tracking session (from tracking pixel)
+      const trackingSessionKey = 'intendr_session_id';
+      try {
+        const existingTrackingSession = sessionStorage.getItem(trackingSessionKey);
+        if (existingTrackingSession) {
+          return existingTrackingSession;
+        }
+      } catch (error) {
+        console.warn('Error reading tracking session from sessionStorage:', error);
+      }
+      
+      // If no tracking session, generate new UUID and store it for future tracking pixel use
+      const newSessionId = generateUUID();
+      try {
+        sessionStorage.setItem(trackingSessionKey, newSessionId);
+      } catch (error) {
+        console.warn('Error storing tracking session in sessionStorage:', error);
+      }
+      return newSessionId;
     }
 
 
@@ -1655,7 +1678,7 @@ window.IntendrPhoneCallActive = false;
           if (!sessionRestored) {
             // Create new session
             inactivityMessageSent = false;
-            currentSessionId = generateUUID();
+            currentSessionId = generateSessionId();
             
             // Generate page context before sending initial messages
             generatePageSummary().then(() => {
@@ -2547,7 +2570,7 @@ window.IntendrPhoneCallActive = false;
         const sessionRestored = loadSession();
           if (!sessionRestored) {
             inactivityMessageSent = false;
-            currentSessionId = generateUUID();
+            currentSessionId = generateSessionId();
           sendInitialMessages();
           generatePageSummary();
           }
