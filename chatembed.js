@@ -200,7 +200,7 @@ window.IntendrPhoneCallActive = false;
         // Prepare tracking data
         const trackingData = {
           chatbotId: chatbotId,
-          sessionId: currentSessionId || 'temp_' + Date.now(),
+          sessionId: currentSessionId || generateSessionId(),
           event: eventType,
           metadata: {
             userAgent: navigator.userAgent,
@@ -607,19 +607,50 @@ window.IntendrPhoneCallActive = false;
       try {
         const existingTrackingSession = sessionStorage.getItem(trackingSessionKey);
         if (existingTrackingSession) {
+          console.log('🔗 Using existing tracking pixel sessionId:', existingTrackingSession);
           return existingTrackingSession;
         }
       } catch (error) {
         console.warn('Error reading tracking session from sessionStorage:', error);
       }
       
-      // If no tracking session, generate new UUID and store it for future tracking pixel use
-      const newSessionId = generateUUID();
+      // Check if there's an existing chat session
+      try {
+        const existingChatSession = localStorage.getItem(INTENDR_STORAGE_KEYS.chatSession);
+        if (existingChatSession) {
+          const sessionData = JSON.parse(existingChatSession);
+          if (sessionData.sessionId && !sessionData.sessionId.startsWith('temp_')) {
+            console.log('🔗 Using existing chat sessionId:', sessionData.sessionId);
+            // Store in tracking session storage for consistency
+            sessionStorage.setItem(trackingSessionKey, sessionData.sessionId);
+            return sessionData.sessionId;
+          }
+        }
+      } catch (error) {
+        console.warn('Error parsing existing chat session:', error);
+      }
+      
+      // Generate new UUID (not temp format)
+      let newSessionId;
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        newSessionId = crypto.randomUUID();
+      } else {
+        newSessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      
+      console.log('🆕 Generated new sessionId:', newSessionId);
+      
+      // Store in both places for consistency
       try {
         sessionStorage.setItem(trackingSessionKey, newSessionId);
       } catch (error) {
         console.warn('Error storing tracking session in sessionStorage:', error);
       }
+      
       return newSessionId;
     }
 
