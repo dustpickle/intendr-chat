@@ -402,7 +402,7 @@ window.IntendrPhoneCallActive = false;
           `<a href="tel:${cleanPhone}" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${phoneNumber}</a>`
         );
         
-        // Add action button with custom text
+        // Add action button
         actionButtons.push({
           text: buttonText,
           action: () => window.open(`tel:${cleanPhone}`, '_self')
@@ -421,14 +421,14 @@ window.IntendrPhoneCallActive = false;
           `<a href="${url}" target="_blank" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${url}</a>`
         );
         
-        // Add action button with custom text
+        // Add action button
         actionButtons.push({
           text: buttonText,
           action: () => window.open(url, '_blank')
         });
       }
       
-      // Parse [button] tags (already has message attribute)
+      // Parse [button] tags
       const buttonRegex = /\[button message="(.*?)"\](.*?)\[\/button\]/g;
       let buttonMatch;
       while ((buttonMatch = buttonRegex.exec(message)) !== null) {
