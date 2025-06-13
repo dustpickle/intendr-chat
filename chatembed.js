@@ -1334,7 +1334,7 @@ window.IntendrPhoneCallActive = false;
           padding: 12px 50px 12px 16px !important;
           margin: 0 !important;
           border: 1px solid #e0e0e0 !important;
-          border-radius: 25px !important;
+          border-radius: 6px !important;
           font-size: 14px !important;
           line-height: 1.2 !important;
           background: white !important;
@@ -1597,8 +1597,8 @@ window.IntendrPhoneCallActive = false;
         // Add mobile-specific positioning
         if (window.innerWidth <= 600) {
           tooltip.style.width = '280px';
-          tooltip.style.right = '20px';
-          tooltip.style.left = 'auto';
+          tooltip.style.left = '20px';
+          tooltip.style.right = 'auto';
           tooltip.style.transform = 'none';
           tooltip.style.bottom = '90px';
           tooltip.style.top = 'auto';
@@ -2739,7 +2739,7 @@ window.IntendrPhoneCallActive = false;
         voiceBtn.style.fontSize = '16px';
         voiceBtn.style.height = '40px';
         voiceBtn.style.minWidth = '40px';
-        voiceBtn.style.marginRight = '8px';
+        voiceBtn.style.marginRight = '0';
         
         // Simple phone call initiation
         voiceBtn.onclick = function(e) {
@@ -2840,7 +2840,7 @@ window.IntendrPhoneCallActive = false;
           flex: 1 !important;
           padding: 12px !important;
           border: 1px solid rgba(133, 79, 255, 0.2) !important;
-          border-radius: 8px !important;
+          border-radius: 6px !important;
           resize: none !important;
           font-family: inherit !important;
           font-size: 14px !important;
@@ -3046,162 +3046,174 @@ window.IntendrPhoneCallActive = false;
         // Apply defensive inline styles to override site CSS
         Object.assign(tooltip.style, {
           position: 'fixed',
-          bottom: (window.innerHeight - buttonRect.top + 16) + 'px',
-          left: (buttonRect.left + buttonRect.width/2 - 140) + 'px',
+          bottom: '130px',
+          right: config.style.position === 'left' ? '20px' : '20px',
           background: 'white',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          borderRadius: '12px',
-          padding: '20px',
-          zIndex: '2147483648',
-          width: '280px',
-          maxWidth: '90vw',
-          // Defensive resets
+          boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+          borderRadius: '8px',
+          padding: '10px',
+          zIndex: '2147483646',
+          width: '200px',
+          boxSizing: 'border-box',
           margin: '0',
           border: 'none',
           outline: 'none',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '16px',
+          fontSize: '14px',
           lineHeight: '1.4',
           color: '#333',
-          textAlign: 'left',
-          boxSizing: 'border-box',
-          transform: 'none',
-          transition: 'none',
-          animation: 'none'
+          textAlign: 'left'
         })
         
-        // Add speech bubble content with center arrow
+        // Add a CSS pointer to connect tooltip to phone button
+        const pointerStyle = document.createElement('style');
+        pointerStyle.textContent = `
+          #intendr-voice-tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: 30px;
+            margin-left: -10px;
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+          }
+        `;
+        document.head.appendChild(pointerStyle);
+        
         tooltip.innerHTML = `
-          <div style="font-size:1.1rem !important;font-weight:600 !important;margin:0 0 8px 0 !important;color:#444 !important;text-align:left !important;font-family:inherit !important;line-height:1.3 !important;padding:0 !important;">Prefer to talk on the phone?</div>
-          <div style="font-size:0.95rem !important;color:#666 !important;margin:0 0 16px 0 !important;line-height:1.4 !important;font-family:inherit !important;text-align:left !important;padding:0 !important;">I can ring you now at the number you enter below to make things easier!</div>
-          <div id="intendr-phone-form" style="margin:0;padding:0;">
-            <input id="intendr-phone-input" type="tel" placeholder="(123) 123-1234" required style="width:100% !important;padding:12px !important;border-radius:8px !important;border:1px solid #ddd !important;margin:0 0 12px 0 !important;font-size:0.95rem !important;box-sizing:border-box !important;font-family:inherit !important;line-height:normal !important;background:white !important;color:#333 !important;outline:none !important;text-align:left !important;" />
-            <div id="intendr-phone-validation" style="color:#c00 !important;margin:0 0 8px 0 !important;text-align:left !important;display:none !important;font-size:0.85rem !important;font-family:inherit !important;line-height:1.2 !important;padding:0 !important;"></div>
-            <button id="intendr-start-call" style="width:100% !important;padding:12px !important;border-radius:8px !important;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;color:#fff !important;font-weight:500 !important;font-size:0.95rem !important;border:none !important;cursor:pointer !important;box-shadow:0 2px 8px rgba(133, 79, 255, 0.3) !important;font-family:inherit !important;line-height:normal !important;text-align:center !important;margin:0 !important;outline:none !important;">Start Call</button>
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px;color:#333;">Prefer to talk on the phone?</div>
+          <div style="font-size:0.9rem;color:#666;margin-bottom:12px;">I can ring you now at the number you enter below to make things easier!</div>
+          <div id="intendr-phone-input-container" style="width:100% !important;box-sizing:border-box !important;margin:0 !important;padding:0 !important;">
+            <input type="tel" id="intendr-direct-phone-input" placeholder="(123) 123-1234" style="width:100% !important;padding:10px !important;border-radius:4px !important;border:1px solid #ccc !important;margin:0 0 6px 0 !important;font-size:1rem !important;box-sizing:border-box !important;font-family:inherit !important;line-height:normal !important;background:white !important;color:#333 !important;outline:none !important;text-align:left !important;">
+            <div id="intendr-direct-phone-validation" style="color:#c00 !important;margin:0 0 6px 0 !important;text-align:left !important;display:none !important;font-size:0.85rem !important;font-family:inherit !important;line-height:1.2 !important;padding:0 !important;"></div>
+            <button id="intendr-direct-start-call" style="width:100% !important;padding:10px !important;border-radius:4px !important;background:linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%) !important;color:#fff !important;font-weight:500 !important;font-size:1rem !important;border:none !important;cursor:pointer !important;box-sizing:border-box !important;box-shadow:0 4px 12px rgba(133, 79, 255, 0.2) !important;font-family:inherit !important;line-height:normal !important;text-align:center !important;margin:0 !important;outline:none !important;">Start Call</button>
           </div>
-          <div id="intendr-voice-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
-          <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid white;"></div>
-        `
+          <div id="intendr-direct-call-error" style="color:#c00;margin-top:8px;text-align:center;display:none;"></div>
+        `;
         
-        document.body.appendChild(tooltip)
+        // Add the tooltip to the body, not as a child of the button
+        document.body.appendChild(tooltip);
         
-        // Remove tooltip when clicking outside (no overlay needed for tooltip style)
-        function handleClickOutside(e) {
+        // Correctly position the tooltip after it's been created
+        const phoneRect = phoneButton.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Position tooltip to align the pointer with the center of the phone button
+        // Add mobile-specific positioning
+        if (window.innerWidth <= 600) {
+          tooltip.style.width = '280px';
+          tooltip.style.left = '20px';
+          tooltip.style.right = 'auto';
+          tooltip.style.transform = 'none';
+          tooltip.style.bottom = '90px';
+          tooltip.style.top = 'auto';
+        } else {
+          tooltip.style.right = `${window.innerWidth - phoneRect.right - (phoneRect.width / 2) + 30}px`;
+        }
+        
+        // Close tooltip when clicking outside
+        document.addEventListener('click', function closeDirectTooltip(e) {
           if (!tooltip.contains(e.target) && e.target !== phoneButton) {
-          tooltip.remove()
-            document.removeEventListener('click', handleClickOutside)
+            tooltip.remove();
+            document.removeEventListener('click', closeDirectTooltip);
           }
-        }
+        });
         
-        // Add click listener with a slight delay to prevent immediate closing
-            setTimeout(() => {
-          document.addEventListener('click', handleClickOutside)
-        }, 100)
+        // Add validation functions for direct phone input
+        const directPhoneInput = document.getElementById('intendr-direct-phone-input');
+        const directValidationDiv = document.getElementById('intendr-direct-phone-validation');
         
-        // Add button handlers
-        const phoneForm = document.getElementById('intendr-phone-form')
-        const phoneInput = document.getElementById('intendr-phone-input')
-        const errorDiv = document.getElementById('intendr-voice-error')
-        const validationDiv = document.getElementById('intendr-phone-validation')
-        
-        // Phone number validation and formatting functions
-        function formatPhoneNumber(phone) {
-          // Remove all non-digit characters
-          const digits = phone.replace(/\D/g, '')
-          
-          // Add +1 prefix if not present and it's a 10-digit US number
+        function validateDirectPhoneNumber(phone) {
+          const digits = phone.replace(/\D/g, '');
           if (digits.length === 10) {
-            return `+1${digits}`
+            return { valid: true, formatted: `+1${digits}` };
           } else if (digits.length === 11 && digits.startsWith('1')) {
-            return `+${digits}`
-          }
-          
-          return digits
-        }
-        
-        function validateUSPhoneNumber(phone) {
-          // Remove all non-digit characters
-          const digits = phone.replace(/\D/g, '')
-          
-          // Check if it's a valid US number (10 digits or 11 digits starting with 1)
-          if (digits.length === 10) {
-            return { valid: true, formatted: `+1${digits}` }
-          } else if (digits.length === 11 && digits.startsWith('1')) {
-            return { valid: true, formatted: `+${digits}` }
+            return { valid: true, formatted: `+${digits}` };
           } else {
             return { 
               valid: false, 
               error: 'Please enter a valid US phone number (10 digits)' 
-            }
+            };
           }
         }
         
-        function showValidationError(message) {
-          validationDiv.textContent = message
-          validationDiv.style.display = 'block'
-          phoneInput.style.borderColor = '#c00'
+        function showDirectValidationError(message) {
+          directValidationDiv.textContent = message;
+          directValidationDiv.style.display = 'block';
+          directPhoneInput.style.borderColor = '#c00';
         }
         
-        function clearValidationError() {
-          validationDiv.style.display = 'none'
-          phoneInput.style.borderColor = '#ddd'
+        function clearDirectValidationError() {
+          directValidationDiv.style.display = 'none';
+          directPhoneInput.style.borderColor = '#ccc';
         }
         
-        // Add real-time validation on input
-        phoneInput.addEventListener('input', function() {
-          const value = this.value.trim()
+        // Add real-time validation
+        directPhoneInput.addEventListener('input', function() {
+          const value = this.value.trim();
           if (value) {
-            const validation = validateUSPhoneNumber(value)
+            const validation = validateDirectPhoneNumber(value);
             if (validation.valid) {
-              clearValidationError()
+              clearDirectValidationError();
             } else {
-              showValidationError(validation.error)
+              showDirectValidationError(validation.error);
             }
-            } else {
-            clearValidationError()
+          } else {
+            clearDirectValidationError();
           }
-        })
+        });
         
-        phoneForm.onsubmit = function(e) {
-          e.preventDefault()
-        }
-        
-        document.getElementById('intendr-start-call').onclick = async function() {
-          errorDiv.style.display = 'none'
-          clearValidationError()
+        // Handle the call button click
+        document.getElementById('intendr-direct-start-call').onclick = async function() {
+          const phone = directPhoneInput.value.trim();
+          const errorDiv = document.getElementById('intendr-direct-call-error');
           
-          const phone = phoneInput.value.trim()
+          // Clear previous errors
+          errorDiv.style.display = 'none';
+          clearDirectValidationError();
+          
           if (!phone) {
-            showValidationError('Please enter your phone number.')
-                    return
-                  }
-          
-          const validation = validateUSPhoneNumber(phone)
-          if (!validation.valid) {
-            showValidationError(validation.error)
-            return
+            showDirectValidationError('Please enter your phone number.');
+            return;
           }
           
-          phoneInput.disabled = true
-          document.getElementById('intendr-start-call').disabled = true
+          const validation = validateDirectPhoneNumber(phone);
+          if (!validation.valid) {
+            showDirectValidationError(validation.error);
+            return;
+          }
           
           try {
-            // Use the formatted phone number with +1
-            await initiateVoiceCall('phone', validation.formatted)
-            errorDiv.style.color = '#090'
-            errorDiv.textContent = 'Call initiated! Please answer your phone.'
-            errorDiv.style.display = 'block'
+            // Disable input while processing
+            directPhoneInput.disabled = true;
+            document.getElementById('intendr-direct-start-call').disabled = true;
+            document.getElementById('intendr-direct-start-call').textContent = 'Connecting...';
+            
+            // Use formatted phone number with +1
+            await initiateVoiceCall('phone_raw', validation.formatted);
+            
+            // Show success message
+            errorDiv.style.color = '#090';
+            errorDiv.textContent = 'Call initiated! Please answer your phone.';
+            errorDiv.style.display = 'block';
+            
+            // Remove tooltip after a delay
             setTimeout(() => {
-              tooltip.remove()
-              document.removeEventListener('click', handleClickOutside)
-            }, 2000)
-                } catch (err) {
-            errorDiv.textContent = err.message
-            errorDiv.style.display = 'block'
-            phoneInput.disabled = false
-            document.getElementById('intendr-start-call').disabled = false
+              tooltip.remove();
+            }, 3000);
+            
+          } catch (err) {
+            errorDiv.textContent = err.message || "Couldn't connect your call. Please try again.";
+            errorDiv.style.display = 'block';
+            
+            // Re-enable input
+            directPhoneInput.disabled = false;
+            document.getElementById('intendr-direct-start-call').disabled = false;
+            document.getElementById('intendr-direct-start-call').textContent = 'Start Call';
           }
-        }
+        };
       }
 
 
