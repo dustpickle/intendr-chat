@@ -1097,7 +1097,7 @@ window.IntendrPhoneCallActive = false;
       color: white;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
+      box-shadow: 0 4px 12px var(--chat--color-primary);
       z-index: 2147483647;
       border-radius: 30px !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1275,7 +1275,7 @@ window.IntendrPhoneCallActive = false;
           color: white;
           border-color: transparent;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px var(--chat--color-primary);
+          box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
         }
         /* Action buttons (from bot messages) */
         .intendr-chat-widget .action-buttons {
@@ -1291,7 +1291,7 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .action-button:hover {
           background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px var(--chat--color-primary);
+          box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4);
         }
 
         /* Defensive styles for widget overlays only */
@@ -1434,7 +1434,7 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .action-button:hover {
           background: linear-gradient(135deg, var(--chat--color-secondary) 0%, var(--chat--color-primary) 100%) !important;
           transform: translateY(-2px) !important;
-          box-shadow: 0 6px 16px var(--chat--color-primary) !important;
+          box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4) !important;
         }
       `;
       
@@ -1513,7 +1513,7 @@ window.IntendrPhoneCallActive = false;
       phoneButton.style.color = 'white';
       phoneButton.style.border = 'none';
       phoneButton.style.cursor = 'pointer';
-      phoneButton.style.boxShadow = '0 4px 12px rgba(133, 79, 255, 0.3)';
+      phoneButton.style.boxShadow = '0 4px 12px var(--chat--color-primary)';
       phoneButton.style.zIndex = '2147483646';
       phoneButton.style.padding = '0';
       
