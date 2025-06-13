@@ -1275,7 +1275,7 @@ window.IntendrPhoneCallActive = false;
           color: white;
           border-color: transparent;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
+          box-shadow: 0 4px 12px var(--chat--color-primary);
         }
         /* Action buttons (from bot messages) */
         .intendr-chat-widget .action-buttons {
@@ -1291,7 +1291,7 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .action-button:hover {
           background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4);
+          box-shadow: 0 6px 16px var(--chat--color-primary);
         }
 
         /* Defensive styles for widget overlays only */
@@ -1434,7 +1434,7 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .action-button:hover {
           background: linear-gradient(135deg, var(--chat--color-secondary) 0%, var(--chat--color-primary) 100%) !important;
           transform: translateY(-2px) !important;
-          box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4) !important;
+          box-shadow: 0 6px 16px var(--chat--color-primary) !important;
         }
       `;
       
