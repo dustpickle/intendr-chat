@@ -200,9 +200,10 @@ window.IntendrPhoneCallActive = false;
         // Prepare tracking data
         const trackingData = {
           chatbotId: chatbotId,
-          sessionId: currentSessionId || generateSessionId(),
+          sessionId: getAnalyticsSessionId(), // Use consistent analytics sessionId
           event: eventType,
           metadata: {
+            chatSessionId: currentSessionId || null, // Individual chat conversation ID
             userAgent: navigator.userAgent,
             utmParams: window.initialUtmParameters || {},
             pageUrl: window.location.href,
@@ -388,11 +389,12 @@ window.IntendrPhoneCallActive = false;
       const actionButtons = [];
       let processedMessage = message;
       
-      // Parse [phone] tags
-      const phoneRegex = /\[phone\](.*?)\[\/phone\]/g;
+      // Parse [phone] tags with optional btntext attribute
+      const phoneRegex = /\[phone(?:\s+btntext="([^"]*)")?\](.*?)\[\/phone\]/g;
       let phoneMatch;
       while ((phoneMatch = phoneRegex.exec(message)) !== null) {
-        const phoneNumber = phoneMatch[1];
+        const buttonText = phoneMatch[1] || 'Call Now';
+        const phoneNumber = phoneMatch[2];
         const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
         
         // Replace tag with clickable link
@@ -400,32 +402,33 @@ window.IntendrPhoneCallActive = false;
           `<a href="tel:${cleanPhone}" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${phoneNumber}</a>`
         );
         
-        // Add action button
+        // Add action button with custom text
         actionButtons.push({
-          text: 'Call Now',
+          text: buttonText,
           action: () => window.open(`tel:${cleanPhone}`, '_self')
         });
       }
       
-      // Parse [url] tags  
-      const urlRegex = /\[url\](.*?)\[\/url\]/g;
+      // Parse [url] tags with optional btntext attribute
+      const urlRegex = /\[url(?:\s+btntext="([^"]*)")?\](.*?)\[\/url\]/g;
       let urlMatch;
       while ((urlMatch = urlRegex.exec(message)) !== null) {
-        const url = urlMatch[1];
+        const buttonText = urlMatch[1] || 'Visit Page';
+        const url = urlMatch[2];
         
         // Replace tag with clickable link
         processedMessage = processedMessage.replace(urlMatch[0],
           `<a href="${url}" target="_blank" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${url}</a>`
         );
         
-        // Add action button
+        // Add action button with custom text
         actionButtons.push({
-          text: 'Visit Page',
+          text: buttonText,
           action: () => window.open(url, '_blank')
         });
       }
       
-      // Parse [button] tags
+      // Parse [button] tags (already has message attribute)
       const buttonRegex = /\[button message="(.*?)"\](.*?)\[\/button\]/g;
       let buttonMatch;
       while ((buttonMatch = buttonRegex.exec(message)) !== null) {
@@ -600,58 +603,34 @@ window.IntendrPhoneCallActive = false;
       }
     }
 
-    // Generate session ID compatible with tracking pixel
-    function generateSessionId() {
-      // First, check if there's an existing tracking session (from tracking pixel)
+    // Get analytics sessionId for visitor/chat correlation (reuses existing)
+    function getAnalyticsSessionId() {
       const trackingSessionKey = 'intendr_session_id';
       try {
         const existingTrackingSession = sessionStorage.getItem(trackingSessionKey);
         if (existingTrackingSession) {
-          console.log('🔗 Using existing tracking pixel sessionId:', existingTrackingSession);
           return existingTrackingSession;
         }
       } catch (error) {
         console.warn('Error reading tracking session from sessionStorage:', error);
       }
       
-      // Check if there's an existing chat session
+      // Generate new UUID for analytics
+      const newAnalyticsSessionId = generateUUID();
       try {
-        const existingChatSession = localStorage.getItem(INTENDR_STORAGE_KEYS.chatSession);
-        if (existingChatSession) {
-          const sessionData = JSON.parse(existingChatSession);
-          if (sessionData.sessionId && !sessionData.sessionId.startsWith('temp_')) {
-            console.log('🔗 Using existing chat sessionId:', sessionData.sessionId);
-            // Store in tracking session storage for consistency
-            sessionStorage.setItem(trackingSessionKey, sessionData.sessionId);
-            return sessionData.sessionId;
-          }
-        }
-      } catch (error) {
-        console.warn('Error parsing existing chat session:', error);
-      }
-      
-      // Generate new UUID (not temp format)
-      let newSessionId;
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        newSessionId = crypto.randomUUID();
-      } else {
-        newSessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      }
-      
-      console.log('🆕 Generated new sessionId:', newSessionId);
-      
-      // Store in both places for consistency
-      try {
-        sessionStorage.setItem(trackingSessionKey, newSessionId);
+        sessionStorage.setItem(trackingSessionKey, newAnalyticsSessionId);
       } catch (error) {
         console.warn('Error storing tracking session in sessionStorage:', error);
       }
       
-      return newSessionId;
+      return newAnalyticsSessionId;
+    }
+
+    // Generate new chat session ID (always creates new for each conversation)
+    function generateSessionId() {
+      const newChatSessionId = generateUUID();
+      console.log('🆕 Generated new chat sessionId:', newChatSessionId);
+      return newChatSessionId;
     }
 
 
