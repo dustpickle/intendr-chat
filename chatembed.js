@@ -1281,17 +1281,41 @@ window.IntendrPhoneCallActive = false;
         .intendr-chat-widget .action-buttons {
           border-top: 2px solid rgba(133, 79, 255, 0.3);
           background: rgba(133, 79, 255, 0.02);
+          padding: 10px;
+          display: grid;
+          gap: 8px;
         }
         .intendr-chat-widget .action-button {
           background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
           color: white;
           border: none;
           font-weight: 600;
+          padding: 12px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+          font-size: 14px;
+          line-height: 1.4;
+          width: 100%;
+          box-sizing: border-box;
         }
         .intendr-chat-widget .action-button:hover {
           background: linear-gradient(135deg, #5a67d8 0%, #6b5b95 100%);
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(133, 79, 255, 0.4);
+        }
+
+        @media screen and (max-width: 600px) {
+          .intendr-chat-widget .action-buttons {
+            padding: 8px;
+            gap: 6px;
+          }
+          .intendr-chat-widget .action-button {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+          }
         }
 
         /* Defensive styles for widget overlays only */
