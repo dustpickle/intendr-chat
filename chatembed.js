@@ -397,10 +397,8 @@ window.IntendrPhoneCallActive = false;
         const phoneNumber = phoneMatch[2];
         const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
         
-        // Replace tag with clickable link
-        processedMessage = processedMessage.replace(phoneMatch[0], 
-          `<a href="tel:${cleanPhone}" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${phoneNumber}</a>`
-        );
+        // Remove the tag from the message
+        processedMessage = processedMessage.replace(phoneMatch[0], '');
         
         // Add action button
         actionButtons.push({
@@ -416,10 +414,8 @@ window.IntendrPhoneCallActive = false;
         const buttonText = urlMatch[1] || 'Visit Page';
         const url = urlMatch[2];
         
-        // Replace tag with clickable link
-        processedMessage = processedMessage.replace(urlMatch[0],
-          `<a href="${url}" target="_blank" style="color: var(--chat--color-primary); text-decoration: none; font-weight: 500;">${url}</a>`
-        );
+        // Remove the tag from the message
+        processedMessage = processedMessage.replace(urlMatch[0], '');
         
         // Add action button
         actionButtons.push({
@@ -435,7 +431,7 @@ window.IntendrPhoneCallActive = false;
         const buttonMessage = buttonMatch[1];
         const buttonText = buttonMatch[2];
         
-        // Remove the tag from the message (don't show it as text)
+        // Remove the tag from the message
         processedMessage = processedMessage.replace(buttonMatch[0], '');
         
         // Add action button
@@ -443,6 +439,31 @@ window.IntendrPhoneCallActive = false;
           text: buttonText,
           action: () => sendMessage(buttonMessage)
         });
+      }
+
+      // If no explicit action buttons were found, look for phone numbers in the message
+      if (actionButtons.length === 0) {
+        // Phone number regex that matches various formats
+        const phoneNumberRegex = /(?:^|\s)(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})(?:\s|$)/g;
+        let phoneNumberMatch;
+        
+        while ((phoneNumberMatch = phoneNumberRegex.exec(message)) !== null) {
+          const fullMatch = phoneNumberMatch[0].trim();
+          const cleanPhone = fullMatch.replace(/[^\d+]/g, '');
+          
+          // Create a button text that includes the location if mentioned
+          let buttonText = 'Call Now';
+          const locationMatch = message.match(/Aegis Living\s+([^,.]+)/i);
+          if (locationMatch) {
+            buttonText = `Call ${locationMatch[1]}`;
+          }
+          
+          // Add action button
+          actionButtons.push({
+            text: buttonText,
+            action: () => window.open(`tel:${cleanPhone}`, '_self')
+          });
+        }
       }
       
       // Show action buttons if any were found
