@@ -1508,7 +1508,7 @@ window.BellaAITranscriptTracking = {
           };
 
           // Generate summary
-          const response = await fetch('https://automation.cloudcovehosting.com/webhook/pagecontext', {
+          const response = await fetch('https://automation.cloudcovehosting.com/webhook/bella-page-context', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
