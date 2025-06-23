@@ -2199,11 +2199,13 @@ window.IntendrPhoneCallActive = false;
             chatInput: message,
             sessionId: currentSessionId,
             isFirstMessage: isFirstMessage,
+            currentPageUrl: window.location.href, // Include current page URL with UTMs
             metadata: {
               business: config.business,
               pageContext: currentPageContext,
               utmParameters: window.initialUtmParameters || {},
-              userIP: userIP
+              userIP: userIP,
+              currentPageUrl: window.location.href // Also include in metadata for consistency
             }
           };
           
