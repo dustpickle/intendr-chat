@@ -47,6 +47,12 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
     leadSubmission: 'https://automation.cloudcovehosting.com/webhook/aegis-submit-lead'
   },
   
+  // Google Maps API Configuration
+  googleMaps: {
+    apiKey: 'AIzaSyDlUpmnRaDHwK2G6O1Sd7xiAxzy9z__9UA',
+    libraries: ['places']
+  },
+  
   // Behavior Settings
   settings: {
     utmCampaign: 'Aegis-AIChat',
@@ -1400,9 +1406,239 @@ if (!document.getElementById('aegis-client-styles')) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       line-height: 1.4 !important;
     }
+    
+    /* Enhanced location display styling */
+    #intendr-chat-widget .intendr-location-item,
+    .intendr-location-item {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 16px !important;
+      border: 1px solid #eee !important;
+      border-radius: 8px !important;
+      margin-bottom: 12px !important;
+      background: white !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    #intendr-chat-widget .intendr-location-item:hover,
+    .intendr-location-item:hover {
+      border-color: ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    #intendr-chat-widget .location-info,
+    .location-info {
+      flex: 1 !important;
+    }
+    
+    #intendr-chat-widget .location-info h4,
+    .location-info h4 {
+      margin: 0 0 4px 0 !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+    }
+    
+    #intendr-chat-widget .location-info p,
+    .location-info p {
+      margin: 2px 0 !important;
+      font-size: 14px !important;
+      color: #666 !important;
+    }
+    
+    #intendr-chat-widget .select-location-btn,
+    .select-location-btn {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 4px !important;
+      padding: 8px 16px !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    #intendr-chat-widget .select-location-btn:hover,
+    .select-location-btn:hover {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* Google Places Autocomplete styling */
+    #intendr-chat-widget .pac-container,
+    .pac-container {
+      z-index: 1000000 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      border: 1px solid #ddd !important;
+    }
+    
+    #intendr-chat-widget .pac-item,
+    .pac-item {
+      padding: 8px 12px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      font-size: 14px !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+    }
+    
+    #intendr-chat-widget .pac-item:hover,
+    .pac-item:hover {
+      background-color: #f8f9fa !important;
+    }
   `;
   document.head.appendChild(clientStyles);
 } // Close the if statement
+
+// Load Google Maps API for autocomplete functionality
+function loadGoogleMapsAPI() {
+  if (window.google && window.google.maps) {
+    console.log('[Aegis] Google Maps API already loaded');
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${window.CUSTOM_CLIENT_CONFIG.googleMaps.apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      console.log('[Aegis] Google Maps API loaded successfully');
+      resolve();
+    };
+    
+    script.onerror = () => {
+      console.error('[Aegis] Failed to load Google Maps API');
+      reject(new Error('Failed to load Google Maps API'));
+    };
+    
+    document.head.appendChild(script);
+  });
+}
+
+// Calculate distance between two coordinates using Haversine formula
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Get coordinates from Google Places API
+async function getCoordinatesFromPlace(placeDescription) {
+  return new Promise((resolve, reject) => {
+    if (!window.google || !window.google.maps) {
+      reject(new Error('Google Maps API not loaded'));
+      return;
+    }
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: placeDescription }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const location = results[0].geometry.location;
+        resolve({
+          lat: location.lat(),
+          lng: location.lng()
+        });
+      } else {
+        reject(new Error('Could not geocode address'));
+      }
+    });
+  });
+}
+
+// Sort locations by distance from selected city
+function sortLocationsByDistance(locations, userLat, userLng) {
+  return locations.map(location => ({
+    ...location,
+    distance: calculateDistance(userLat, userLng, location.latitude, location.longitude)
+  })).sort((a, b) => a.distance - b.distance);
+}
+
+// Enhanced funnel functionality with Google Places integration
+window.IntendrEnhancedFunnel = {
+  // Initialize Google Maps API and autocomplete
+  async initGoogleMaps() {
+    try {
+      await loadGoogleMapsAPI();
+      return true;
+    } catch (error) {
+      console.error('[Aegis] Failed to initialize Google Maps:', error);
+      return false;
+    }
+  },
+
+  // Create autocomplete input for location search
+  createLocationAutocomplete(inputElement, onLocationSelect) {
+    if (!window.google || !window.google.maps) {
+      console.error('[Aegis] Google Maps API not available');
+      return;
+    }
+
+    const autocomplete = new window.google.maps.places.Autocomplete(inputElement, {
+      types: ['(cities)'],
+      componentRestrictions: { country: 'us' }
+    });
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry) {
+        const location = {
+          description: place.formatted_address,
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        onLocationSelect(location);
+      }
+    });
+
+    return autocomplete;
+  },
+
+  // Sort and display locations based on user's selected city
+  async sortAndDisplayLocations(userLocation, locations) {
+    try {
+      const sortedLocations = sortLocationsByDistance(
+        locations, 
+        userLocation.lat, 
+        userLocation.lng
+      );
+
+      // Update the locations display with distance information
+      const locationList = document.querySelector('.intendr-location-list');
+      if (locationList) {
+        locationList.innerHTML = '';
+        
+        sortedLocations.forEach(location => {
+          const locationElement = document.createElement('div');
+          locationElement.className = 'intendr-location-item';
+          locationElement.innerHTML = `
+            <div class="location-info">
+              <h4>${location.name}</h4>
+              <p>${location.address}, ${location.city}, ${location.state} ${location.zip}</p>
+              <p><strong>${location.distance.toFixed(1)} miles away</strong></p>
+            </div>
+            <button class="select-location-btn" data-location-id="${location.id}">
+              Select
+            </button>
+          `;
+          locationList.appendChild(locationElement);
+        });
+      }
+
+      return sortedLocations;
+    } catch (error) {
+      console.error('[Aegis] Error sorting locations:', error);
+      return locations; // Return original order if sorting fails
+    }
+  }
+};
 
 // Load core widget immediately
 loadCoreWidget(); 
