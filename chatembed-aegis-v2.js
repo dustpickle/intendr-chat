@@ -4,7 +4,7 @@
 // === CLIENT CONFIGURATION (EDIT THESE) ===
 // Prevent redeclaration if script is loaded multiple times
 if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
-  const CUSTOM_CLIENT_CONFIG = {
+  window.CUSTOM_CLIENT_CONFIG = {
   // Webhook & API Settings
   webhook: {
     url: 'https://automation.cloudcovehosting.com/webhook/b1bdfe90-cbf0-4d3a-8e4b-fa3359344b57/chat',
@@ -63,10 +63,10 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
 // Apply client customizations to core system
 window.ChatWidgetCustomConfig = {
   endpoints: {
-    pageContext: CUSTOM_CLIENT_CONFIG.endpoints.pageContext,
-    voiceCall: CUSTOM_CLIENT_CONFIG.endpoints.voiceCall,
-    ipify: CUSTOM_CLIENT_CONFIG.endpoints.ipify,
-    leadSubmission: CUSTOM_CLIENT_CONFIG.endpoints.leadSubmission
+    pageContext: window.CUSTOM_CLIENT_CONFIG.endpoints.pageContext,
+    voiceCall: window.CUSTOM_CLIENT_CONFIG.endpoints.voiceCall,
+    ipify: window.CUSTOM_CLIENT_CONFIG.endpoints.ipify,
+    leadSubmission: window.CUSTOM_CLIENT_CONFIG.endpoints.leadSubmission
   },
   
   storageKeys: {
@@ -79,15 +79,15 @@ window.ChatWidgetCustomConfig = {
   },
   
   settings: {
-    utmCampaign: CUSTOM_CLIENT_CONFIG.settings.utmCampaign,
-    sessionValidity: CUSTOM_CLIENT_CONFIG.settings.sessionDuration * 60 * 60 * 1000,
+    utmCampaign: window.CUSTOM_CLIENT_CONFIG.settings.utmCampaign,
+    sessionValidity: window.CUSTOM_CLIENT_CONFIG.settings.sessionDuration * 60 * 60 * 1000,
     enableCustomFeatures: true
   },
   
   branding: {
-    name: CUSTOM_CLIENT_CONFIG.branding.name,
-    typingText: CUSTOM_CLIENT_CONFIG.branding.typingText,
-    greetingText: CUSTOM_CLIENT_CONFIG.branding.greetingText
+    name: window.CUSTOM_CLIENT_CONFIG.branding.name,
+    typingText: window.CUSTOM_CLIENT_CONFIG.branding.typingText,
+    greetingText: window.CUSTOM_CLIENT_CONFIG.branding.greetingText
   },
   
   // Funnel system configuration
@@ -1136,22 +1136,22 @@ window.ChatWidgetCustomConfig = {
 
 // Set standard widget configuration
 window.ChatWidgetConfig = {
-  webhook: CUSTOM_CLIENT_CONFIG.webhook,
+  webhook: window.CUSTOM_CLIENT_CONFIG.webhook,
   branding: {
-    logo: CUSTOM_CLIENT_CONFIG.branding.logo,
-    name: CUSTOM_CLIENT_CONFIG.branding.name,
-    welcomeText: CUSTOM_CLIENT_CONFIG.branding.welcomeText
+    logo: window.CUSTOM_CLIENT_CONFIG.branding.logo,
+    name: window.CUSTOM_CLIENT_CONFIG.branding.name,
+    welcomeText: window.CUSTOM_CLIENT_CONFIG.branding.welcomeText
   },
   style: {
-    primaryColor: CUSTOM_CLIENT_CONFIG.theme.primaryColor,
-    secondaryColor: CUSTOM_CLIENT_CONFIG.theme.secondaryColor,
-    position: CUSTOM_CLIENT_CONFIG.theme.position,
-    backgroundColor: CUSTOM_CLIENT_CONFIG.theme.backgroundColor,
-    fontColor: CUSTOM_CLIENT_CONFIG.theme.fontColor
+    primaryColor: window.CUSTOM_CLIENT_CONFIG.theme.primaryColor,
+    secondaryColor: window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor,
+    position: window.CUSTOM_CLIENT_CONFIG.theme.position,
+    backgroundColor: window.CUSTOM_CLIENT_CONFIG.theme.backgroundColor,
+    fontColor: window.CUSTOM_CLIENT_CONFIG.theme.fontColor
   },
-  business: CUSTOM_CLIENT_CONFIG.business,
-  overtake: CUSTOM_CLIENT_CONFIG.settings.overtakeModal,
-  overtakePath: CUSTOM_CLIENT_CONFIG.settings.overtakePath,
+  business: window.CUSTOM_CLIENT_CONFIG.business,
+  overtake: window.CUSTOM_CLIENT_CONFIG.settings.overtakeModal,
+  overtakePath: window.CUSTOM_CLIENT_CONFIG.settings.overtakePath,
   initialButtons: [
     {
       text: 'Schedule a Tour',
@@ -1200,24 +1200,24 @@ const clientStyles = document.createElement('style');
 clientStyles.textContent = `
   /* Aegis theme colors */
   .intendr-chat-widget .brand-header {
-    background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
   }
   
   .intendr-chat-widget .chat-message.user {
-    background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
   }
   
   .intendr-chat-widget .chat-input button,
   .intendr-chat-widget #intendr-voice-button,
   .intendr-chat-widget .chat-toggle {
-    background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
     transition: background 0.3s ease !important;
   }
   
   .intendr-chat-widget .chat-toggle:hover,
   .intendr-chat-widget .chat-input button:hover,
   .intendr-chat-widget #intendr-voice-button:hover {
-    background: linear-gradient(135deg, ${CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
+    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
   }
   
   /* Aegis special styling */
