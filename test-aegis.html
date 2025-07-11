@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Chat Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Aegis Chat Widget Test</h1>
+        <p>This page tests the Aegis chat widget loading process.</p>
+        
+        <div id="status-log">
+            <div class="status info">Loading test page...</div>
+        </div>
+        
+        <h3>Expected Behavior:</h3>
+        <ul>
+            <li>Chat widget should appear in bottom right corner</li>
+            <li>Should show "Aegis Living Assistant" branding</li>
+            <li>Should have 4 initial buttons</li>
+            <li>Should support funnel system</li>
+        </ul>
+        
+        <h3>Debug Info:</h3>
+        <p>Check browser console (F12) for detailed loading logs.</p>
+        
+        <button onclick="checkWidgetStatus()">Check Widget Status</button>
+        <button onclick="forceShowWidget()">Force Show Widget</button>
+    </div>
+
+    <script>
+        // Add status logging
+        function addStatus(message, type = 'info') {
+            const log = document.getElementById('status-log');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            log.appendChild(div);
+        }
+        
+        // Check if widget is loaded
+        function checkWidgetStatus() {
+            const widget = document.querySelector('.intendr-chat-widget');
+            if (widget) {
+                addStatus('Chat widget found in DOM', 'success');
+                console.log('Widget element:', widget);
+            } else {
+                addStatus('Chat widget not found in DOM', 'error');
+            }
+            
+            if (window.IntendrChatWidgetInitialized) {
+                addStatus('Widget initialization flag set', 'success');
+            } else {
+                addStatus('Widget initialization flag not set', 'error');
+            }
+            
+            if (window.ChatWidgetConfig) {
+                addStatus('ChatWidgetConfig found', 'success');
+                console.log('Config:', window.ChatWidgetConfig);
+            } else {
+                addStatus('ChatWidgetConfig not found', 'error');
+            }
+        }
+        
+        // Force show widget if available
+        function forceShowWidget() {
+            if (window.showChat) {
+                window.showChat();
+                addStatus('Forced show chat widget', 'success');
+            } else {
+                addStatus('showChat function not available', 'error');
+            }
+        }
+        
+        // Monitor for widget loading
+        let checkCount = 0;
+        const checkInterval = setInterval(() => {
+            checkCount++;
+            const widget = document.querySelector('.intendr-chat-widget');
+            if (widget) {
+                addStatus('Chat widget detected!', 'success');
+                clearInterval(checkInterval);
+            } else if (checkCount > 20) {
+                addStatus('Widget not detected after 10 seconds', 'error');
+                clearInterval(checkInterval);
+            }
+        }, 500);
+        
+        addStatus('Page loaded, starting widget embed...', 'info');
+    </script>
+
+    <!-- Load Aegis chat widget -->
+    <script src="aegis-embed.js"></script>
+</body>
+</html> 
