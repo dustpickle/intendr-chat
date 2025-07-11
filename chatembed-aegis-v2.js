@@ -1175,7 +1175,7 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  const corePath = window.ChatWidgetCorePath || 'chatembed-v2.js';
+  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-aegis-v2.js';
   console.log('[Aegis] Loading core widget from:', corePath);
 
   const script = document.createElement('script');
