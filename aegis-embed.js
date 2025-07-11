@@ -7,7 +7,7 @@
   // Function to load the Aegis client configuration
   function loadAegisWidget() {
     const script = document.createElement('script');
-    script.src = 'chatembed-aegis-v2.js';
+    script.src = 'https://n8n-chat-embed.pages.dev/chatembed-aegis-v2.js';
     script.async = true;
     script.onload = function() {
       console.log('[Aegis] Aegis chat widget configuration loaded successfully');
