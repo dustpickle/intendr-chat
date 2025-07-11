@@ -2,7 +2,9 @@
 // Edit these settings for your specific client implementation
 
 // === CLIENT CONFIGURATION (EDIT THESE) ===
-const CUSTOM_CLIENT_CONFIG = {
+// Prevent redeclaration if script is loaded multiple times
+if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
+  const CUSTOM_CLIENT_CONFIG = {
   // Webhook & API Settings
   webhook: {
     url: 'https://automation.cloudcovehosting.com/webhook/b1bdfe90-cbf0-4d3a-8e4b-fa3359344b57/chat',
@@ -53,7 +55,8 @@ const CUSTOM_CLIENT_CONFIG = {
     overtakeModal: false,
     overtakePath: '/'
   }
-};
+  }; // Close the CUSTOM_CLIENT_CONFIG object
+} // Close the if statement
 
 // ===== TECHNICAL IMPLEMENTATION (DON'T EDIT BELOW) =====
 
