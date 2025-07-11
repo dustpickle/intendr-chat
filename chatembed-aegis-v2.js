@@ -1317,7 +1317,7 @@ if (!document.getElementById('aegis-client-styles')) {
       text-align: center !important;
       font-size: 18px !important;
       font-weight: 500 !important;
-      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      color: white !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       line-height: 1.4 !important;
     }
