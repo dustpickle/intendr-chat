@@ -1200,37 +1200,158 @@ if (!document.getElementById('aegis-client-styles')) {
   const clientStyles = document.createElement('style');
   clientStyles.id = 'aegis-client-styles';
   clientStyles.textContent = `
-    /* Aegis theme colors */
+    /* Aegis theme colors - High specificity to override website styles */
+    #intendr-chat-widget .intendr-chat-widget .brand-header,
     .intendr-chat-widget .brand-header {
       background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      color: white !important;
     }
     
+    #intendr-chat-widget .intendr-chat-widget .chat-message.user,
     .intendr-chat-widget .chat-message.user {
       background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      color: white !important;
     }
     
+    #intendr-chat-widget .intendr-chat-widget .chat-input button,
+    #intendr-chat-widget .intendr-chat-widget #intendr-voice-button,
+    #intendr-chat-widget .intendr-chat-widget .chat-toggle,
     .intendr-chat-widget .chat-input button,
     .intendr-chat-widget #intendr-voice-button,
     .intendr-chat-widget .chat-toggle {
       background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      color: white !important;
+      border: none !important;
       transition: background 0.3s ease !important;
     }
     
+    #intendr-chat-widget .intendr-chat-widget .chat-toggle:hover,
+    #intendr-chat-widget .intendr-chat-widget .chat-input button:hover,
+    #intendr-chat-widget .intendr-chat-widget #intendr-voice-button:hover,
     .intendr-chat-widget .chat-toggle:hover,
     .intendr-chat-widget .chat-input button:hover,
     .intendr-chat-widget #intendr-voice-button:hover {
       background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
+      color: white !important;
+    }
+    
+    /* Funnel form protection - Ensure our forms aren't affected by website styles */
+    #intendr-chat-widget .intendr-funnel-form,
+    .intendr-funnel-form {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      background: white !important;
+    }
+    
+    #intendr-chat-widget .intendr-funnel-form input,
+    #intendr-chat-widget .intendr-funnel-form select,
+    #intendr-chat-widget .intendr-funnel-form textarea,
+    .intendr-funnel-form input,
+    .intendr-funnel-form select,
+    .intendr-funnel-form textarea {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      background: white !important;
+      border: 1px solid #ddd !important;
+      border-radius: 4px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+    }
+    
+    #intendr-chat-widget .intendr-funnel-form input:focus,
+    #intendr-chat-widget .intendr-funnel-form select:focus,
+    #intendr-chat-widget .intendr-funnel-form textarea:focus,
+    .intendr-funnel-form input:focus,
+    .intendr-funnel-form select:focus,
+    .intendr-funnel-form textarea:focus {
+      outline: 2px solid ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
+      outline-offset: 2px !important;
+      border-color: ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
+    }
+    
+    #intendr-chat-widget .intendr-funnel-form button,
+    .intendr-funnel-form button {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 4px !important;
+      padding: 10px 20px !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    #intendr-chat-widget .intendr-funnel-form button:hover,
+    .intendr-funnel-form button:hover {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Chat container protection */
+    #intendr-chat-widget .intendr-chat-widget .chat-container,
+    .intendr-chat-widget .chat-container {
+      border: 1px solid rgba(102, 126, 234, 0.2) !important;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
+      background: white !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+    
+    /* Chat messages protection */
+    #intendr-chat-widget .intendr-chat-widget .chat-message,
+    .intendr-chat-widget .chat-message {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      background: #f8f9fa !important;
+      border-radius: 8px !important;
+      padding: 12px 16px !important;
+      margin: 8px 0 !important;
+      line-height: 1.4 !important;
+    }
+    
+    /* Chat input protection */
+    #intendr-chat-widget .intendr-chat-widget .chat-input,
+    .intendr-chat-widget .chat-input {
+      background: white !important;
+      border-top: 1px solid #eee !important;
+      padding: 16px !important;
+    }
+    
+    #intendr-chat-widget .intendr-chat-widget .chat-input input,
+    .intendr-chat-widget .chat-input input {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      background: white !important;
+      border: 1px solid #ddd !important;
+      border-radius: 20px !important;
+      padding: 10px 16px !important;
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    #intendr-chat-widget .intendr-chat-widget .chat-input input:focus,
+    .intendr-chat-widget .chat-input input:focus {
+      outline: 2px solid ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
+      outline-offset: 2px !important;
+      border-color: ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
     }
     
     /* Aegis special styling */
+    #intendr-chat-widget .aegis-priority,
     .aegis-priority {
       border: 2px solid #ffd700 !important;
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
     }
     
-    .intendr-chat-widget .chat-container {
-      border: 1px solid rgba(102, 126, 234, 0.2) !important;
-      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
+    /* Ensure our widget is always on top */
+    #intendr-chat-widget,
+    .intendr-chat-widget {
+      z-index: 999999 !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     }
   `;
   document.head.appendChild(clientStyles);
