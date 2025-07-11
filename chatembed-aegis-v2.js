@@ -1291,6 +1291,37 @@ if (!document.getElementById('aegis-client-styles')) {
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
     }
     
+    /* Funnel header protection */
+    #intendr-chat-widget .intendr-funnel-form h1,
+    #intendr-chat-widget .intendr-funnel-form h2,
+    #intendr-chat-widget .intendr-funnel-form h3,
+    #intendr-chat-widget .intendr-funnel-form h4,
+    #intendr-chat-widget .intendr-funnel-form h5,
+    #intendr-chat-widget .intendr-funnel-form h6,
+    .intendr-funnel-form h1,
+    .intendr-funnel-form h2,
+    .intendr-funnel-form h3,
+    .intendr-funnel-form h4,
+    .intendr-funnel-form h5,
+    .intendr-funnel-form h6 {
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      line-height: 1.4 !important;
+      margin: 0 0 16px 0 !important;
+    }
+    
+    /* Funnel text protection */
+    #intendr-chat-widget .intendr-funnel-form p,
+    #intendr-chat-widget .intendr-funnel-form span,
+    #intendr-chat-widget .intendr-funnel-form div,
+    .intendr-funnel-form p,
+    .intendr-funnel-form span,
+    .intendr-funnel-form div {
+      color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      line-height: 1.4 !important;
+    }
+    
     /* Chat container protection */
     #intendr-chat-widget .intendr-chat-widget .chat-container,
     .intendr-chat-widget .chat-container {
