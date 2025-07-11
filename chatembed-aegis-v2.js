@@ -1241,6 +1241,7 @@ if (!document.getElementById('aegis-client-styles')) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       color: ${window.CUSTOM_CLIENT_CONFIG.theme.fontColor} !important;
       background: white !important;
+      line-height: 1.4 !important;
     }
     
     #intendr-chat-widget .intendr-funnel-form input,
@@ -1297,6 +1298,7 @@ if (!document.getElementById('aegis-client-styles')) {
       box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
       background: white !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      line-height: 1.4 !important;
     }
     
     /* Chat messages protection */
@@ -1317,6 +1319,7 @@ if (!document.getElementById('aegis-client-styles')) {
       background: white !important;
       border-top: 1px solid #eee !important;
       padding: 16px !important;
+      line-height: 1.4 !important;
     }
     
     #intendr-chat-widget .intendr-chat-widget .chat-input input,
@@ -1352,6 +1355,7 @@ if (!document.getElementById('aegis-client-styles')) {
     .intendr-chat-widget {
       z-index: 999999 !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      line-height: 1.4 !important;
     }
   `;
   document.head.appendChild(clientStyles);
