@@ -1178,7 +1178,7 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-aegis-v2.js';
+  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-v2.js';
   console.log('[Aegis] Loading core widget from:', corePath);
 
   const script = document.createElement('script');
@@ -1196,42 +1196,45 @@ function loadCoreWidget() {
 console.log('[Aegis] Aegis customizations loaded, initializing...');
 
 // Apply client theme styles
-const clientStyles = document.createElement('style');
-clientStyles.textContent = `
-  /* Aegis theme colors */
-  .intendr-chat-widget .brand-header {
-    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
-  }
-  
-  .intendr-chat-widget .chat-message.user {
-    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
-  }
-  
-  .intendr-chat-widget .chat-input button,
-  .intendr-chat-widget #intendr-voice-button,
-  .intendr-chat-widget .chat-toggle {
-    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
-    transition: background 0.3s ease !important;
-  }
-  
-  .intendr-chat-widget .chat-toggle:hover,
-  .intendr-chat-widget .chat-input button:hover,
-  .intendr-chat-widget #intendr-voice-button:hover {
-    background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
-  }
-  
-  /* Aegis special styling */
-  .aegis-priority {
-    border: 2px solid #ffd700 !important;
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
-  }
-  
-  .intendr-chat-widget .chat-container {
-    border: 1px solid rgba(102, 126, 234, 0.2) !important;
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
-  }
-`;
-document.head.appendChild(clientStyles);
+if (!document.getElementById('aegis-client-styles')) {
+  const clientStyles = document.createElement('style');
+  clientStyles.id = 'aegis-client-styles';
+  clientStyles.textContent = `
+    /* Aegis theme colors */
+    .intendr-chat-widget .brand-header {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+    }
+    
+    .intendr-chat-widget .chat-message.user {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+    }
+    
+    .intendr-chat-widget .chat-input button,
+    .intendr-chat-widget #intendr-voice-button,
+    .intendr-chat-widget .chat-toggle {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 100%) !important;
+      transition: background 0.3s ease !important;
+    }
+    
+    .intendr-chat-widget .chat-toggle:hover,
+    .intendr-chat-widget .chat-input button:hover,
+    .intendr-chat-widget #intendr-voice-button:hover {
+      background: linear-gradient(135deg, ${window.CUSTOM_CLIENT_CONFIG.theme.secondaryColor} 0%, ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} 100%) !important;
+    }
+    
+    /* Aegis special styling */
+    .aegis-priority {
+      border: 2px solid #ffd700 !important;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
+    }
+    
+    .intendr-chat-widget .chat-container {
+      border: 1px solid rgba(102, 126, 234, 0.2) !important;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15) !important;
+    }
+  `;
+  document.head.appendChild(clientStyles);
+} // Close the if statement
 
 // Load core widget immediately
 loadCoreWidget(); 
