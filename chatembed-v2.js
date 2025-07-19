@@ -398,8 +398,8 @@ window.IntendrPhoneCallActive = false;
               }
             } else {
               console.log('[DEBUG] No funnel detected, sending message');
-              // Send the predefined message (sendMessage handles both UI and backend)
-              sendMessage(buttonConfig.message);
+            // Send the predefined message (sendMessage handles both UI and backend)
+            sendMessage(buttonConfig.message);
             }
             
             // After sending, check buttons again (will hide them since user message now exists)
@@ -489,10 +489,10 @@ window.IntendrPhoneCallActive = false;
           });
         } else {
           // Add regular message action button
-          actionButtons.push({
-            text: buttonText,
-            action: () => sendMessage(buttonMessage)
-          });
+        actionButtons.push({
+          text: buttonText,
+          action: () => sendMessage(buttonMessage)
+        });
         }
       }
 
@@ -558,9 +558,9 @@ window.IntendrPhoneCallActive = false;
             showChat();
             // Wait a moment for the chat to open, then execute the action
             setTimeout(() => {
-              buttonConfig.action();
-              // Clear action buttons after use
-              clearActionButtons();
+          buttonConfig.action();
+          // Clear action buttons after use
+          clearActionButtons();
             }, 300);
           } else {
             // Chat is already open, execute action immediately
@@ -1222,9 +1222,14 @@ window.IntendrPhoneCallActive = false;
           leadphone: formData.phone,
           leademail: formData.email,
           leadtype: getLeadType(),
-          leadnotes: formData.message,
-          tourdateandtime: getTourDateTime()
+          leadnotes: formData.message
         };
+        
+        // Add tour-specific fields for schedule tour funnel
+        if (currentFunnel === 'scheduleTour') {
+          leadData.tourDate = getTourDate();
+          leadData.tourTime = getTourTime();
+        }
         
         // Submit to webhook
         const response = await fetch(INTENDR_API_ENDPOINTS.leadSubmission, {
@@ -1280,16 +1285,27 @@ window.IntendrPhoneCallActive = false;
       }
     }
     
-    // Function to get tour date and time
-    function getTourDateTime() {
-      if (currentFunnel === 'scheduleTour' && funnelData.selectedDate && funnelData.selectedTime) {
+    // Function to get tour date in mm/dd/yyyy format
+    function getTourDate() {
+      if (currentFunnel === 'scheduleTour' && funnelData.selectedDate) {
         const date = funnelData.selectedDate;
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      }
+      return '';
+    }
+    
+    // Function to get tour time in hh:mmam/pm format
+    function getTourTime() {
+      if (currentFunnel === 'scheduleTour' && funnelData.selectedTime) {
         const time = funnelData.selectedTime;
-        return `${date.toLocaleDateString()} ${time.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        })}`;
+        const hours = time.getHours();
+        const minutes = String(time.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes}${ampm}`;
       }
       return '';
     }
@@ -1321,8 +1337,9 @@ window.IntendrPhoneCallActive = false;
       
       if (currentFunnel === 'scheduleTour') {
         const location = funnelData.selectedLocation;
-        const dateTime = getTourDateTime();
-        summary += `Your tour is scheduled for ${dateTime} at ${location.name}. `;
+        const tourDate = getTourDate();
+        const tourTime = getTourTime();
+        summary += `Your tour is scheduled for ${tourDate} at ${tourTime} at ${location.name}. `;
       }
       
       summary += `We'll contact you at ${formData.email} or ${formData.phone} to confirm the details. Is there anything else I can help you with?`;
@@ -4214,13 +4231,13 @@ window.IntendrPhoneCallActive = false;
           // If we have active funnel data, show funnel panel instead of chat
           showFunnelPanel();
         } else {
-          // Restore session or show initial messages
-          const sessionRestored = loadSession();
+        // Restore session or show initial messages
+        const sessionRestored = loadSession();
           if (!sessionRestored) {
             inactivityMessageSent = false;
             currentSessionId = generateSessionId();
-            sendInitialMessages();
-            generatePageSummary();
+          sendInitialMessages();
+          generatePageSummary();
           }
           saveSession();
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -4253,9 +4270,9 @@ window.IntendrPhoneCallActive = false;
           if (window.innerWidth <= 600) document.body.style.overflow = '';
         });
         sendButton.addEventListener('click', handleMessageSend);
-        textarea.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
+      textarea.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
             handleMessageSend();
           }
         });
