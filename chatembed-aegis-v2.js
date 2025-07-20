@@ -98,496 +98,517 @@ window.ChatWidgetCustomConfig = {
   
   // Funnel system configuration
   funnels: {
-    scheduleTour: {
-      enabled: true,
-      title: 'Schedule a Tour',
-      steps: ['location', 'datetime', 'contact'],
-      locations: [
-          {
-              id: 'lasvblue',
-              name: 'Aegis Living Las Vegas',
-              address: '9100 West Desert Inn Rd',
-              city: 'Las Vegas',
-              state: 'NV',
-              zip: '89117',
-              phone: '(702) 472-8505',
-              latitude: 36.1147,
-              longitude: -115.1728,
-              slug: 'aegis-living-las-vegas-nv'
-          },
-          {
-              id: 'snfrblue',
-              name: 'Aegis Living San Francisco',
-              address: '2280 Gellert Blvd',
-              city: 'South San Francisco',
-              state: 'CA',
-              zip: '94080',
-              phone: '(650) 242-4154',
-              latitude: 37.6547,
-              longitude: -122.4077,
-              slug: 'aegis-living-san-francisco-ca'
-          },
-          {
-              id: 'aptoblue',
-              name: 'Aegis Living Aptos',
-              address: '125 Heather Terrace',
-              city: 'Aptos',
-              state: 'CA',
-              zip: '95003',
-              phone: '(831) 706-2977',
-              latitude: 36.9772,
-              longitude: -121.8994,
-              slug: 'aegis-living-aptos-ca'
-          },
-          {
-              id: 'cortblue',
-              name: 'Aegis Living Corte Madera',
-              address: '5555 Paradise Drive',
-              city: 'Corte Madera',
-              state: 'CA',
-              zip: '94925',
-              phone: '(415) 483-1399',
-              latitude: 37.9255,
-              longitude: -122.5277,
-              slug: 'aegis-living-corte-madera-ca'
-          },
-          {
-              id: 'shad001',
-              name: 'Aegis Living Shadowridge',
-              address: '1440 South Melrose Dr',
-              city: 'Oceanside',
-              state: 'CA',
-              zip: '92056',
-              phone: '(760) 444-0758',
-              latitude: 33.1959,
-              longitude: -117.3795,
-              slug: 'aegis-living-shadowridge-oceanside-ca'
-          },
-          {
-              id: 'wsea001',
-              name: 'Aegis Living West Seattle',
-              address: '4700 SW Admiral Way',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98116',
-              phone: '(206) 487-5289',
-              latitude: 47.5707,
-              longitude: -122.3871,
-              slug: 'aegis-living-west-seattle-wa'
-          },
-          {
-              id: 'agnew001',
-              name: 'Aegis Gardens Newcastle',
-              address: '13056 SE 76th St',
-              city: 'Newcastle',
-              state: 'WA',
-              zip: '98056',
-              phone: '(425) 903-3530',
-              latitude: 47.5301,
-              longitude: -122.1559,
-              slug: 'aegis-gardens-newcastle-wa'
-          },
-          {
-              id: 'carm001',
-              name: 'Aegis Living Carmichael',
-              address: '4050 Walnut Ave',
-              city: 'Carmichael',
-              state: 'CA',
-              zip: '95608',
-              phone: '(916) 231-9427',
-              latitude: 38.6171,
-              longitude: -121.3283,
-              slug: 'aegis-living-carmichael-ca'
-          },
-          {
-              id: 'frem001',
-              name: 'Aegis Living Fremont',
-              address: '3850 Walnut Ave',
-              city: 'Fremont',
-              state: 'CA',
-              zip: '94538',
-              phone: '(510) 584-9526',
-              latitude: 37.5485,
-              longitude: -121.9886,
-              slug: 'aegis-living-fremont-ca'
-          },
-          {
-              id: 'klake001',
-              name: 'Aegis Living Kirkland Waterfront',
-              address: '1002 Lake Street South',
-              city: 'Kirkland',
-              state: 'WA',
-              zip: '98033',
-              phone: '(425) 659-3432',
-              latitude: 47.6815,
-              longitude: -122.2087,
-              slug: 'aegis-living-kirkland-waterfront-wa'
-          },
-          {
-              id: 'green001',
-              name: 'Aegis Living Greenwood',
-              address: '10000 Holman Road NW',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98177',
-              phone: '(206) 202-4588',
-              latitude: 47.7209,
-              longitude: -122.3546,
-              slug: 'aegis-living-greenwood-seattle-wa'
-          },
-          {
-              id: 'issa001',
-              name: 'Aegis Living Issaquah',
-              address: '780 NW Juniper St',
-              city: 'Issaquah',
-              state: 'WA',
-              zip: '98027',
-              phone: '(425) 298-3969',
-              latitude: 47.5301,
-              longitude: -122.0326,
-              slug: 'aegis-living-issaquah-wa'
-          },
-          {
-              id: 'madi001',
-              name: 'Aegis Living Madison',
-              address: '2200 E Madison St',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98112',
-              phone: '(206) 203-6348',
-              latitude: 47.6205,
-              longitude: -122.2992,
-              slug: 'aegis-living-madison-seattle-wa'
-          },
-          {
-              id: 'lagu001',
-              name: 'Aegis Living Laguna Niguel',
-              address: '32170 Niguel Rd',
-              city: 'Laguna Niguel',
-              state: 'CA',
-              zip: '92677',
-              phone: '(949) 340-9152',
-              latitude: 33.5225,
-              longitude: -117.7075,
-              slug: 'aegis-living-laguna-niguel-ca'
-          },
-          {
-              id: 'gale001n',
-              name: 'Aegis Living Queen Anne Galer',
-              address: '223 West Galer Street',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98119',
-              phone: '(206) 673-5986',
-              latitude: 47.6371,
-              longitude: -122.3647,
-              slug: 'aegis-living-queen-anne-galer-seattle-wa'
-          },
-          {
-              id: 'agarblue',
-              name: 'Aegis Gardens Fremont',
-              address: '36281 Fremont Blvd',
-              city: 'Fremont',
-              state: 'CA',
-              zip: '94536',
-              phone: '(510) 279-4231',
-              latitude: 37.5485,
-              longitude: -121.9886,
-              slug: 'aegis-gardens-fremont-ca'
-          },
-          {
-              id: 'mora001',
-              name: 'Aegis Living Moraga',
-              address: '950 Country Club Drive',
-              city: 'Moraga',
-              state: 'CA',
-              zip: '94556',
-              phone: '(925) 478-7327',
-              latitude: 37.8349,
-              longitude: -122.1297,
-              slug: 'aegis-living-moraga-ca'
-          },
-          {
-              id: 'ovlk001',
-              name: 'Aegis Living Bellevue Overlake',
-              address: '1845 116th Avenue NE',
-              city: 'Bellevue',
-              state: 'WA',
-              zip: '98004',
-              phone: '(425) 223-3454',
-              latitude: 47.6101,
-              longitude: -122.2015,
-              slug: 'aegis-living-bellevue-overlake-wa'
-          },
-          {
-              id: 'raven001',
-              name: 'Aegis Living Ravenna',
-              address: '8511 15th Avenue NE',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98115',
-              phone: '(206) 701-567',
-              latitude: 47.6819,
-              longitude: -122.2861,
-              slug: 'aegis-living-ravenna-seattle-wa'
-          },
-          {
-              id: 'laur001',
-              name: 'Aegis Living Laurelhurst',
-              address: '3200 NE 45th Street',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98105',
-              phone: '(206) 823-1332',
-              latitude: 47.6606,
-              longitude: -122.2965,
-              slug: 'aegis-living-laurelhurst-seattle-wa'
-          },
-          {
-              id: 'redm001',
-              name: 'Aegis Living Redmond',
-              address: '7480 West Lake Sammamish Parkway NE',
-              city: 'Redmond',
-              state: 'WA',
-              zip: '98052',
-              phone: '(425) 786-2040',
-              latitude: 47.6740,
-              longitude: -122.1215,
-              slug: 'aegis-living-redmond-wa'
-          },
-          {
-              id: 'lodgblue',
-              name: 'Aegis Lodge Kirkland',
-              address: '12629 116th Ave NE',
-              city: 'Kirkland',
-              state: 'WA',
-              zip: '98034',
-              phone: '(425) 947-0105',
-              latitude: 47.6815,
-              longitude: -122.2087,
-              slug: 'aegis-lodge-kirkland-wa'
-          },
-          {
-              id: 'blrd001',
-              name: 'Aegis Living Ballard',
-              address: '949 NW Market Street',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98107',
-              phone: '(425) 947-0105',
-              latitude: 47.6681,
-              longitude: -122.3847,
-              slug: 'aegis-living-ballard-seattle-wa'
-          },
-          {
-              id: 'bellblue',
-              name: 'Aegis Living Bellevue',
-              address: '148 102nd Ave SE',
-              city: 'Bellevue',
-              state: 'WA',
-              zip: '98004',
-              phone: '(425) 298-3979',
-              latitude: 47.6101,
-              longitude: -122.2015,
-              slug: 'aegis-living-bellevue-wa'
-          },
-          {
-              id: 'granblue',
-              name: 'Aegis Living Granada Hills',
-              address: '10801 Lindley Ave',
-              city: 'Granada Hills',
-              state: 'CA',
-              zip: '91344',
-              phone: '(818) 275-4700',
-              latitude: 34.2728,
-              longitude: -118.5048,
-              slug: 'aegis-living-granada-hills-ca'
-          },
-          {
-              id: 'rodgr001',
-              name: 'Aegis Living Queen Anne Rodgers Park',
-              address: '2900 3rd Avenue West',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98119',
-              phone: '(206) 858-9989',
-              latitude: 47.6371,
-              longitude: -122.3647,
-              slug: 'aegis-living-queen-anne-rodgers-park-seattle-wa'
-          },
-          {
-              id: 'danablue',
-              name: 'Aegis Living Dana Point',
-              address: '26922 Camino de Estrella',
-              city: 'Dana Point',
-              state: 'CA',
-              zip: '92624',
-              phone: '(949) 340-8558',
-              latitude: 33.4669,
-              longitude: -117.6981,
-              slug: 'aegis-living-dana-point-ca'
-          },
-          {
-              id: 'lakeu001',
-              name: 'Aegis Living Lake Union',
-              address: '1936 Eastlake Avenue East',
-              city: 'Seattle',
-              state: 'WA',
-              zip: '98102',
-              phone: '(206) 202-9670',
-              latitude: 47.6205,
-              longitude: -122.2992,
-              slug: 'aegis-living-lake-union-seattle-wa'
-          },
-          {
-              id: 'lynn001',
-              name: 'Aegis Living Lynnwood',
-              address: '18700 44th Ave W',
-              city: 'Lynnwood',
-              state: 'WA',
-              zip: '98037',
-              phone: '(425) 329-7289',
-              latitude: 47.8279,
-              longitude: -122.3051,
-              slug: 'aegis-living-lynnwood-wa'
-          },
-          {
-              id: 'pleablue',
-              name: 'Aegis Living Pleasant Hill',
-              address: '1660 Oak Park Blvd',
-              city: 'Pleasant Hill',
-              state: 'CA',
-              zip: '94523',
-              phone: '(925) 588-7030',
-              latitude: 37.9485,
-              longitude: -122.0608,
-              slug: 'aegis-living-pleasant-hill-ca'
-          },
-          {
-              id: 'kent001',
-              name: 'Aegis Living Kent',
-              address: '10421 SE 248th St',
-              city: 'Kent',
-              state: 'WA',
-              zip: '98030',
-              phone: '(253) 243-0054',
-              latitude: 47.3809,
-              longitude: -122.2348,
-              slug: 'aegis-living-kent-wa'
-          },
-          {
-              id: 'shorblue',
-              name: 'Aegis Living Shoreline',
-              address: '14900 1st Avenue NE',
-              city: 'Shoreline',
-              state: 'WA',
-              zip: '98155',
-              phone: '(206) 279-3448',
-              latitude: 47.7569,
-              longitude: -122.3414,
-              slug: 'aegis-living-shoreline-wa'
-          },
-          {
-              id: 'mary001',
-              name: 'Aegis Living Marymoor',
-              address: '4585 West Lake Sammamish Parkway NE',
-              city: 'Redmond',
-              state: 'WA',
-              zip: '98052',
-              phone: '(425) 999-4074',
-              latitude: 47.6740,
-              longitude: -122.1215,
-              slug: 'aegis-living-marymoor-redmond-wa'
-          },
-          {
-              id: 'ventblue',
-              name: 'Aegis Living Ventura',
-              address: '4964 Telegraph Road',
-              city: 'Ventura',
-              state: 'CA',
-              zip: '93003',
-              phone: '(805) 290-1953',
-              latitude: 34.2746,
-              longitude: -119.2290,
-              slug: 'aegis-living-ventura-ca'
-          },
-          {
-              id: 'kirkblue',
-              name: 'Aegis Kirkland',
-              address: '13000 Totem Lake Blvd NE',
-              city: 'Kirkland',
-              state: 'WA',
-              zip: '98034',
-              phone: '(425) 903-3092',
-              latitude: 47.6815,
-              longitude: -122.2087,
-              slug: 'aegis-lodge-kirkland-wa'
-          },
-          {
-              id: 'callblue',
-              name: 'Aegis Living Callahan House',
-              address: '15100 1st Avenue NE',
-              city: 'Shoreline',
-              state: 'WA',
-              zip: '98155',
-              phone: '(206) 452-0285',
-              latitude: 47.7569,
-              longitude: -122.3414,
-              slug: 'aegis-living-callahan-house-shoreline-wa'
-          },
-          {
-              id: 'mercr001',
-              name: 'Aegis Living Mercer Island',
-              address: '7445 SE 24th Street',
-              city: 'Mercer Island',
-              state: 'WA',
-              zip: '98040',
-              phone: '(206) 487-5290',
-              latitude: 47.5707,
-              longitude: -122.2220,
-              slug: 'aegis-living-mercer-island-wa'
-          },
-          {
-              id: 'napa001',
-              name: 'Aegis Living Napa',
-              address: '2100 Redwood Road',
-              city: 'Napa',
-              state: 'CA',
-              zip: '94558',
-              phone: '(707) 780-3206',
-              latitude: 38.2975,
-              longitude: -122.2869,
-              slug: 'aegis-living-napa-ca'
-          },
-          {
-              id: 'snfl001',
-              name: 'Aegis Living San Rafael',
-              address: '800 Mission Ave',
-              city: 'San Rafael',
-              state: 'CA',
-              zip: '94901',
-              phone: '(415) 529-5200',
-              latitude: 37.9735,
-              longitude: -122.5311,
-              slug: 'aegis-living-san-rafael-ca'
-          }
-      ],
-      timeSlots: {
+                scheduleTour: {
+        enabled: true,
+        title: 'Schedule a Tour',
+        steps: ['location', 'datetime', 'contact'],
+        locations: [
+            {
+                id: 'lasvblue',
+                name: 'Aegis Living Las Vegas',
+                address: '9100 West Desert Inn Rd',
+                city: 'Las Vegas',
+                state: 'NV',
+                zip: '89117',
+                phone: '(702) 472-8505',
+                latitude: 36.1147,
+                longitude: -115.1728,
+                slug: 'aegis-living-las-vegas-nv'
+            },
+            {
+                id: 'snfrblue',
+                name: 'Aegis Living San Francisco',
+                address: '2280 Gellert Blvd',
+                city: 'South San Francisco',
+                state: 'CA',
+                zip: '94080',
+                phone: '(650) 242-4154',
+                latitude: 37.6547,
+                longitude: -122.4077,
+                slug: 'aegis-living-san-francisco-ca'
+            },
+            {
+                id: 'aptoblue',
+                name: 'Aegis Living Aptos',
+                address: '125 Heather Terrace',
+                city: 'Aptos',
+                state: 'CA',
+                zip: '95003',
+                phone: '(831) 706-2977',
+                latitude: 36.9772,
+                longitude: -121.8994,
+                slug: 'aegis-living-aptos-ca'
+            },
+            {
+                id: 'cortblue',
+                name: 'Aegis Living Corte Madera',
+                address: '5555 Paradise Drive',
+                city: 'Corte Madera',
+                state: 'CA',
+                zip: '94925',
+                phone: '(415) 483-1399',
+                latitude: 37.9255,
+                longitude: -122.5277,
+                slug: 'aegis-living-corte-madera-ca'
+            },
+            {
+                id: 'shad001',
+                name: 'Aegis Living Shadowridge',
+                address: '1440 South Melrose Dr',
+                city: 'Oceanside',
+                state: 'CA',
+                zip: '92056',
+                phone: '(760) 444-0758',
+                latitude: 33.1959,
+                longitude: -117.3795,
+                slug: 'aegis-living-shadowridge-oceanside-ca'
+            },
+            {
+                id: 'wsea001',
+                name: 'Aegis Living West Seattle',
+                address: '4700 SW Admiral Way',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98116',
+                phone: '(206) 487-5289',
+                latitude: 47.5707,
+                longitude: -122.3871,
+                slug: 'aegis-living-west-seattle-wa'
+            },
+            {
+                id: 'agnew001',
+                name: 'Aegis Gardens Newcastle',
+                address: '13056 SE 76th St',
+                city: 'Newcastle',
+                state: 'WA',
+                zip: '98056',
+                phone: '(425) 903-3530',
+                latitude: 47.5301,
+                longitude: -122.1559,
+                slug: 'aegis-gardens-newcastle-wa'
+            },
+            {
+                id: 'carm001',
+                name: 'Aegis Living Carmichael',
+                address: '4050 Walnut Ave',
+                city: 'Carmichael',
+                state: 'CA',
+                zip: '95608',
+                phone: '(916) 231-9427',
+                latitude: 38.6171,
+                longitude: -121.3283,
+                slug: 'aegis-living-carmichael-ca'
+            },
+            {
+                id: 'frem001',
+                name: 'Aegis Living Fremont',
+                address: '3850 Walnut Ave',
+                city: 'Fremont',
+                state: 'CA',
+                zip: '94538',
+                phone: '(510) 584-9526',
+                latitude: 37.5485,
+                longitude: -121.9886,
+                slug: 'aegis-living-fremont-ca'
+            },
+            {
+                id: 'klake001',
+                name: 'Aegis Living Kirkland Waterfront',
+                address: '1002 Lake Street South',
+                city: 'Kirkland',
+                state: 'WA',
+                zip: '98033',
+                phone: '(425) 659-3432',
+                latitude: 47.6815,
+                longitude: -122.2087,
+                slug: 'aegis-living-kirkland-waterfront-wa'
+            },
+            {
+                id: 'green001',
+                name: 'Aegis Living Greenwood',
+                address: '10000 Holman Road NW',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98177',
+                phone: '(206) 202-4588',
+                latitude: 47.7209,
+                longitude: -122.3546,
+                slug: 'aegis-living-greenwood-seattle-wa'
+            },
+            {
+                id: 'issa001',
+                name: 'Aegis Living Issaquah',
+                address: '780 NW Juniper St',
+                city: 'Issaquah',
+                state: 'WA',
+                zip: '98027',
+                phone: '(425) 298-3969',
+                latitude: 47.5301,
+                longitude: -122.0326,
+                slug: 'aegis-living-issaquah-wa'
+            },
+            {
+                id: 'madi001',
+                name: 'Aegis Living Madison',
+                address: '2200 E Madison St',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98112',
+                phone: '(206) 203-6348',
+                latitude: 47.6205,
+                longitude: -122.2992,
+                slug: 'aegis-living-madison-seattle-wa'
+            },
+            {
+                id: 'lagu001',
+                name: 'Aegis Living Laguna Niguel',
+                address: '32170 Niguel Rd',
+                city: 'Laguna Niguel',
+                state: 'CA',
+                zip: '92677',
+                phone: '(949) 340-9152',
+                latitude: 33.5225,
+                longitude: -117.7075,
+                slug: 'aegis-living-laguna-niguel-ca'
+            },
+            {
+                id: 'gale001n',
+                name: 'Aegis Living Queen Anne Galer',
+                address: '223 West Galer Street',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98119',
+                phone: '(206) 673-5986',
+                latitude: 47.6371,
+                longitude: -122.3647,
+                slug: 'aegis-living-queen-anne-galer-seattle-wa'
+            },
+            {
+                id: 'agarblue',
+                name: 'Aegis Gardens Fremont',
+                address: '36281 Fremont Blvd',
+                city: 'Fremont',
+                state: 'CA',
+                zip: '94536',
+                phone: '(510) 279-4231',
+                latitude: 37.5485,
+                longitude: -121.9886,
+                slug: 'aegis-gardens-fremont-ca'
+            },
+            {
+                id: 'mora001',
+                name: 'Aegis Living Moraga',
+                address: '950 Country Club Drive',
+                city: 'Moraga',
+                state: 'CA',
+                zip: '94556',
+                phone: '(925) 478-7327',
+                latitude: 37.8349,
+                longitude: -122.1297,
+                slug: 'aegis-living-moraga-ca'
+            },
+            {
+                id: 'ovlk001',
+                name: 'Aegis Living Bellevue Overlake',
+                address: '1845 116th Avenue NE',
+                city: 'Bellevue',
+                state: 'WA',
+                zip: '98004',
+                phone: '(425) 223-3454',
+                latitude: 47.6101,
+                longitude: -122.2015,
+                slug: 'aegis-living-bellevue-overlake-wa'
+            },
+            {
+                id: 'raven001',
+                name: 'Aegis Living Ravenna',
+                address: '8511 15th Avenue NE',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98115',
+                phone: '(206) 701-567',
+                latitude: 47.6819,
+                longitude: -122.2861,
+                slug: 'aegis-living-ravenna-seattle-wa'
+            },
+            {
+                id: 'laur001',
+                name: 'Aegis Living Laurelhurst',
+                address: '3200 NE 45th Street',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98105',
+                phone: '(206) 823-1332',
+                latitude: 47.6606,
+                longitude: -122.2965,
+                slug: 'aegis-living-laurelhurst-seattle-wa'
+            },
+            {
+                id: 'redm001',
+                name: 'Aegis Living Redmond',
+                address: '7480 West Lake Sammamish Parkway NE',
+                city: 'Redmond',
+                state: 'WA',
+                zip: '98052',
+                phone: '(425) 786-2040',
+                latitude: 47.6740,
+                longitude: -122.1215,
+                slug: 'aegis-living-redmond-wa'
+            },
+            {
+                id: 'lodgblue',
+                name: 'Aegis Lodge Kirkland',
+                address: '12629 116th Ave NE',
+                city: 'Kirkland',
+                state: 'WA',
+                zip: '98034',
+                phone: '(425) 947-0105',
+                latitude: 47.6815,
+                longitude: -122.2087,
+                slug: 'aegis-lodge-kirkland-wa'
+            },
+            {
+                id: 'blrd001',
+                name: 'Aegis Living Ballard',
+                address: '949 NW Market Street',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98107',
+                phone: '(425) 947-0105',
+                latitude: 47.6681,
+                longitude: -122.3847,
+                slug: 'aegis-living-ballard-seattle-wa'
+            },
+            {
+                id: 'bellblue',
+                name: 'Aegis Living Bellevue',
+                address: '148 102nd Ave SE',
+                city: 'Bellevue',
+                state: 'WA',
+                zip: '98004',
+                phone: '(425) 298-3979',
+                latitude: 47.6101,
+                longitude: -122.2015,
+                slug: 'aegis-living-bellevue-wa'
+            },
+            {
+                id: 'granblue',
+                name: 'Aegis Living Granada Hills',
+                address: '10801 Lindley Ave',
+                city: 'Granada Hills',
+                state: 'CA',
+                zip: '91344',
+                phone: '(818) 275-4700',
+                latitude: 34.2728,
+                longitude: -118.5048,
+                slug: 'aegis-living-granada-hills-ca'
+            },
+            {
+                id: 'rodgr001',
+                name: 'Aegis Living Queen Anne Rodgers Park',
+                address: '2900 3rd Avenue West',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98119',
+                phone: '(206) 858-9989',
+                latitude: 47.6371,
+                longitude: -122.3647,
+                slug: 'aegis-living-queen-anne-rodgers-park-seattle-wa'
+            },
+            {
+                id: 'danablue',
+                name: 'Aegis Living Dana Point',
+                address: '26922 Camino de Estrella',
+                city: 'Dana Point',
+                state: 'CA',
+                zip: '92624',
+                phone: '(949) 340-8558',
+                latitude: 33.4669,
+                longitude: -117.6981,
+                slug: 'aegis-living-dana-point-ca'
+            },
+            {
+                id: 'lakeu001',
+                name: 'Aegis Living Lake Union',
+                address: '1936 Eastlake Avenue East',
+                city: 'Seattle',
+                state: 'WA',
+                zip: '98102',
+                phone: '(206) 202-9670',
+                latitude: 47.6205,
+                longitude: -122.2992,
+                slug: 'aegis-living-lake-union-seattle-wa'
+            },
+            {
+                id: 'lynn001',
+                name: 'Aegis Living Lynnwood',
+                address: '18700 44th Ave W',
+                city: 'Lynnwood',
+                state: 'WA',
+                zip: '98037',
+                phone: '(425) 329-7289',
+                latitude: 47.8279,
+                longitude: -122.3051,
+                slug: 'aegis-living-lynnwood-wa'
+            },
+            {
+                id: 'pleablue',
+                name: 'Aegis Living Pleasant Hill',
+                address: '1660 Oak Park Blvd',
+                city: 'Pleasant Hill',
+                state: 'CA',
+                zip: '94523',
+                phone: '(925) 588-7030',
+                latitude: 37.9485,
+                longitude: -122.0608,
+                slug: 'aegis-living-pleasant-hill-ca'
+            },
+            {
+                id: 'kent001',
+                name: 'Aegis Living Kent',
+                address: '10421 SE 248th St',
+                city: 'Kent',
+                state: 'WA',
+                zip: '98030',
+                phone: '(253) 243-0054',
+                latitude: 47.3809,
+                longitude: -122.2348,
+                slug: 'aegis-living-kent-wa'
+            },
+            {
+                id: 'shorblue',
+                name: 'Aegis Living Shoreline',
+                address: '14900 1st Avenue NE',
+                city: 'Shoreline',
+                state: 'WA',
+                zip: '98155',
+                phone: '(206) 279-3448',
+                latitude: 47.7569,
+                longitude: -122.3414,
+                slug: 'aegis-living-shoreline-wa'
+            },
+            {
+                id: 'mary001',
+                name: 'Aegis Living Marymoor',
+                address: '4585 West Lake Sammamish Parkway NE',
+                city: 'Redmond',
+                state: 'WA',
+                zip: '98052',
+                phone: '(425) 999-4074',
+                latitude: 47.6740,
+                longitude: -122.1215,
+                slug: 'aegis-living-marymoor-redmond-wa'
+            },
+            {
+                id: 'ventblue',
+                name: 'Aegis Living Ventura',
+                address: '4964 Telegraph Road',
+                city: 'Ventura',
+                state: 'CA',
+                zip: '93003',
+                phone: '(805) 290-1953',
+                latitude: 34.2746,
+                longitude: -119.2290,
+                slug: 'aegis-living-ventura-ca'
+            },
+            {
+                id: 'kirkblue',
+                name: 'Aegis Kirkland',
+                address: '13000 Totem Lake Blvd NE',
+                city: 'Kirkland',
+                state: 'WA',
+                zip: '98034',
+                phone: '(425) 903-3092',
+                latitude: 47.6815,
+                longitude: -122.2087,
+                slug: 'aegis-lodge-kirkland-wa'
+            },
+            {
+                id: 'callblue',
+                name: 'Aegis Living Callahan House',
+                address: '15100 1st Avenue NE',
+                city: 'Shoreline',
+                state: 'WA',
+                zip: '98155',
+                phone: '(206) 452-0285',
+                latitude: 47.7569,
+                longitude: -122.3414,
+                slug: 'aegis-living-callahan-house-shoreline-wa'
+            },
+            {
+                id: 'mercr001',
+                name: 'Aegis Living Mercer Island',
+                address: '7445 SE 24th Street',
+                city: 'Mercer Island',
+                state: 'WA',
+                zip: '98040',
+                phone: '(206) 487-5290',
+                latitude: 47.5707,
+                longitude: -122.2220,
+                slug: 'aegis-living-mercer-island-wa'
+            },
+            {
+                id: 'napa001',
+                name: 'Aegis Living Napa',
+                address: '2100 Redwood Road',
+                city: 'Napa',
+                state: 'CA',
+                zip: '94558',
+                phone: '(707) 780-3206',
+                latitude: 38.2975,
+                longitude: -122.2869,
+                slug: 'aegis-living-napa-ca'
+            },
+            {
+                id: 'snfl001',
+                name: 'Aegis Living San Rafael',
+                address: '800 Mission Ave',
+                city: 'San Rafael',
+                state: 'CA',
+                zip: '94901',
+                phone: '(415) 529-5200',
+                latitude: 37.9735,
+                longitude: -122.5311,
+                slug: 'aegis-living-san-rafael-ca'
+            }
+        ],
+        timeSlots: {
           startHour: 9,
           endHour: 17,
-          duration: 60
+          duration: 60 // minutes
+        },
+        hubspot: {
+          portalId: 1545762,
+          formId: '72d84ddd-4df0-4dc6-bc48-9f6cdec78dde'
+        }
+      },
+      jobInquiry: {
+        enabled: true,
+        title: 'Job Inquiry',
+        steps: ['contact'],
+        hubspot: {
+          portalId: 1545762,
+          formId: '72d84ddd-4df0-4dc6-bc48-9f6cdec78dde'
+        }
+      },
+      residentInquiry: {
+        enabled: true,
+        title: 'Existing Resident Inquiry',
+        steps: ['contact'],
+        hubspot: {
+          portalId: 1545762,
+          formId: '72d84ddd-4df0-4dc6-bc48-9f6cdec78dde'
+        }
+      },
+      contact: {
+        enabled: true,
+        title: 'Contact Us',
+        steps: ['contact'],
+        hubspot: {
+          portalId: 1545762,
+          formId: '72d84ddd-4df0-4dc6-bc48-9f6cdec78dde'
+        }
       }
-  },
-  jobInquiry: {
-      enabled: true,
-      title: 'Job Inquiry',
-      steps: ['contact']
-    },
-    residentInquiry: {
-      enabled: true,
-      title: 'Existing Resident Inquiry',
-      steps: ['contact']
-    }
   },
   
   hooks: {
@@ -692,7 +713,9 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
+  //const corePath = window.ChatWidgetCorePath || 'chatembed-v2.js';
   const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-v2.js';
+
   console.log('[Aegis] Loading core widget from:', corePath);
 
   const script = document.createElement('script');

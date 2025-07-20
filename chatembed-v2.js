@@ -46,22 +46,38 @@ const DEFAULT_CONFIG = {
         startHour: 9,
         endHour: 17,
         duration: 60 // minutes
+      },
+      hubspot: {
+        portalId: null,
+        formId: null
       }
     },
     jobInquiry: {
       enabled: true,
       title: 'Job Inquiry',
-      steps: ['contact']
+      steps: ['contact'],
+      hubspot: {
+        portalId: null,
+        formId: null
+      }
     },
     residentInquiry: {
       enabled: true,
       title: 'Existing Resident Inquiry',
-      steps: ['contact']
+      steps: ['contact'],
+      hubspot: {
+        portalId: null,
+        formId: null
+      }
     },
     contact: {
       enabled: true,
       title: 'Contact Us',
-      steps: ['contact']
+      steps: ['contact'],
+      hubspot: {
+        portalId: null,
+        formId: null
+      }
     }
   }
 };
@@ -437,8 +453,8 @@ window.IntendrPhoneCallActive = false;
                   startFunnel(funnelResult.type, funnelResult.community);
                 }
               } else {
-                // Send the predefined message (sendMessage handles both UI and backend)
-                sendMessage(buttonConfig.message);
+            // Send the predefined message (sendMessage handles both UI and backend)
+            sendMessage(buttonConfig.message);
               }
             }
           
@@ -609,8 +625,8 @@ window.IntendrPhoneCallActive = false;
       buttonsContainer.innerHTML = '';
       buttonsContainer.className = 'initial-buttons-container action-buttons';
       
-              actionButtons.forEach((buttonConfig, index) => {
-          const button = document.createElement('button');
+      actionButtons.forEach((buttonConfig, index) => {
+        const button = document.createElement('button');
         button.className = 'initial-button action-button';
         button.textContent = buttonConfig.text;
         button.onclick = function() {
@@ -1366,12 +1382,11 @@ window.IntendrPhoneCallActive = false;
       let title = funnelConfig.title || 'Contact Information';
       let description = 'Please provide your contact information:';
       
+      // Show tour details if this is a tour funnel
       if (funnelType === 'scheduleTour') {
         const location = funnelData.selectedLocation;
         const date = funnelData.selectedDate;
         const time = funnelData.selectedTime;
-        
-        title = 'Schedule Your Tour';
         
         // Validate that date and time are proper Date objects
         if (date instanceof Date && time instanceof Date) {
@@ -1462,11 +1477,9 @@ window.IntendrPhoneCallActive = false;
           leadnotes: formData.message
         };
         
-        // Add tour-specific fields for schedule tour funnel
-        if (currentFunnel === 'scheduleTour') {
-          leadData.tourDate = getTourDate();
-          leadData.tourTime = getTourTime();
-        }
+        // Add tour-specific fields (will be empty for non-tour funnels)
+        leadData.tourDate = getTourDate();
+        leadData.tourTime = getTourTime();
         
         // Submit to webhook
         const response = await fetch(INTENDR_API_ENDPOINTS.leadSubmission, {
@@ -1480,6 +1493,9 @@ window.IntendrPhoneCallActive = false;
         if (!response.ok) {
           throw new Error('Failed to submit lead');
         }
+        
+        // Submit to HubSpot if configured
+        await submitToHubSpot(formData, leadData);
         
         // Mark as submitted
         funnelData.submitted = true;
@@ -1496,6 +1512,246 @@ window.IntendrPhoneCallActive = false;
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
       }
+    }
+    
+    // Function to collect comprehensive HubSpot tracking data
+    function collectHubSpotTrackingData() {
+      if (typeof window === 'undefined') return {};
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const referrer = document.referrer;
+      const userAgent = navigator.userAgent;
+      const screenRes = `${screen.width}x${screen.height}`;
+      const timestamp = new Date().toISOString();
+      
+      // Generate session ID if not exists
+      let sessionId = '';
+      let sessionStartTime = timestamp;
+      
+      try {
+        if (typeof sessionStorage !== 'undefined' && sessionStorage) {
+          sessionId = sessionStorage.getItem('hs_session_id');
+          if (!sessionId) {
+            sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            sessionStorage.setItem('hs_session_id', sessionId);
+          }
+          
+          // Get session start time
+          sessionStartTime = sessionStorage.getItem('hs_session_start_time');
+          if (!sessionStartTime) {
+            sessionStartTime = timestamp;
+            sessionStorage.setItem('hs_session_start_time', sessionStartTime);
+          }
+        } else {
+          // Fallback if sessionStorage is not available
+          sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+      } catch (error) {
+        console.warn('SessionStorage not available, using fallback session ID');
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+      
+      return {
+        // UTM Parameters
+        utm_source: urlParams.get('utm_source') || '',
+        utm_medium: urlParams.get('utm_medium') || '',
+        utm_campaign: urlParams.get('utm_campaign') || '',
+        utm_term: urlParams.get('utm_term') || '',
+        utm_content: urlParams.get('utm_content') || '',
+        gclid: urlParams.get('gclid') || '',
+        
+        // HubSpot Analytics
+        hs_analytics_source: urlParams.get('hs_analytics_source') || 'direct',
+        hs_analytics_source_data_1: urlParams.get('hs_analytics_source_data_1') || '',
+        hs_analytics_source_data_2: urlParams.get('hs_analytics_source_data_2') || '',
+        
+        // Session Data
+        hs_session_id: sessionId,
+        hs_session_start_time: sessionStartTime,
+        
+        // Referrer Data
+        hs_referrer: referrer,
+        hs_referrer_domain: referrer ? new URL(referrer).hostname : '',
+        
+        // Device/Browser Data
+        hs_user_agent: userAgent,
+        hs_screen_resolution: screenRes,
+        
+        // Campaign Data
+        hs_campaign_id: urlParams.get('hs_campaign_id') || '',
+        hs_campaign_name: urlParams.get('hs_campaign_name') || '',
+        
+        // Page Data
+        hs_page_id: urlParams.get('hs_page_id') || '',
+        hs_page_name: document.title,
+        hs_page_url: window.location.href,
+        
+        // Form Data
+        hs_form_id: 'chat_widget_funnel',
+        hs_form_name: `${getLeadType()} Funnel`,
+        
+        // Timestamp Data
+        hs_timestamp: timestamp,
+        hs_createdate: timestamp,
+        
+        // Contact Data (will be populated by HubSpot if available)
+        hs_contact_id: urlParams.get('hs_contact_id') || '',
+        hs_contact_owner_id: urlParams.get('hs_contact_owner_id') || '',
+        
+        // Custom tracking
+        lead_source: 'chat_widget',
+        form_type: currentFunnel,
+        chatbot_id: extractChatbotId(),
+        session_id: currentSessionId,
+        community_slug: funnelData.selectedLocation?.slug || '',
+        community_name: funnelData.selectedLocation?.name || ''
+      };
+    }
+    
+    // Function to submit form data to HubSpot
+    async function submitToHubSpot(formData, leadData) {
+      const funnelConfig = MERGED_CONFIG.funnels[currentFunnel];
+      
+      // Check if HubSpot is configured for this funnel
+      if (!funnelConfig.hubspot || !funnelConfig.hubspot.portalId || !funnelConfig.hubspot.formId) {
+        console.log(`HubSpot not configured for ${currentFunnel} funnel`);
+        return;
+      }
+      
+      try {
+        // Collect comprehensive tracking data
+        const trackingData = collectHubSpotTrackingData();
+        
+        // Prepare HubSpot form data - using correct API format with legal consent
+        const hubspotFields = [
+          { name: 'firstname', value: formData.firstName },
+          { name: 'lastname', value: formData.lastName },
+          { name: 'email', value: formData.email },
+          { name: 'phone', value: formData.phone },
+          { name: 'message', value: formData.message || '' },
+          { name: 'leadgenie_disposition', value: getLeadType() },
+          { name: 'lead_score', value: 'New' },
+          { name: 'yardi_lead_status', value: 'New' }
+        ];
+        
+        // Only add tour fields if this is a tour funnel
+        if (currentFunnel === 'scheduleTour') {
+          hubspotFields.push(
+            { name: 'tour_date_new', value: getTourDate() },
+            { name: 'schedule_tour_times', value: getTourTime() }
+          );
+        }
+        
+        // Only add community code if location is selected
+        if (funnelData.selectedLocation?.id) {
+          hubspotFields.push({ name: 'community_code', value: funnelData.selectedLocation.id });
+        }
+        
+        // Add tracking fields (avoiding duplicates with core fields)
+        const coreFieldNames = hubspotFields.map(field => field.name);
+        Object.entries(trackingData).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== '' && !coreFieldNames.includes(key)) {
+            hubspotFields.push({ name: key, value: String(value) });
+          }
+        });
+        
+        // Filter out empty values and remove duplicates
+        const fieldMap = new Map();
+        hubspotFields.forEach(field => {
+          if (field.value !== null && field.value !== undefined && field.value !== '') {
+            // Keep the last occurrence of each field name
+            fieldMap.set(field.name, field.value);
+          }
+        });
+        
+        const filteredFields = Array.from(fieldMap.entries()).map(([name, value]) => ({
+          name,
+          value: String(value)
+        }));
+        
+        // Prepare context object - simplified to avoid metadata errors
+        const context = {
+          pageUri: window.location.href,
+          pageName: document.title
+        };
+        
+        // Only add hutk if it exists
+        const hutk = getHubSpotCookie('hubspotutk');
+        if (hutk) {
+          context.hutk = hutk;
+        }
+        
+        // Prepare the complete HubSpot submission data
+        const hubspotData = {
+          fields: filteredFields,
+          context,
+          legalConsentOptions: {
+            consent: {
+              consentToProcess: true,
+              text: "I agree to allow Aegis Living to store and process my personal data."
+            }
+          }
+        };
+        
+        console.log('Submitting to HubSpot with fields:', filteredFields);
+        console.log('Full request body:', JSON.stringify(hubspotData, null, 2));
+        
+        // Submit to HubSpot Forms API
+        const hubspotResponse = await fetch(`https://api.hsforms.com/submissions/v3/integration/submit/${funnelConfig.hubspot.portalId}/${funnelConfig.hubspot.formId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(hubspotData)
+        });
+        
+        if (hubspotResponse.ok) {
+          const hubspotResult = await hubspotResponse.json();
+          console.log('HubSpot form submitted successfully:', hubspotResult);
+          
+          // Track HubSpot submission in analytics
+          await trackAnalyticsEvent('hubspot_form_submitted', {
+            funnelType: currentFunnel,
+            hubspotContactId: hubspotResult.contactId,
+            hubspotFormId: funnelConfig.hubspot.formId,
+            trackingData: trackingData
+          });
+        } else {
+          const errorText = await hubspotResponse.text();
+          console.error('HubSpot API Error Response:', {
+            status: hubspotResponse.status,
+            statusText: hubspotResponse.statusText,
+            body: errorText,
+            url: hubspotResponse.url
+          });
+          
+          let errorMessage = 'Failed to submit to HubSpot';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorData.error || errorData.details || errorMessage;
+            console.error('HubSpot error details:', errorData);
+          } catch (e) {
+            errorMessage = errorText || errorMessage;
+          }
+          
+          console.error('HubSpot submission error:', errorMessage);
+          // Don't throw error - HubSpot failure shouldn't break the funnel
+          // Just log it for debugging
+        }
+        
+      } catch (error) {
+        console.error('Error submitting to HubSpot:', error);
+        // Don't throw error - HubSpot failure shouldn't break the funnel
+        // Just log it for debugging
+      }
+    }
+    
+    // Function to get HubSpot tracking cookie
+    function getHubSpotCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
     }
     
     // Function to extract chatbot ID
@@ -1515,11 +1771,11 @@ window.IntendrPhoneCallActive = false;
     // Function to get lead type
     function getLeadType() {
       switch (currentFunnel) {
-        case 'scheduleTour': return 'Tour';
-        case 'jobInquiry': return 'Job Inquiry';
-        case 'residentInquiry': return 'Resident Inquiry';
-        case 'contact': return 'Contact';
-        default: return 'General';
+        case 'scheduleTour': return 'Open to Queue';
+        case 'jobInquiry': return 'Job';
+        case 'residentInquiry': return 'Open to Queue';
+        case 'contact': return 'Open to Queue';
+        default: return 'Open to Queue';
       }
     }
     
