@@ -57,6 +57,11 @@ const DEFAULT_CONFIG = {
       enabled: true,
       title: 'Existing Resident Inquiry',
       steps: ['contact']
+    },
+    contact: {
+      enabled: true,
+      title: 'Contact Us',
+      steps: ['contact']
     }
   }
 };
@@ -363,33 +368,57 @@ window.IntendrPhoneCallActive = false;
         return;
       }
       
-      // Check if there are any user messages in the chat
-      const messagesContainer = chatContainer.querySelector('.chat-messages');
-      const userMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.user') : [];
-      
-      if (userMessages.length > 0) {
-        // User has sent messages, hide buttons (only if not action buttons)
-        buttonsContainer.style.display = 'none';
-        return;
+      // Check if drawer already exists
+      let drawer = chatContainer.querySelector('.initial-buttons-drawer');
+      if (!drawer) {
+        // Create drawer container
+        drawer = document.createElement('div');
+        drawer.className = 'initial-buttons-drawer';
+        drawer.innerHTML = `
+          <div class="drawer-toggle">
+            <div class="drawer-arrow">▼</div>
+          </div>
+          <div class="drawer-content">
+            <div class="drawer-buttons"></div>
+          </div>
+        `;
+        buttonsContainer.appendChild(drawer);
+        
+        // Add toggle functionality
+        const toggle = drawer.querySelector('.drawer-toggle');
+        toggle.addEventListener('click', function() {
+          const isOpen = drawer.classList.contains('open');
+          if (isOpen) {
+            closeDrawer();
+          } else {
+            openDrawer();
+          }
+        });
       }
       
-      // No user messages, show the buttons
-      buttonsContainer.innerHTML = '';
+      const drawerButtons = drawer.querySelector('.drawer-buttons');
+      drawerButtons.innerHTML = '';
       
               config.initialButtons.forEach(buttonConfig => {
           const button = document.createElement('button');
           button.className = 'initial-button';
           button.textContent = buttonConfig.text;
           button.onclick = function() {
-            console.log('[DEBUG] Initial button clicked:', buttonConfig.text);
-            console.log('[DEBUG] Button message:', buttonConfig.message);
+          
+            // Map button text to funnel types for direct funnel access
+            let funnelType = null;
+            const buttonText = buttonConfig.text.toLowerCase();
             
-            // Check if the button message should trigger a funnel instead of sending a message
-            const funnelType = detectFunnelFromMessage(buttonConfig.message);
-            console.log('[DEBUG] Detected funnel type:', funnelType);
+            if (buttonText.includes('tour') || buttonText.includes('schedule')) {
+              funnelType = 'scheduleTour';
+            } else if (buttonText.includes('job') || buttonText.includes('opportunity') || buttonText.includes('career')) {
+              funnelType = 'jobInquiry';
+            } else if (buttonText.includes('resident') || buttonText.includes('support')) {
+              funnelType = 'residentInquiry';
+            }
             
+            // If we can map to a funnel type, start the funnel directly
             if (funnelType) {
-              console.log('[DEBUG] Starting funnel:', funnelType);
               if (!chatContainer.classList.contains('open')) {
                 showChat();
                 setTimeout(() => startFunnel(funnelType), 300);
@@ -397,34 +426,76 @@ window.IntendrPhoneCallActive = false;
                 startFunnel(funnelType);
               }
             } else {
-              console.log('[DEBUG] No funnel detected, sending message');
-            // Send the predefined message (sendMessage handles both UI and backend)
-            sendMessage(buttonConfig.message);
+              // Fallback: Check if the button message should trigger a funnel
+              const funnelResult = detectFunnelFromMessage(buttonConfig.message);
+              
+              if (funnelResult) {
+                if (!chatContainer.classList.contains('open')) {
+                  showChat();
+                  setTimeout(() => startFunnel(funnelResult.type, funnelResult.community), 300);
+                } else {
+                  startFunnel(funnelResult.type, funnelResult.community);
+                }
+              } else {
+                // Send the predefined message (sendMessage handles both UI and backend)
+                sendMessage(buttonConfig.message);
+              }
             }
-            
-            // After sending, check buttons again (will hide them since user message now exists)
-            setTimeout(showInitialButtons, 100);
-          };
-          buttonsContainer.appendChild(button);
-        });
+          
+          // Close drawer after selection
+          closeDrawer();
+        };
+        drawerButtons.appendChild(button);
+      });
       
-      buttonsContainer.style.display = 'grid';
+      // Show drawer container
+      buttonsContainer.style.display = 'block';
+      
+      // Check if there are any user messages in the chat
+      const messagesContainer = chatContainer.querySelector('.chat-messages');
+      const userMessages = messagesContainer ? messagesContainer.querySelectorAll('.chat-message.user') : [];
+      
+      if (userMessages.length === 0) {
+        // No user messages, auto-open drawer
+        openDrawer();
+      } else {
+        // User has sent messages, close drawer but keep it available
+        closeDrawer();
+      }
+    }
+    
+    // Function to open drawer
+    function openDrawer() {
+      const drawer = chatContainer.querySelector('.initial-buttons-drawer');
+      if (drawer) {
+        drawer.classList.add('open');
+        const arrow = drawer.querySelector('.drawer-arrow');
+        if (arrow) arrow.textContent = '▲';
+      }
+    }
+    
+    // Function to close drawer
+    function closeDrawer() {
+      const drawer = chatContainer.querySelector('.initial-buttons-drawer');
+      if (drawer) {
+        drawer.classList.remove('open');
+        const arrow = drawer.querySelector('.drawer-arrow');
+        if (arrow) arrow.textContent = '▼';
+      }
     }
     
     // Function to hide initial buttons
     function hideInitialButtons() {
       const buttonsContainer = chatContainer.querySelector('.initial-buttons-container');
       if (buttonsContainer) {
-        buttonsContainer.style.display = 'none';
+        // Don't hide the container, just close the drawer
+        closeDrawer();
       }
     }
     
     // Function to parse action tags from bot messages and generate action buttons
     function parseAndShowActionButtons(message) {
-      console.log('[DEBUG] parseAndShowActionButtons called with message:', message);
-      
       const buttonsContainer = chatContainer.querySelector('.initial-buttons-container');
-      console.log('[DEBUG] buttonsContainer found:', !!buttonsContainer);
       if (!buttonsContainer) return message;
       
       // Clear any existing action buttons
@@ -479,13 +550,13 @@ window.IntendrPhoneCallActive = false;
         processedMessage = processedMessage.replace(buttonMatch[0], '');
         
         // Check if the button message should trigger a funnel instead of sending a message
-        const funnelType = detectFunnelFromMessage(buttonMessage);
+        const funnelResult = detectFunnelFromMessage(buttonMessage);
         
-        if (funnelType) {
+        if (funnelResult) {
           // Add funnel action button
           actionButtons.push({
             text: buttonText,
-            action: () => startFunnel(funnelType)
+            action: () => startFunnel(funnelResult.type, funnelResult.community)
           });
         } else {
           // Add regular message action button
@@ -522,34 +593,24 @@ window.IntendrPhoneCallActive = false;
       }
       
       // Show action buttons if any were found
-      console.log('[DEBUG] actionButtons found:', actionButtons.length, actionButtons);
       if (actionButtons.length > 0) {
-        console.log('[DEBUG] Calling showActionButtons');
         showActionButtons(actionButtons);
-      } else {
-        console.log('[DEBUG] No action buttons to show');
       }
       
-      console.log('[DEBUG] Returning processed message:', processedMessage.trim());
       return processedMessage.trim();
     }
     
     // Function to show action buttons
     function showActionButtons(actionButtons) {
-      console.log('[DEBUG] showActionButtons called with:', actionButtons);
-      
       const buttonsContainer = chatContainer.querySelector('.initial-buttons-container');
-      console.log('[DEBUG] showActionButtons - buttonsContainer found:', !!buttonsContainer);
       if (!buttonsContainer) return;
       
       // Clear container and add action buttons
       buttonsContainer.innerHTML = '';
       buttonsContainer.className = 'initial-buttons-container action-buttons';
-      console.log('[DEBUG] Container cleared and class set');
       
-      actionButtons.forEach((buttonConfig, index) => {
-        console.log('[DEBUG] Creating button', index, ':', buttonConfig.text);
-        const button = document.createElement('button');
+              actionButtons.forEach((buttonConfig, index) => {
+          const button = document.createElement('button');
         button.className = 'initial-button action-button';
         button.textContent = buttonConfig.text;
         button.onclick = function() {
@@ -570,7 +631,6 @@ window.IntendrPhoneCallActive = false;
           }
         };
         buttonsContainer.appendChild(button);
-        console.log('[DEBUG] Button', index, 'appended. Button element:', button);
       });
       
       // Adjust grid layout based on number of buttons
@@ -583,11 +643,6 @@ window.IntendrPhoneCallActive = false;
       }
       
       buttonsContainer.style.display = 'grid';
-      console.log('[DEBUG] Action buttons displayed, container style set to grid');
-      console.log('[DEBUG] Final container state:', buttonsContainer);
-      console.log('[DEBUG] Container children count:', buttonsContainer.children.length);
-      console.log('[DEBUG] Container computed style display:', window.getComputedStyle(buttonsContainer).display);
-      console.log('[DEBUG] Container computed style visibility:', window.getComputedStyle(buttonsContainer).visibility);
     }
     
     // Function to clear action buttons
@@ -651,7 +706,7 @@ window.IntendrPhoneCallActive = false;
     }
     
     // Function to start a funnel
-    function startFunnel(funnelType) {
+    function startFunnel(funnelType, communityName = null) {
       if (!MERGED_CONFIG.funnels[funnelType] || !MERGED_CONFIG.funnels[funnelType].enabled) {
         console.warn(`Funnel ${funnelType} is not enabled`);
         return;
@@ -660,9 +715,28 @@ window.IntendrPhoneCallActive = false;
       currentFunnel = funnelType;
       funnelData = {};
       
-      // For schedule tour funnel, try to auto-select location from URL
+      // For schedule tour funnel, try to auto-select location
       if (funnelType === 'scheduleTour') {
-        const autoSelectedLocation = autoSelectLocationFromURL();
+        let autoSelectedLocation = null;
+        
+        // Priority 1: Try to select location by community name from chat
+        if (communityName) {
+          const locations = MERGED_CONFIG.funnels.scheduleTour.locations;
+          autoSelectedLocation = locations.find(location => 
+            // Match by ID first (most precise)
+            location.id.toLowerCase() === communityName.toLowerCase() ||
+            // Match by name
+            location.name.toLowerCase().includes(communityName.toLowerCase()) ||
+            // Match by city
+            location.city.toLowerCase().includes(communityName.toLowerCase())
+          );
+        }
+        
+        // Priority 2: Try to auto-select location from URL if no community specified
+        if (!autoSelectedLocation) {
+          autoSelectedLocation = autoSelectLocationFromURL();
+        }
+        
         if (autoSelectedLocation) {
           funnelData.selectedLocation = autoSelectedLocation;
           funnelData.currentStep = 'datetime'; // Skip location step
@@ -741,9 +815,11 @@ window.IntendrPhoneCallActive = false;
         content.innerHTML = '';
         
         switch (currentStep) {
-          case 'location':
-            loadLocationStep(content);
-            break;
+                  case 'location':
+          loadLocationStep(content).catch(error => {
+            console.error('[DEBUG] Error loading location step:', error);
+          });
+          break;
           case 'datetime':
             loadDateTimeStep(content);
             break;
@@ -757,30 +833,57 @@ window.IntendrPhoneCallActive = false;
     }
     
     // Function to load location selection step
-    function loadLocationStep(container) {
+    async function loadLocationStep(container) {
       const locations = MERGED_CONFIG.funnels.scheduleTour.locations || [];
+      const selectedLocation = funnelData.selectedLocation;
+      
+      // Ensure Google Maps API is loaded for autocomplete
+      if (window.IntendrEnhancedFunnel && window.IntendrEnhancedFunnel.initGoogleMaps) {
+        try {
+          await window.IntendrEnhancedFunnel.initGoogleMaps();
+        } catch (error) {
+          console.error('Failed to initialize Google Maps API:', error);
+        }
+      }
+      
+      // Reorder locations to put selected location at the top
+      let orderedLocations = [...locations];
+      if (selectedLocation) {
+        // Remove selected location from its current position
+        orderedLocations = orderedLocations.filter(loc => loc.id !== selectedLocation.id);
+        // Add selected location at the beginning
+        orderedLocations.unshift(selectedLocation);
+      }
       
       container.innerHTML = `
         <div class="funnel-step">
           <h3>Select a Location</h3>
           <p>Choose the location you'd like to tour:</p>
           
-          <div class="location-search">
-            <input type="text" id="location-search" placeholder="Search by city, zip code, or location name..." />
+          <div class="location-search" style="position: relative;">
+            <input type="text" id="location-search" placeholder="Enter your address, city, or zip code..." />
             <button id="use-location-btn" class="secondary-btn">Use My Location</button>
           </div>
           
           <div class="locations-list">
-            ${locations.map(location => `
-              <div class="location-item" data-location-id="${location.id}">
-                <div class="location-info">
-                  <h4>${location.name}</h4>
-                  <p>${location.address}</p>
-                  <p>${location.city}, ${location.state} ${location.zip}</p>
+            ${orderedLocations.map(location => {
+              const isCurrentlySelected = selectedLocation && location.id === selectedLocation.id;
+              const isAutoSelected = selectedLocation && location.id === selectedLocation.id && 
+                                   funnelData.currentStep === 'datetime'; // Auto-selected if we're on datetime step
+              return `
+                <div class="location-item clickable ${isCurrentlySelected ? 'currently-selected' : ''}" data-location-id="${location.id}">
+                  <div class="location-info">
+                    <h4>${location.name}</h4>
+                    <p>${location.address}</p>
+                    <p>${location.city}, ${location.state} ${location.zip}</p>
+                    ${isCurrentlySelected ? `<span class="currently-selected-badge">${isAutoSelected ? 'Auto-selected' : 'Currently Selected'}</span>` : ''}
+                  </div>
+                  <div class="select-indicator">
+                    ${isCurrentlySelected ? '✓' : '→'}
+                  </div>
                 </div>
-                <button class="select-location-btn">Select</button>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         </div>
       `;
@@ -788,18 +891,143 @@ window.IntendrPhoneCallActive = false;
       // Add event listeners
       const searchInput = container.querySelector('#location-search');
       const useLocationBtn = container.querySelector('#use-location-btn');
-      const locationItems = container.querySelectorAll('.location-item');
+      const locationItems = container.querySelectorAll('.location-item.clickable');
       
-      // Search functionality
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        locationItems.forEach(item => {
-          const locationName = item.querySelector('h4').textContent.toLowerCase();
-          const locationAddress = item.querySelector('p').textContent.toLowerCase();
-          const matches = locationName.includes(searchTerm) || locationAddress.includes(searchTerm);
-          item.style.display = matches ? 'flex' : 'none';
+      // Google Places autocomplete for search
+      if (window.google && window.google.maps && window.google.maps.places) {
+        const autocomplete = new window.google.maps.places.Autocomplete(searchInput, {
+          types: ['geocode'],
+          componentRestrictions: { country: 'us' },
+          fields: ['formatted_address', 'geometry']
         });
-      });
+
+                autocomplete.addListener('place_changed', function() {
+          const place = autocomplete.getPlace();
+          if (place.geometry) {
+            const userLocation = {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
+              address: place.formatted_address
+            };
+            
+            // Reorder locations by distance from user's selected address
+            const sortedLocations = sortLocationsByDistance(userLocation.lat, userLocation.lng, locations);
+            displayLocationsWithDistance(sortedLocations, container);
+            
+            // Update search input to show selected address
+            searchInput.value = place.formatted_address;
+          }
+        });
+        
+        // Add listener for when autocomplete dropdown appears
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+              const pacContainer = document.querySelector('.pac-container');
+              if (pacContainer) {
+                
+                // Function to reposition dropdown
+                function repositionDropdown() {
+                  const searchContainer = container.querySelector('.location-search');
+                  if (searchContainer && pacContainer) {
+                    // Move the dropdown into the search container
+                    if (pacContainer.parentNode !== searchContainer) {
+                      searchContainer.appendChild(pacContainer);
+                    }
+                    
+                    pacContainer.style.position = 'absolute';
+                    pacContainer.style.top = '100%';
+                    pacContainer.style.left = '0';
+                    pacContainer.style.width = '100%';
+                    pacContainer.style.zIndex = '2147483649';
+                    pacContainer.style.maxHeight = '200px';
+                    pacContainer.style.overflowY = 'auto';
+                    pacContainer.style.marginTop = '5px';
+                  }
+                }
+                
+                // Reposition immediately
+                repositionDropdown();
+                
+                // Keep repositioning to prevent Google from moving it
+                const repositionInterval = setInterval(() => {
+                  if (pacContainer && pacContainer.style.display !== 'none') {
+                    repositionDropdown();
+                  } else {
+                    clearInterval(repositionInterval);
+                  }
+                }, 100);
+                
+                // Stop repositioning after 3 seconds
+                setTimeout(() => {
+                  clearInterval(repositionInterval);
+                }, 3000);
+              }
+            }
+          });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+      } else {
+        // Try to initialize autocomplete when Google Maps API becomes available
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = setInterval(() => {
+          retryCount++;
+          
+          if (window.google && window.google.maps && window.google.maps.places) {
+            clearInterval(retryInterval);
+            
+            const autocomplete = new window.google.maps.places.Autocomplete(searchInput, {
+              types: ['geocode'],
+              componentRestrictions: { country: 'us' },
+              fields: ['formatted_address', 'geometry']
+            });
+
+            autocomplete.addListener('place_changed', function() {
+              const place = autocomplete.getPlace();
+              if (place.geometry) {
+                const userLocation = {
+                  lat: place.geometry.location.lat(),
+                  lng: place.geometry.location.lng(),
+                  address: place.formatted_address
+                };
+                
+                // Reorder locations by distance from user's selected address
+                const sortedLocations = sortLocationsByDistance(userLocation.lat, userLocation.lng, locations);
+                displayLocationsWithDistance(sortedLocations, container);
+                
+                // Update search input to show selected address
+                searchInput.value = place.formatted_address;
+              }
+            });
+          } else if (retryCount >= maxRetries) {
+            clearInterval(retryInterval);
+            
+            // Fallback: simple text search if Google Places not available
+            searchInput.addEventListener('input', function() {
+              const searchTerm = this.value.toLowerCase();
+              locationItems.forEach(item => {
+                const locationName = item.querySelector('h4').textContent.toLowerCase();
+                const locationAddress = item.querySelector('p').textContent.toLowerCase();
+                const matches = locationName.includes(searchTerm) || locationAddress.includes(searchTerm);
+                item.style.display = matches ? 'flex' : 'none';
+              });
+            });
+          }
+        }, 500); // Check every 500ms
+        
+        // Fallback: simple text search if Google Places not available
+        searchInput.addEventListener('input', function() {
+          const searchTerm = this.value.toLowerCase();
+          locationItems.forEach(item => {
+            const locationName = item.querySelector('h4').textContent.toLowerCase();
+            const locationAddress = item.querySelector('p').textContent.toLowerCase();
+            const matches = locationName.includes(searchTerm) || locationAddress.includes(searchTerm);
+            item.style.display = matches ? 'flex' : 'none';
+          });
+        });
+      }
       
       // Use location button
       useLocationBtn.addEventListener('click', function() {
@@ -841,10 +1069,9 @@ window.IntendrPhoneCallActive = false;
         }
       });
       
-      // Location selection
+      // Location selection - entire item is clickable
       locationItems.forEach(item => {
-        const selectBtn = item.querySelector('.select-location-btn');
-        selectBtn.addEventListener('click', function() {
+        item.addEventListener('click', function() {
           const locationId = item.dataset.locationId;
           const location = locations.find(loc => loc.id === locationId);
           if (location) {
@@ -900,54 +1127,58 @@ window.IntendrPhoneCallActive = false;
       const locationsList = container.querySelector('.locations-list');
       if (!locationsList) return;
       
-      locationsList.innerHTML = sortedLocations.map(location => `
-        <div class="location-item" data-location-id="${location.id}">
-          <div class="location-info">
-            <h4>${location.name}</h4>
-            <p>${location.address}</p>
-            <p>${location.city}, ${location.state} ${location.zip}</p>
-            <p class="distance-info">${location.distance.toFixed(1)} miles away</p>
+      // Get the currently selected location to keep it at the top
+      const selectedLocation = funnelData.selectedLocation;
+      
+      // Reorder to put selected location at top if it exists
+      let finalOrder = [...sortedLocations];
+      if (selectedLocation) {
+        // Remove selected location from its current position
+        finalOrder = finalOrder.filter(loc => loc.id !== selectedLocation.id);
+        
+        // Find the selected location with updated distance from sortedLocations
+        const selectedWithDistance = sortedLocations.find(loc => loc.id === selectedLocation.id);
+        if (selectedWithDistance) {
+          // Add selected location with updated distance at the beginning
+          finalOrder.unshift(selectedWithDistance);
+        } else {
+          // Fallback: add original selected location
+          finalOrder.unshift(selectedLocation);
+        }
+      }
+      
+      locationsList.innerHTML = finalOrder.map(location => {
+        const isCurrentlySelected = selectedLocation && location.id === selectedLocation.id;
+        const isAutoSelected = selectedLocation && location.id === selectedLocation.id && 
+                             funnelData.currentStep === 'datetime';
+        
+        return `
+          <div class="location-item clickable ${isCurrentlySelected ? 'currently-selected' : ''}" data-location-id="${location.id}">
+            <div class="location-info">
+              <h4>${location.name}</h4>
+              <p>${location.address}</p>
+              <p>${location.city}, ${location.state} ${location.zip}</p>
+              ${location.distance ? `<p class="distance-info">${location.distance.toFixed(1)} miles away</p>` : ''}
+              ${isCurrentlySelected ? `<span class="currently-selected-badge">${isAutoSelected ? 'Auto-selected' : 'Currently Selected'}</span>` : ''}
+            </div>
+            <div class="select-indicator">
+              ${isCurrentlySelected ? '✓' : '→'}
+            </div>
           </div>
-          <button class="select-location-btn">Select</button>
-        </div>
-      `).join('');
+        `;
+      }).join('');
       
       // Re-attach event listeners
-      const locationItems = locationsList.querySelectorAll('.location-item');
+      const locationItems = locationsList.querySelectorAll('.location-item.clickable');
       locationItems.forEach(item => {
-        const selectBtn = item.querySelector('.select-location-btn');
-        selectBtn.addEventListener('click', function() {
+        item.addEventListener('click', function() {
           const locationId = item.dataset.locationId;
-          const location = sortedLocations.find(loc => loc.id === locationId);
+          const location = finalOrder.find(loc => loc.id === locationId);
           if (location) {
             selectLocation(location);
           }
         });
       });
-      
-      // Re-attach search functionality
-      const searchInput = container.querySelector('#location-search');
-      if (searchInput) {
-        // Remove existing event listener to avoid duplicates
-        searchInput.removeEventListener('input', searchInput._searchHandler);
-        
-        // Create new search handler
-        searchInput._searchHandler = function() {
-          const searchTerm = this.value.toLowerCase();
-          locationItems.forEach(item => {
-            const locationName = item.querySelector('h4').textContent.toLowerCase();
-            const locationAddress = item.querySelector('p').textContent.toLowerCase();
-            const distanceInfo = item.querySelector('.distance-info')?.textContent.toLowerCase() || '';
-            const matches = locationName.includes(searchTerm) || 
-                           locationAddress.includes(searchTerm) || 
-                           distanceInfo.includes(searchTerm);
-            item.style.display = matches ? 'flex' : 'none';
-          });
-        };
-        
-        // Add the new event listener
-        searchInput.addEventListener('input', searchInput._searchHandler);
-      }
     }
     
     // Function to select a location
@@ -971,7 +1202,7 @@ window.IntendrPhoneCallActive = false;
       container.innerHTML = `
         <div class="funnel-step">
           <h3>Select Date & Time</h3>
-          <p>Choose when you'd like to tour ${selectedLocation.name}:</p>
+          <p>Community: ${selectedLocation.name}</p>
           
           <div class="calendar-container">
             <div class="calendar-header">
@@ -1132,7 +1363,7 @@ window.IntendrPhoneCallActive = false;
       const funnelType = currentFunnel;
       const funnelConfig = MERGED_CONFIG.funnels[funnelType];
       
-      let title = 'Contact Information';
+      let title = funnelConfig.title || 'Contact Information';
       let description = 'Please provide your contact information:';
       
       if (funnelType === 'scheduleTour') {
@@ -1141,11 +1372,17 @@ window.IntendrPhoneCallActive = false;
         const time = funnelData.selectedTime;
         
         title = 'Schedule Your Tour';
-        description = `Tour at ${location.name} on ${date.toLocaleDateString()} at ${time.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        })}`;
+        
+        // Validate that date and time are proper Date objects
+        if (date instanceof Date && time instanceof Date) {
+          description = `Tour Community: ${location.name}<br>Tour Date & Time: ${date.toLocaleDateString()} at ${time.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          })}`;
+        } else {
+          description = `Tour Community: ${location.name}`;
+        }
       }
       
       container.innerHTML = `
@@ -1281,6 +1518,7 @@ window.IntendrPhoneCallActive = false;
         case 'scheduleTour': return 'Tour';
         case 'jobInquiry': return 'Job Inquiry';
         case 'residentInquiry': return 'Resident Inquiry';
+        case 'contact': return 'Contact';
         default: return 'General';
       }
     }
@@ -1347,23 +1585,51 @@ window.IntendrPhoneCallActive = false;
       return summary;
     }
     
+    // Function to get loading message for funnel type
+    function getFunnelLoadingMessage(funnelType) {
+      switch (funnelType) {
+        case 'scheduleTour':
+          return 'Schedule a tour is loading...';
+        case 'jobInquiry':
+          return 'Job inquiry form is loading...';
+        case 'residentInquiry':
+          return 'Resident support form is loading...';
+        case 'contact':
+          return 'Contact form is loading...';
+        default:
+          return 'Loading...';
+      }
+    }
+    
     // Function to detect funnel type from a message
     function detectFunnelFromMessage(message) {
       const lowerMessage = message.toLowerCase();
-      console.log('[DEBUG] detectFunnelFromMessage called with:', message);
-      console.log('[DEBUG] Lower message:', lowerMessage);
       
-      // Schedule Tour funnel detection
-      if (lowerMessage.includes('schedule') && lowerMessage.includes('tour') ||
-          lowerMessage.includes('book') && lowerMessage.includes('tour') ||
-          lowerMessage.includes('tour') && lowerMessage.includes('visit') ||
-          lowerMessage.includes('schedule') && lowerMessage.includes('visit') ||
-          lowerMessage.includes('tour') && lowerMessage.includes('community') ||
-          lowerMessage.includes('schedule') && lowerMessage.includes('appointment') ||
-          lowerMessage.includes('tour') && lowerMessage.includes('location')) {
-        console.log('[DEBUG] Detected scheduleTour funnel');
-        return 'scheduleTour';
+      // Priority 1: Check for explicit funnel triggers in brackets with community selection
+      const tourWithCommunity = message.match(/\[tour:([^\]]+)\]/i);
+      if (tourWithCommunity) {
+        const communityName = tourWithCommunity[1].trim();
+        return { type: 'scheduleTour', community: communityName };
       }
+      
+      // Priority 2: Check for explicit funnel triggers in brackets
+      if (lowerMessage.includes('[tour]')) {
+        return { type: 'scheduleTour', community: null };
+      }
+      
+      if (lowerMessage.includes('[job]')) {
+        return { type: 'jobInquiry', community: null };
+      }
+      
+      if (lowerMessage.includes('[resident]')) {
+        return { type: 'residentInquiry', community: null };
+      }
+      
+      if (lowerMessage.includes('[contact]')) {
+        return { type: 'contact', community: null };
+      }
+      
+      // Note: Removed keyword-based tour detection - now requires explicit [tour] or [tour:communitycode] format
       
       // Job Inquiry funnel detection - improved to be more flexible
       if (lowerMessage.includes('job') && (lowerMessage.includes('opportunity') || lowerMessage.includes('opportunities')) ||
@@ -1375,23 +1641,13 @@ window.IntendrPhoneCallActive = false;
           lowerMessage.includes('apply') && lowerMessage.includes('job') ||
           lowerMessage.includes('interested') && lowerMessage.includes('job') ||
           lowerMessage.includes('job') && lowerMessage.includes('interested')) {
-        console.log('[DEBUG] Detected jobInquiry funnel');
-        return 'jobInquiry';
+        return { type: 'jobInquiry', community: null };
       }
       
-      // Resident Inquiry funnel detection
-      if (lowerMessage.includes('resident') && lowerMessage.includes('support') ||
-          lowerMessage.includes('resident') && lowerMessage.includes('assistance') ||
-          lowerMessage.includes('existing') && lowerMessage.includes('resident') ||
-          lowerMessage.includes('current') && lowerMessage.includes('resident') ||
-          lowerMessage.includes('resident') && lowerMessage.includes('help') ||
-          lowerMessage.includes('resident') && lowerMessage.includes('service')) {
-        console.log('[DEBUG] Detected residentInquiry funnel');
-        return 'residentInquiry';
-      }
+      // Resident Inquiry funnel detection - only trigger on explicit [resident] tag
+      // Removed keyword-based detection to prevent false triggers
       
       // No funnel detected
-      console.log('[DEBUG] No funnel detected');
       return null;
     }
     
@@ -1429,12 +1685,12 @@ window.IntendrPhoneCallActive = false;
     window.intendrSmartBackNavigation = smartBackNavigation;
     
     // Expose funnel functions globally for external use
-    window.IntendrStartFunnel = function(funnelType) {
+    window.IntendrStartFunnel = function(funnelType, communityName = null) {
       if (!chatContainer.classList.contains('open')) {
         showChat();
-        setTimeout(() => startFunnel(funnelType), 300);
+        setTimeout(() => startFunnel(funnelType, communityName), 300);
       } else {
-        startFunnel(funnelType);
+        startFunnel(funnelType, communityName);
       }
     };
     window.IntendrShowFunnelPanel = showFunnelPanel;
@@ -1443,10 +1699,7 @@ window.IntendrPhoneCallActive = false;
     
     // Enhanced action button parsing to include funnel triggers
     function parseAndShowActionButtons(message) {
-      console.log('[DEBUG] parseAndShowActionButtons called with message:', message);
-      
       const buttonsContainer = chatContainer.querySelector('.initial-buttons-container');
-      console.log('[DEBUG] buttonsContainer found:', !!buttonsContainer);
       if (!buttonsContainer) return message;
       
       // Clear any existing action buttons
@@ -1517,21 +1770,21 @@ window.IntendrPhoneCallActive = false;
         // Remove the tag from the message
         processedMessage = processedMessage.replace(buttonMatch[0], '');
         
-        // Check if the button message should trigger a funnel instead of sending a message
-        const funnelType = detectFunnelFromMessage(buttonMessage);
+                // Check if the button message should trigger a funnel instead of sending a message
+        const funnelResult = detectFunnelFromMessage(buttonMessage);
         
-        if (funnelType) {
+        if (funnelResult) {
           // Add funnel action button
           actionButtons.push({
             text: buttonText,
-            action: () => startFunnel(funnelType)
+            action: () => startFunnel(funnelResult.type, funnelResult.community)
           });
         } else {
           // Add regular message action button
-          actionButtons.push({
-            text: buttonText,
-            action: () => sendMessage(buttonMessage)
-          });
+        actionButtons.push({
+          text: buttonText,
+          action: () => sendMessage(buttonMessage)
+        });
         }
       }
 
@@ -1561,15 +1814,10 @@ window.IntendrPhoneCallActive = false;
       }
       
       // Show action buttons if any were found
-      console.log('[DEBUG] actionButtons found:', actionButtons.length, actionButtons);
       if (actionButtons.length > 0) {
-        console.log('[DEBUG] Calling showActionButtons');
         showActionButtons(actionButtons);
-      } else {
-        console.log('[DEBUG] No action buttons to show');
       }
       
-      console.log('[DEBUG] Returning processed message:', processedMessage.trim());
       return processedMessage.trim();
     }
 
@@ -2327,6 +2575,84 @@ window.IntendrPhoneCallActive = false;
           color: var(--chat--color-primary);
         }
         .intendr-chat-widget .initial-button:hover {
+          background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+          color: white;
+          border-color: transparent;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
+        }
+        
+        /* Drawer styles */
+        .intendr-chat-widget .initial-buttons-drawer {
+          position: relative;
+          border-top: 1px solid rgba(133, 79, 255, 0.1);
+          background: white;
+          overflow: visible;
+          transition: all 0.3s ease;
+          margin-top: 10px;
+        }
+        
+        .intendr-chat-widget .drawer-toggle {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          background: var(--chat--color-primary);
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          position: absolute;
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 10;
+          transition: all 0.3s ease;
+        }
+        
+        .intendr-chat-widget .drawer-toggle:hover {
+          background: var(--chat--color-secondary);
+          transform: translateX(-50%) scale(1.1);
+        }
+        
+        .intendr-chat-widget .drawer-arrow {
+          color: white;
+          font-size: 8px;
+          font-weight: bold;
+          transition: transform 0.3s ease;
+        }
+        
+        .intendr-chat-widget .drawer-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+          padding: 0 10px;
+        }
+        
+        .intendr-chat-widget .initial-buttons-drawer.open .drawer-content {
+          max-height: 200px;
+          padding: 10px;
+        }
+        
+        .intendr-chat-widget .drawer-buttons {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        
+        .intendr-chat-widget .drawer-buttons .initial-button {
+          background: white;
+          border: 1px solid rgba(133, 79, 255, 0.2);
+          border-radius: 8px;
+          padding: 12px 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--chat--color-primary);
+        }
+        
+        .intendr-chat-widget .drawer-buttons .initial-button:hover {
           background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
           color: white;
           border-color: transparent;
@@ -3734,6 +4060,9 @@ window.IntendrPhoneCallActive = false;
         messagesContainer.appendChild(userMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
+        // Close drawer when user sends a message
+        closeDrawer();
+        
         // Show thinking animation
           // Show thinking animation
           const thinkingDiv = showThinkingAnimation();
@@ -3888,8 +4217,20 @@ window.IntendrPhoneCallActive = false;
 
           // Add bot response (if anything remains after cleaning)
           if (cleanedReply) {
+            // Check for funnel triggers in the bot message
+            const funnelResult = detectFunnelFromMessage(cleanedReply);
+            
+            // Remove funnel triggers from the displayed message
+            let displayMessage = cleanedReply
+              .replace(/\[tour:[^\]]+\]/gi, '')
+              .replace(/\[tour\]/gi, '')
+              .replace(/\[job\]/gi, '')
+              .replace(/\[resident\]/gi, '')
+              .replace(/\[contact\]/gi, '')
+              .trim();
+            
             // Parse action tags and create action buttons
-            const processedMessage = parseAndShowActionButtons(cleanedReply);
+            const processedMessage = parseAndShowActionButtons(displayMessage);
             
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
@@ -3904,6 +4245,25 @@ window.IntendrPhoneCallActive = false;
               } catch (error) {
                 console.error('[Intendr] Error in afterReceiveMessage hook:', error);
               }
+            }
+            
+            // If a funnel was triggered, show loading message and start funnel
+            if (funnelResult) {
+              setTimeout(() => {
+                // Add loading message
+                const loadingMessageDiv = document.createElement('div');
+                loadingMessageDiv.className = 'chat-message bot loading';
+                loadingMessageDiv.innerHTML = formatMessage(getFunnelLoadingMessage(funnelResult.type));
+                messagesContainer.appendChild(loadingMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Start the funnel after a short delay
+                setTimeout(() => {
+                  startFunnel(funnelResult.type, funnelResult.community);
+                  // Remove loading message when funnel starts
+                  loadingMessageDiv.remove();
+                }, 1000);
+              }, 1000); // 1 second delay before showing loading message
             }
           }
             
@@ -4850,13 +5210,19 @@ window.IntendrPhoneCallActive = false;
         
         // Find location that matches the current URL
         for (const location of locations) {
-          // Check if the location's URL is in the current page URL
-          if (location.url && currentUrl.includes(location.url.toLowerCase())) {
-            console.log(`Auto-selecting location: ${location.name} (${location.id})`);
+          // Check if the location's slug is in the current page URL
+          if (location.slug && currentUrl.includes(location.slug.toLowerCase())) {
+            console.log(`Auto-selecting location by slug: ${location.name} (${location.id}) - slug: ${location.slug}`);
             return location;
           }
           
-          // Also check if the location name appears in the URL path
+          // Check if the location's URL is in the current page URL (fallback)
+          if (location.url && currentUrl.includes(location.url.toLowerCase())) {
+            console.log(`Auto-selecting location by URL: ${location.name} (${location.id})`);
+            return location;
+          }
+          
+          // Also check if the location name appears in the URL path (fallback)
           const locationNameInUrl = location.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
           if (currentUrl.includes(locationNameInUrl)) {
             console.log(`Auto-selecting location by name: ${location.name} (${location.id})`);
