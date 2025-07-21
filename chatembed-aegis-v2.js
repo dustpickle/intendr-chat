@@ -16,8 +16,7 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
     logo: 'https://cdn-icons-png.flaticon.com/512/5962/5962463.png',
     name: 'Hope : Aegis Living Assistant',
     typingText: 'Hope is typing',
-    greetingText: 'Hi! I am Hope, your Aegis AI Assistant. What brings you here today?',
-    welcomeText: 'Welcome! How can Hope assist you today?'
+    greetingText: 'Hi! I am Hope, your Aegis virtual care consultant. What brings you here today?'
   },
   
   // Business Information
@@ -675,7 +674,8 @@ window.ChatWidgetConfig = {
   branding: {
     logo: window.CUSTOM_CLIENT_CONFIG.branding.logo,
     name: window.CUSTOM_CLIENT_CONFIG.branding.name,
-    welcomeText: window.CUSTOM_CLIENT_CONFIG.branding.welcomeText
+    typingText: window.CUSTOM_CLIENT_CONFIG.branding.typingText,
+    greetingText: window.CUSTOM_CLIENT_CONFIG.branding.greetingText
   },
   style: {
     primaryColor: window.CUSTOM_CLIENT_CONFIG.theme.primaryColor,
@@ -713,8 +713,8 @@ window.ChatWidgetConfig = {
 
 // Auto-load core widget
 function loadCoreWidget() {
-  //const corePath = window.ChatWidgetCorePath || 'chatembed-v2.js';
-  const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-v2.js';
+  const corePath = window.ChatWidgetCorePath || 'chatembed-v2.js';
+  // const corePath = window.ChatWidgetCorePath || 'https://n8n-chat-embed.pages.dev/chatembed-v2.js';
 
   console.log('[Aegis] Loading core widget from:', corePath);
 
@@ -1201,24 +1201,25 @@ if (!document.getElementById('aegis-client-styles')) {
       padding-right: 40px !important;
     }
     
-    #intendr-chat-widget .chat-message.bot.loading::after,
-    .chat-message.bot.loading::after {
-      content: '' !important;
-      position: absolute !important;
-      right: 12px !important;
-      top: 50% !important;
-      transform: translateY(-50%) !important;
-      width: 16px !important;
-      height: 16px !important;
-      border: 2px solid ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
-      border-top: 2px solid transparent !important;
-      border-radius: 50% !important;
-      animation: spin 1s linear infinite !important;
-    }
-    
     @keyframes spin {
       0% { transform: translateY(-50%) rotate(0deg); }
       100% { transform: translateY(-50%) rotate(360deg); }
+    }
+    
+    /* Explicit spinner element for loading messages */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid ${window.CUSTOM_CLIENT_CONFIG.theme.primaryColor} !important;
+      border-top: 2px solid transparent !important;
+      border-radius: 50%;
+      animation: spin 1s linear infinite !important;
+      vertical-align: middle;
+      margin-left: 8px;
+      margin-bottom: 2px;
+      position: relative;
+      top: 0;
     }
   `;
   document.head.appendChild(clientStyles);

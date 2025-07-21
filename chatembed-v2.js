@@ -1302,7 +1302,9 @@ window.IntendrPhoneCallActive = false;
           if (!day.classList.contains('past') && !day.classList.contains('other-month')) {
             day.addEventListener('click', function() {
               const dateStr = this.dataset.date;
-              selectedDate = new Date(dateStr);
+              // Create date in local timezone to avoid timezone conversion issues
+              const [year, month, day] = dateStr.split('-').map(Number);
+              selectedDate = new Date(year, month - 1, day);
               
               // Update selection
               daysContainer.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
@@ -1359,7 +1361,12 @@ window.IntendrPhoneCallActive = false;
           grid.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
           this.classList.add('selected');
           
-          const selectedTime = new Date(this.dataset.time);
+          // Create time in local timezone to avoid timezone conversion issues
+          const timeStr = this.dataset.time;
+          const timeDate = new Date(timeStr);
+          const selectedTime = new Date(selectedDate);
+          selectedTime.setHours(timeDate.getHours(), timeDate.getMinutes(), 0, 0);
+          
           selectDateTime(selectedDate, selectedTime);
         });
       });
@@ -1390,11 +1397,19 @@ window.IntendrPhoneCallActive = false;
         
         // Validate that date and time are proper Date objects
         if (date instanceof Date && time instanceof Date) {
-          description = `Tour Community: ${location.name}<br>Tour Date & Time: ${date.toLocaleDateString()} at ${time.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          })}`;
+          // Format date manually to avoid timezone issues
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const year = date.getFullYear();
+          const formattedDate = `${month}/${day}/${year}`;
+          
+          const hours = time.getHours();
+          const minutes = String(time.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'pm' : 'am';
+          const displayHours = hours % 12 || 12;
+          const formattedTime = `${displayHours}:${minutes}${ampm}`;
+          
+          description = `Tour Community: ${location.name}<br>Tour Date & Time: ${formattedDate} at ${formattedTime}`;
         } else {
           description = `Tour Community: ${location.name}`;
         }
@@ -4505,21 +4520,22 @@ window.IntendrPhoneCallActive = false;
             
             // If a funnel was triggered, show loading message and start funnel
             if (funnelResult) {
+              // Add loading message immediately
+              const loadingMessageDiv = document.createElement('div');
+              loadingMessageDiv.className = 'chat-message bot loading';
+              loadingMessageDiv.innerHTML = `
+                <span>${formatMessage(getFunnelLoadingMessage(funnelResult.type))}</span>
+                <span class="spinner" style="margin-left:12px;vertical-align:middle;"></span>
+              `;
+              messagesContainer.appendChild(loadingMessageDiv);
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              
+              // Start the funnel after a 6 second delay
               setTimeout(() => {
-                // Add loading message
-                const loadingMessageDiv = document.createElement('div');
-                loadingMessageDiv.className = 'chat-message bot loading';
-                loadingMessageDiv.innerHTML = formatMessage(getFunnelLoadingMessage(funnelResult.type));
-                messagesContainer.appendChild(loadingMessageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-                // Start the funnel after a short delay
-                setTimeout(() => {
-                  startFunnel(funnelResult.type, funnelResult.community);
-                  // Remove loading message when funnel starts
-                  loadingMessageDiv.remove();
-                }, 1000);
-              }, 1000); // 1 second delay before showing loading message
+                startFunnel(funnelResult.type, funnelResult.community);
+                // Remove loading message when funnel starts
+                loadingMessageDiv.remove();
+              }, 6000);
             }
           }
             
@@ -4543,9 +4559,8 @@ window.IntendrPhoneCallActive = false;
       
       // Function to send initial messages
       function sendInitialMessages() {
-        const businessName = config.business.name || '[BusinessName]';
         const messages = [
-          `${INTENDR_BRANDING.greetingText} I am here to help you with ${businessName}. How can I assist you today?`
+          INTENDR_BRANDING.greetingText
         ];
 
         messages.forEach((message, index) => {
