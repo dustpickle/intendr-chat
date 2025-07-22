@@ -1460,17 +1460,6 @@ window.IntendrPhoneCallActive = false;
         submitFunnelForm();
       });
 
-      // In the async function after setting funnelData.funnelSummary:
-      if (data && data.summary) {
-        funnelData.funnelSummary = data.summary;
-        console.log('[FunnelSummary] Set funnelData.funnelSummary:', data.summary);
-        // Try to update the message textarea if the contact form is visible
-        const messageBox = document.querySelector('.funnel-panel #message');
-        if (messageBox) {
-          messageBox.value = data.summary;
-        }
-      }
-
       // In loadContactStep, after rendering the form, if funnelData.funnelSummary is available, set the textarea value (in case it arrived late)
       const messageBox = container.querySelector('#message');
       if (messageBox && funnelData.funnelSummary) {
