@@ -1443,7 +1443,7 @@ window.IntendrPhoneCallActive = false;
             
             <div class="form-group">
               <label for="message">Message (Optional)</label>
-              <textarea id="message" rows="3" placeholder="Any additional information...">${funnelData.funnelSummary ? funnelData.funnelSummary : ''}</textarea>
+              <textarea id="message" rows="3" placeholder="Any additional information..."></textarea>
             </div>
             
             <div class="form-actions">
@@ -1460,25 +1460,31 @@ window.IntendrPhoneCallActive = false;
         submitFunnelForm();
       });
 
-      // In loadContactStep, after rendering the form, if funnelData.funnelSummary is available, set the textarea value (in case it arrived late)
+      // Use FunnelSummaryManager to handle message box prefilling
       const messageBox = container.querySelector('#message');
-      if (messageBox && funnelData.funnelSummary) {
-        messageBox.value = funnelData.funnelSummary;
-        console.log('[FunnelSummary] Prefilled immediately:', funnelData.funnelSummary);
-      }
-      if (messageBox && !funnelData.funnelSummary) {
+      if (messageBox) {
+        // Function to fill the message box with summary
+        function fillMessageBox(summary) {
+          if (summary && !messageBox.value.trim()) {
+            messageBox.value = summary;
+            console.log('[FunnelSummary] Message box filled with:', summary);
+          }
+        }
+        
+        // Try to get summary immediately or wait for it
+        console.log('[FunnelSummary] Contact form loaded, checking for summary...');
+        window.FunnelSummaryManager.getSummary(fillMessageBox);
+        
+        // Also add a failsafe polling mechanism for 10 seconds
         let pollCount = 0;
         const pollInterval = setInterval(() => {
-          if (funnelData.funnelSummary) {
-            if (!messageBox.value) {
-              messageBox.value = funnelData.funnelSummary;
-              console.log('[FunnelSummary] Prefilled via polling:', funnelData.funnelSummary);
-            }
+          if (window.FunnelSummaryManager.summary && !messageBox.value.trim()) {
+            fillMessageBox(window.FunnelSummaryManager.summary);
             clearInterval(pollInterval);
           }
           pollCount++;
-          if (pollCount > 100) {
-            console.warn('[FunnelSummary] Polling stopped after 10s');
+          if (pollCount > 100) { // 10 seconds
+            console.log('[FunnelSummary] Polling stopped after 10 seconds');
             clearInterval(pollInterval);
           }
         }, 100);
@@ -4298,6 +4304,9 @@ window.IntendrPhoneCallActive = false;
         messagesContainer.appendChild(userMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
+        // Save session immediately after adding user message to ensure it's included in webhook
+        saveSession();
+        
         // Close drawer when user sends a message
         closeDrawer();
         
@@ -4487,6 +4496,9 @@ window.IntendrPhoneCallActive = false;
             
             // If a funnel was triggered, show loading message and start funnel
             if (funnelResult) {
+              // Reset the funnel summary manager for new funnel
+              window.FunnelSummaryManager.reset();
+              
               // Add loading message immediately
               const loadingMessageDiv = document.createElement('div');
               loadingMessageDiv.className = 'chat-message bot loading';
@@ -4504,7 +4516,8 @@ window.IntendrPhoneCallActive = false;
                   let lastUserMsg = '';
                   const userMsgs = Array.from(messagesContainer.querySelectorAll('.chat-message.user'));
                   if (userMsgs.length > 0) lastUserMsg = userMsgs[userMsgs.length - 1].textContent;
-                  // Get full chat history from local storage
+                  
+                  // Get full chat history from local storage (should include the current message since we saved session above)
                   let chatHistory = [];
                   try {
                     const savedSession = localStorage.getItem(INTENDR_STORAGE_KEYS.chatSession);
@@ -4518,45 +4531,21 @@ window.IntendrPhoneCallActive = false;
                       }
                     }
                   } catch (e) {
-                    console.warn('Could not parse chat history for funnel summary', e);
+                    console.warn('[FunnelSummary] Could not parse chat history:', e);
                   }
+                  
                   const payload = {
                     funnelType: funnelResult.type,
                     community: funnelResult.community,
                     lastUserMessage: lastUserMsg,
                     chatHistory
                   };
-                  console.log('[FunnelSummary] Sending webhook:', payload);
-                  const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                  });
-                  console.log('[FunnelSummary] Webhook response status:', resp.status);
-                  if (resp.ok) {
-                    let data;
-                    try {
-                      data = await resp.json();
-                    } catch (e) {
-                      data = null;
-                      console.warn('[FunnelSummary] Could not parse JSON response:', e);
-                    }
-                    console.log('[FunnelSummary] Webhook response data:', data);
-                    if (data && data.summary) {
-                      funnelData.funnelSummary = data.summary;
-                      console.log('[FunnelSummary] Set funnelData.funnelSummary:', data.summary);
-                      // Try to update the message textarea if the contact form is visible
-                      const messageBox = document.querySelector('.funnel-panel #message');
-                      if (messageBox) {
-                        messageBox.value = data.summary;
-                      }
-                    }
-                  } else {
-                    const errorText = await resp.text();
-                    console.error('[FunnelSummary] Webhook error response:', errorText);
-                  }
+                  
+                  // Use FunnelSummaryManager to fetch and manage the summary
+                  await window.FunnelSummaryManager.fetchSummary(payload);
+                  
                 } catch (err) {
-                  console.error('Funnel summary API error:', err);
+                  console.error('[FunnelSummary] Error in summary fetch:', err);
                 }
               })();
               // --- End funnel summary API integration ---
@@ -5582,3 +5571,93 @@ window.IntendrPhoneCallActive = false;
       saveFunnelData();
       loadFunnelStep();
     }
+
+    // Add global funnel summary manager after the MERGED_CONFIG declaration
+    window.FunnelSummaryManager = {
+      summary: null,
+      isLoading: false,
+      callbacks: [],
+      
+      setSummary(summary) {
+        this.summary = summary;
+        this.isLoading = false;
+        console.log('[FunnelSummary] Summary set:', summary);
+        
+        // Try to immediately update any visible message box
+        const messageBox = document.querySelector('.funnel-panel #message');
+        if (messageBox && !messageBox.value.trim()) {
+          messageBox.value = summary;
+          console.log('[FunnelSummary] Message box updated immediately on summary set');
+        }
+        
+        // Execute all pending callbacks
+        this.callbacks.forEach(callback => {
+          try {
+            callback(summary);
+          } catch (e) {
+            console.error('[FunnelSummary] Callback error:', e);
+          }
+        });
+        this.callbacks = [];
+      },
+      
+      getSummary(callback) {
+        if (this.summary) {
+          callback(this.summary);
+        } else if (!this.isLoading) {
+          // No summary and not loading - callback won't be called
+          callback(null);
+        } else {
+          // Summary is loading, add callback to queue
+          this.callbacks.push(callback);
+        }
+      },
+      
+      reset() {
+        this.summary = null;
+        this.isLoading = false;
+        this.callbacks = [];
+      },
+      
+      async fetchSummary(payload) {
+        this.isLoading = true;
+        this.summary = null;
+        
+        try {
+          console.log('[FunnelSummary] Sending webhook:', payload);
+          const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          console.log('[FunnelSummary] Webhook response status:', resp.status);
+          
+          if (resp.ok) {
+            let data;
+            try {
+              data = await resp.json();
+            } catch (e) {
+              data = null;
+              console.warn('[FunnelSummary] Could not parse JSON response:', e);
+            }
+            
+            console.log('[FunnelSummary] Webhook response data:', data);
+            
+            if (data && data.summary) {
+              this.setSummary(data.summary);
+            } else {
+              this.isLoading = false;
+              console.warn('[FunnelSummary] No summary in response');
+            }
+          } else {
+            this.isLoading = false;
+            const errorText = await resp.text();
+            console.error('[FunnelSummary] Webhook error response:', errorText);
+          }
+        } catch (err) {
+          this.isLoading = false;
+          console.error('[FunnelSummary] Fetch error:', err);
+        }
+      }
+    };
