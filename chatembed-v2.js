@@ -4502,16 +4502,29 @@ window.IntendrPhoneCallActive = false;
                     lastUserMessage: lastUserMsg,
                     chatHistory
                   };
+                  console.log('[FunnelSummary] Sending webhook:', payload);
                   const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                   });
+                  console.log('[FunnelSummary] Webhook response status:', resp.status);
                   if (resp.ok) {
-                    const data = await resp.json();
+                    let data;
+                    try {
+                      data = await resp.json();
+                    } catch (e) {
+                      data = null;
+                      console.warn('[FunnelSummary] Could not parse JSON response:', e);
+                    }
+                    console.log('[FunnelSummary] Webhook response data:', data);
                     if (data && data.summary) {
                       funnelData.funnelSummary = data.summary;
+                      console.log('[FunnelSummary] Set funnelData.funnelSummary:', data.summary);
                     }
+                  } else {
+                    const errorText = await resp.text();
+                    console.error('[FunnelSummary] Webhook error response:', errorText);
                   }
                 } catch (err) {
                   console.error('Funnel summary API error:', err);
