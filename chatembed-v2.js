@@ -2164,12 +2164,11 @@ window.IntendrPhoneCallActive = false;
         const phoneRegex = /(?:\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
         text = text.replace(phoneRegex, function(match) {
           const cleanPhone = match.replace(/[^\d+]/g, '');
-          return `<span class=\"phone-inline\">${match}<button class=\"phone-inline-btn\" onclick=\\"window.location.href='tel:${cleanPhone}'\\" aria-label='Call ${match}'><svg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='12' fill='#222'/><path d='M17.707 15.293l-2.387-2.387a1 1 0 0 0-1.414 0l-.793.793a8.014 8.014 0 0 1-3.293-3.293l.793-.793a1 1 0 0 0 0-1.414L8.707 6.293a1 1 0 0 0-1.414 0l-1.293 1.293a2 2 0 0 0-.293 2.293c1.12 2.8 3.493 5.173 6.293 6.293a2 2 0 0 0 2.293-.293l1.293-1.293a1 1 0 0 0 0-1.414z' fill='#fff'/></svg></button></span>`;
+          return `<span class=\"phone-inline\">${match}<a class=\"phone-inline-btn\" href=\"tel:${cleanPhone}\" aria-label='Call ${match}'><svg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='12' fill='#222'/><path d='M16.7 13.6l-2.1-2.1c-.2-.2-.5-.2-.7 0l-.7.7c-1.1-.6-2-1.5-2.6-2.6l.7-.7c.2-.2.2-.5 0-.7l-2.1-2.1c-.2-.2-.5-.2-.7 0l-1.1 1.1c-.3.3-.4.7-.3 1.1 1.2 2.7 3.3 4.8 6 6 .4.1.8 0 1.1-.3l1.1-1.1c.2-.2.2-.5 0-.7z' fill='#fff'/></svg></a></span>`;
         });
       }
 
       // --- URL INLINE BUTTON (ARROW) ---
-      // Use DOM parsing to safely find <a> tags and append the icon
       if (typeof window !== 'undefined') {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = text;
@@ -2178,10 +2177,12 @@ window.IntendrPhoneCallActive = false;
           const url = link.getAttribute('href');
           // Only add if not already present
           if (!link.nextSibling || !link.nextSibling.classList || !link.nextSibling.classList.contains('url-inline-btn')) {
-            const btn = document.createElement('button');
+            const btn = document.createElement('a');
             btn.className = 'url-inline-btn';
             btn.setAttribute('aria-label', 'Open link in new tab');
-            btn.onclick = e => { e.stopPropagation(); window.open(url, '_blank'); };
+            btn.setAttribute('href', url);
+            btn.setAttribute('target', '_blank');
+            btn.setAttribute('rel', 'noopener noreferrer');
             btn.innerHTML = `<svg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='12' fill='#222'/><path d='M8 16l8-8M16 8v4M16 8h-4' stroke='#fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
             link.insertAdjacentElement('afterend', btn);
           }
