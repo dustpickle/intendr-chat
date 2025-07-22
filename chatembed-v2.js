@@ -1443,7 +1443,7 @@ window.IntendrPhoneCallActive = false;
             
             <div class="form-group">
               <label for="message">Message (Optional)</label>
-              <textarea id="message" rows="3" placeholder="Any additional information..."></textarea>
+              <textarea id="message" rows="3" placeholder="Any additional information...">${funnelData.funnelSummary ? funnelData.funnelSummary : ''}</textarea>
             </div>
             
             <div class="form-actions">
@@ -4472,6 +4472,35 @@ window.IntendrPhoneCallActive = false;
               `;
               messagesContainer.appendChild(loadingMessageDiv);
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+              // --- Funnel summary API integration ---
+              (async () => {
+                try {
+                  // Get last user message for context
+                  let lastUserMsg = '';
+                  const userMsgs = Array.from(messagesContainer.querySelectorAll('.chat-message.user'));
+                  if (userMsgs.length > 0) lastUserMsg = userMsgs[userMsgs.length - 1].textContent;
+                  const payload = {
+                    funnelType: funnelResult.type,
+                    community: funnelResult.community,
+                    lastUserMessage: lastUserMsg
+                  };
+                  const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  });
+                  if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.summary) {
+                      funnelData.funnelSummary = data.summary;
+                    }
+                  }
+                } catch (err) {
+                  console.error('Funnel summary API error:', err);
+                }
+              })();
+              // --- End funnel summary API integration ---
               
               // Start the funnel after a 6 second delay
               setTimeout(() => {
