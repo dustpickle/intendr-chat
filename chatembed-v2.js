@@ -4480,10 +4480,27 @@ window.IntendrPhoneCallActive = false;
                   let lastUserMsg = '';
                   const userMsgs = Array.from(messagesContainer.querySelectorAll('.chat-message.user'));
                   if (userMsgs.length > 0) lastUserMsg = userMsgs[userMsgs.length - 1].textContent;
+                  // Get full chat history from local storage
+                  let chatHistory = [];
+                  try {
+                    const savedSession = localStorage.getItem(INTENDR_STORAGE_KEYS.chatSession);
+                    if (savedSession) {
+                      const sessionData = JSON.parse(savedSession);
+                      if (sessionData.messages && Array.isArray(sessionData.messages)) {
+                        chatHistory = sessionData.messages.map(msg => ({
+                          role: msg.type === 'user' ? 'user' : 'assistant',
+                          content: msg.content
+                        }));
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('Could not parse chat history for funnel summary', e);
+                  }
                   const payload = {
                     funnelType: funnelResult.type,
                     community: funnelResult.community,
-                    lastUserMessage: lastUserMsg
+                    lastUserMessage: lastUserMsg,
+                    chatHistory
                   };
                   const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
                     method: 'POST',
