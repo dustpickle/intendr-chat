@@ -1465,15 +1465,17 @@ window.IntendrPhoneCallActive = false;
       if (messageBox && funnelData.funnelSummary) {
         messageBox.value = funnelData.funnelSummary;
       }
-      // Optionally, add a MutationObserver to update the textarea if the summary arrives after the form is rendered
       if (messageBox && !funnelData.funnelSummary) {
-        const observer = new MutationObserver(() => {
+        // Poll for the summary for up to 10 seconds
+        let pollCount = 0;
+        const pollInterval = setInterval(() => {
           if (funnelData.funnelSummary) {
             messageBox.value = funnelData.funnelSummary;
-            observer.disconnect();
+            clearInterval(pollInterval);
           }
-        });
-        observer.observe(messageBox, { attributes: true, childList: false, subtree: false });
+          pollCount++;
+          if (pollCount > 100) clearInterval(pollInterval); // Stop after 10 seconds
+        }, 100);
       }
     }
     
