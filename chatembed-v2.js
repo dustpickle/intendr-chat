@@ -1464,17 +1464,23 @@ window.IntendrPhoneCallActive = false;
       const messageBox = container.querySelector('#message');
       if (messageBox && funnelData.funnelSummary) {
         messageBox.value = funnelData.funnelSummary;
+        console.log('[FunnelSummary] Prefilled immediately:', funnelData.funnelSummary);
       }
       if (messageBox && !funnelData.funnelSummary) {
-        // Poll for the summary for up to 10 seconds
         let pollCount = 0;
         const pollInterval = setInterval(() => {
           if (funnelData.funnelSummary) {
-            messageBox.value = funnelData.funnelSummary;
+            if (!messageBox.value) {
+              messageBox.value = funnelData.funnelSummary;
+              console.log('[FunnelSummary] Prefilled via polling:', funnelData.funnelSummary);
+            }
             clearInterval(pollInterval);
           }
           pollCount++;
-          if (pollCount > 100) clearInterval(pollInterval); // Stop after 10 seconds
+          if (pollCount > 100) {
+            console.warn('[FunnelSummary] Polling stopped after 10s');
+            clearInterval(pollInterval);
+          }
         }, 100);
       }
     }
