@@ -1459,6 +1459,33 @@ window.IntendrPhoneCallActive = false;
         e.preventDefault();
         submitFunnelForm();
       });
+
+      // In the async function after setting funnelData.funnelSummary:
+      if (data && data.summary) {
+        funnelData.funnelSummary = data.summary;
+        console.log('[FunnelSummary] Set funnelData.funnelSummary:', data.summary);
+        // Try to update the message textarea if the contact form is visible
+        const messageBox = document.querySelector('.funnel-panel #message');
+        if (messageBox) {
+          messageBox.value = data.summary;
+        }
+      }
+
+      // In loadContactStep, after rendering the form, if funnelData.funnelSummary is available, set the textarea value (in case it arrived late)
+      const messageBox = container.querySelector('#message');
+      if (messageBox && funnelData.funnelSummary) {
+        messageBox.value = funnelData.funnelSummary;
+      }
+      // Optionally, add a MutationObserver to update the textarea if the summary arrives after the form is rendered
+      if (messageBox && !funnelData.funnelSummary) {
+        const observer = new MutationObserver(() => {
+          if (funnelData.funnelSummary) {
+            messageBox.value = funnelData.funnelSummary;
+            observer.disconnect();
+          }
+        });
+        observer.observe(messageBox, { attributes: true, childList: false, subtree: false });
+      }
     }
     
     // Function to submit funnel form
@@ -4521,6 +4548,11 @@ window.IntendrPhoneCallActive = false;
                     if (data && data.summary) {
                       funnelData.funnelSummary = data.summary;
                       console.log('[FunnelSummary] Set funnelData.funnelSummary:', data.summary);
+                      // Try to update the message textarea if the contact form is visible
+                      const messageBox = document.querySelector('.funnel-panel #message');
+                      if (messageBox) {
+                        messageBox.value = data.summary;
+                      }
                     }
                   } else {
                     const errorText = await resp.text();
@@ -4538,6 +4570,7 @@ window.IntendrPhoneCallActive = false;
                 // Remove loading message when funnel starts
                 loadingMessageDiv.remove();
               }, 6000);
+              
             }
           }
             
