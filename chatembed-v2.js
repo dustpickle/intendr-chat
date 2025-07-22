@@ -1864,7 +1864,7 @@ window.IntendrPhoneCallActive = false;
         case 'jobInquiry':
           return 'Job inquiry form is loading...';
         case 'residentInquiry':
-          return 'Resident support form is loading...';
+          return 'Resident support request is loading...';
         case 'contact':
           return 'Contact form is loading...';
         default:
@@ -1995,100 +1995,11 @@ window.IntendrPhoneCallActive = false;
           action: () => startFunnel(funnelType)
         });
       }
-      
-      // Parse [phone] tags with optional btntext attribute
-      const phoneRegex = /\[phone(?:\s+btntext="([^"]*)")?\](.*?)\[\/phone\]/g;
-      let phoneMatch;
-      while ((phoneMatch = phoneRegex.exec(message)) !== null) {
-        const buttonText = phoneMatch[1] || 'Call Now';
-        const phoneNumber = phoneMatch[2];
-        const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
-        
-        // Remove the tag from the message
-        processedMessage = processedMessage.replace(phoneMatch[0], '');
-        
-        // Add action button
-        actionButtons.push({
-          text: buttonText,
-          action: () => window.open(`tel:${cleanPhone}`, '_self')
-        });
-      }
-      
-      // Parse [url] tags with optional btntext attribute
-      const urlRegex = /\[url(?:\s+btntext="([^"]*)")?\](.*?)\[\/url\]/g;
-      let urlMatch;
-      while ((urlMatch = urlRegex.exec(message)) !== null) {
-        const buttonText = urlMatch[1] || 'Visit Page';
-        const url = urlMatch[2];
-        
-        // Remove the tag from the message
-        processedMessage = processedMessage.replace(urlMatch[0], '');
-        
-        // Add action button
-        actionButtons.push({
-          text: buttonText,
-          action: () => window.open(url, '_blank')
-        });
-      }
-      
-      // Parse [button] tags
-      const buttonRegex = /\[button message="(.*?)"\](.*?)\[\/button\]/g;
-      let buttonMatch;
-      while ((buttonMatch = buttonRegex.exec(message)) !== null) {
-        const buttonMessage = buttonMatch[1];
-        const buttonText = buttonMatch[2];
-        
-        // Remove the tag from the message
-        processedMessage = processedMessage.replace(buttonMatch[0], '');
-        
-                // Check if the button message should trigger a funnel instead of sending a message
-        const funnelResult = detectFunnelFromMessage(buttonMessage);
-        
-        if (funnelResult) {
-          // Add funnel action button
-          actionButtons.push({
-            text: buttonText,
-            action: () => startFunnel(funnelResult.type, funnelResult.community)
-          });
-        } else {
-          // Add regular message action button
-        actionButtons.push({
-          text: buttonText,
-          action: () => sendMessage(buttonMessage)
-        });
-        }
-      }
-
-      // If no explicit action buttons were found, look for phone numbers in the message
-      if (actionButtons.length === 0) {
-        // Phone number regex that matches various formats
-        const phoneNumberRegex = /(?:^|\s)(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})(?:\s|$)/g;
-        let phoneNumberMatch;
-        
-        while ((phoneNumberMatch = phoneNumberRegex.exec(message)) !== null) {
-          const fullMatch = phoneNumberMatch[0].trim();
-          const cleanPhone = fullMatch.replace(/[^\d+]/g, '');
-          
-          // Create a button text that includes the location if mentioned
-          let buttonText = 'Call Now';
-          const locationMatch = message.match(/Aegis Living\s+([^,.]+)/i);
-          if (locationMatch) {
-            buttonText = `Call ${locationMatch[1]}`;
-          }
-          
-          // Add action button
-          actionButtons.push({
-            text: buttonText,
-            action: () => window.open(`tel:${cleanPhone}`, '_self')
-          });
-        }
-      }
-      
-      // Show action buttons if any were found
+      // No [phone], [url], or generic [button] parsing, and no fallback phone number detection
+      // Only show action buttons if any funnel buttons were found
       if (actionButtons.length > 0) {
         showActionButtons(actionButtons);
       }
-      
       return processedMessage.trim();
     }
 
@@ -2246,6 +2157,37 @@ window.IntendrPhoneCallActive = false;
       
       // Convert newlines to <br>
       text = text.replace(/\n/g, '<br>');
+
+      // --- PHONE BUTTON ON MOBILE ---
+      if (typeof window !== 'undefined' && window.innerWidth <= 600) {
+        // US phone number regex
+        const phoneRegex = /(?:\+1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
+        text = text.replace(phoneRegex, function(match) {
+          const cleanPhone = match.replace(/[^\d+]/g, '');
+          return `<span class=\"phone-inline\">${match}<button class=\"phone-inline-btn\" onclick=\\"window.location.href='tel:${cleanPhone}'\\" aria-label='Call ${match}'><svg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='12' fill='#222'/><path d='M17.707 15.293l-2.387-2.387a1 1 0 0 0-1.414 0l-.793.793a8.014 8.014 0 0 1-3.293-3.293l.793-.793a1 1 0 0 0 0-1.414L8.707 6.293a1 1 0 0 0-1.414 0l-1.293 1.293a2 2 0 0 0-.293 2.293c1.12 2.8 3.493 5.173 6.293 6.293a2 2 0 0 0 2.293-.293l1.293-1.293a1 1 0 0 0 0-1.414z' fill='#fff'/></svg></button></span>`;
+        });
+      }
+
+      // --- URL INLINE BUTTON (ARROW) ---
+      // Use DOM parsing to safely find <a> tags and append the icon
+      if (typeof window !== 'undefined') {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = text;
+        const links = tempDiv.querySelectorAll('a[href]');
+        links.forEach(link => {
+          const url = link.getAttribute('href');
+          // Only add if not already present
+          if (!link.nextSibling || !link.nextSibling.classList || !link.nextSibling.classList.contains('url-inline-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'url-inline-btn';
+            btn.setAttribute('aria-label', 'Open link in new tab');
+            btn.onclick = e => { e.stopPropagation(); window.open(url, '_blank'); };
+            btn.innerHTML = `<svg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><circle cx='12' cy='12' r='12' fill='#222'/><path d='M8 16l8-8M16 8v4M16 8h-4' stroke='#fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+            link.insertAdjacentElement('afterend', btn);
+          }
+        });
+        text = tempDiv.innerHTML;
+      }
       
       return text;
     }

@@ -1221,6 +1221,57 @@ if (!document.getElementById('aegis-client-styles')) {
       position: relative;
       top: 0;
     }
+    
+    /* Phone inline button styles (mobile only) */
+    @media (max-width: 600px) {
+      .phone-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .phone-inline-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #222;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        margin-left: 4px;
+        cursor: pointer;
+        padding: 0;
+        transition: background 0.2s;
+      }
+      .phone-inline-btn svg {
+        display: block;
+      }
+      .phone-inline-btn:active {
+        background: #444;
+      }
+    }
+    /* URL inline button styles (arrow icon, all devices) */
+    .url-inline-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #222;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      margin-left: 4px;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s;
+      vertical-align: middle;
+    }
+    .url-inline-btn svg {
+      display: block;
+    }
+    .url-inline-btn:active {
+      background: #444;
+    }
   `;
   document.head.appendChild(clientStyles);
 } // Close the if statement
