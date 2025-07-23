@@ -59,6 +59,13 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
     phoneValidation: 'US', // 'US', 'INTL', or 'NONE'
     overtakeModal: false,
     overtakePath: '/'
+  },
+  
+  // Widget Visibility Settings
+  // Set to false to hide specific widgets
+  widgets: {
+    chat: true,    // Show/hide chat bubble
+    phone: false    // Show/hide phone bubble
   }
   }; // Close the CUSTOM_CLIENT_CONFIG object
 } // Close the if statement

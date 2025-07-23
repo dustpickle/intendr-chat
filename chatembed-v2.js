@@ -1,14 +1,4 @@
 // Chat Widget Script - Version 1.9.2
-//
-// URL Parameters:
-// - chat=true/false (or 1/0) - Show/hide the chat bubble (default: true)
-// - phone=true/false (or 1/0) - Show/hide the phone bubble (default: true)
-//
-// Examples:
-// <script src="https://n8n-chat-embed.pages.dev/aegis-embed.js?chat=true&phone=true"></script>  // Both bubbles
-// <script src="https://n8n-chat-embed.pages.dev/aegis-embed.js?chat=true&phone=false"></script> // Chat only
-// <script src="https://n8n-chat-embed.pages.dev/aegis-embed.js?chat=false&phone=true"></script>  // Phone only
-// <script src="https://n8n-chat-embed.pages.dev/aegis-embed.js"></script>                      // Both bubbles (default)
 
 // ===== CONFIGURATION SYSTEM =====
 // Default configuration - can be overridden by client-specific files
@@ -174,89 +164,6 @@ window.IntendrPhoneCallActive = false;
     // Configuration
     const CHAT_VERSION = "2.0";
     console.log("ChatVersion:", CHAT_VERSION);
-    
-    // Parse URL parameters from script src
-    function parseScriptParameters() {
-      const scripts = document.querySelectorAll('script[src]');
-      let scriptParams = { chat: true, phone: true }; // Default both enabled
-      
-      console.log('Looking for script parameters in', scripts.length, 'scripts');
-      
-      for (let script of scripts) {
-        console.log('Checking script:', script.src);
-        // Look for the original embed script first (highest priority)
-        if (script.src.includes('aegis-embed.js') || script.src.includes('embed.js')) {
-          console.log('Found embed script:', script.src);
-          const url = new URL(script.src);
-          const chatParam = url.searchParams.get('chat');
-          const phoneParam = url.searchParams.get('phone');
-          
-          console.log('Raw parameters from embed script - chat:', chatParam, 'phone:', phoneParam);
-          
-          // Parse boolean parameters (true/false or 1/0)
-          if (chatParam !== null) {
-            scriptParams.chat = chatParam === 'true' || chatParam === '1';
-          }
-          if (phoneParam !== null) {
-            scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
-          }
-          
-          console.log('Parsed script parameters from embed:', scriptParams);
-          break;
-        }
-        // Fallback to chatembed scripts if no embed script found
-        else if (script.src.includes('chatembed')) {
-          console.log('Found chatembed script:', script.src);
-          const url = new URL(script.src);
-          const chatParam = url.searchParams.get('chat');
-          const phoneParam = url.searchParams.get('phone');
-          
-          console.log('Raw parameters from chatembed - chat:', chatParam, 'phone:', phoneParam);
-          
-          // Parse boolean parameters (true/false or 1/0)
-          if (chatParam !== null) {
-            scriptParams.chat = chatParam === 'true' || chatParam === '1';
-          }
-          if (phoneParam !== null) {
-            scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
-          }
-          
-          console.log('Parsed script parameters from chatembed:', scriptParams);
-          // Don't break here, keep looking for embed scripts
-        }
-      }
-      
-      // Fallback: try to get the current script element directly
-      if (scriptParams.chat === true && scriptParams.phone === true) {
-        try {
-          const currentScript = document.currentScript;
-          if (currentScript && currentScript.src) {
-            console.log('Trying fallback with currentScript:', currentScript.src);
-            const url = new URL(currentScript.src);
-            const chatParam = url.searchParams.get('chat');
-            const phoneParam = url.searchParams.get('phone');
-            
-            console.log('Fallback raw parameters - chat:', chatParam, 'phone:', phoneParam);
-            
-            if (chatParam !== null) {
-              scriptParams.chat = chatParam === 'true' || chatParam === '1';
-            }
-            if (phoneParam !== null) {
-              scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
-            }
-            
-            console.log('Fallback parsed script parameters:', scriptParams);
-          }
-        } catch (e) {
-          console.log('Fallback method failed:', e);
-        }
-      }
-      
-      return scriptParams;
-    }
-    
-    // Get script parameters
-    const SCRIPT_PARAMS = parseScriptParameters();
     
     // Store user IP globally
     let userIP = '';
@@ -2133,7 +2040,7 @@ window.IntendrPhoneCallActive = false;
         promptBubbleShown = true;
         
         chatContainer.classList.add('open');
-        if (toggleButton) toggleButton.classList.add('hidden');
+        toggleButton.classList.add('hidden');
         
         // Handle mobile
         if (window.innerWidth <= 600) {
@@ -3727,70 +3634,67 @@ window.IntendrPhoneCallActive = false;
       
       chatContainer.innerHTML = chatInterfaceHTML;
       
-      // Create chat toggle button only if chat is enabled
-      let toggleButton = null;
-      if (SCRIPT_PARAMS.chat) {
-        toggleButton = document.createElement('button');
-        toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
-        toggleButton.innerHTML = `
-          <div class="chat-toggle-content">
-            <div class="online-indicator"></div>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor"/>
-            </svg>
-            <span class="chat-toggle-text">Chat with us!</span>
-          </div>
-        `;
-        
-        // Position chat button based on whether phone button will be shown
-        if (config.style.position !== 'left') {
-          if (SCRIPT_PARAMS.phone) {
-            // Phone button will be shown, position chat to the left of it
-            toggleButton.style.right = '85px';
-          } else {
-            // No phone button, position chat at normal right position
-            toggleButton.style.right = '20px';
-          }
-        }
-        
-        widgetContainer.appendChild(toggleButton);
-      }
+      const toggleButton = document.createElement('button');
+      toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
+      toggleButton.innerHTML = `
+        <div class="chat-toggle-content">
+          <div class="online-indicator"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" fill="currentColor"/>
+          </svg>
+          <span class="chat-toggle-text">Chat with us!</span>
+        </div>
+      `;
+      
+      // Position the chat toggle button to the left of where phone button will be
+      // Chat toggle positioning will be handled later based on widget visibility
       
       widgetContainer.appendChild(chatContainer);
       
+      // Check widget visibility settings
+      const chatEnabled = window.CUSTOM_CLIENT_CONFIG?.widgets?.chat !== false;
+      const phoneEnabled = window.CUSTOM_CLIENT_CONFIG?.widgets?.phone !== false;
+      
+      // Only add chat toggle if chat is enabled
+      if (chatEnabled) {
+        widgetContainer.appendChild(toggleButton);
+      }
+      
       // Create phone call button only if phone is enabled
       let phoneButton = null;
-      if (SCRIPT_PARAMS.phone) {
+      if (phoneEnabled) {
         phoneButton = document.createElement('button');
-        phoneButton.className = `chat-toggle phone-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
-        phoneButton.innerHTML = `
-          <div class="chat-toggle-content">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-          </div>
-        `;
-        
-        // Style the phone button
-        phoneButton.style.position = 'fixed';
-        phoneButton.style.bottom = '20px';
-        phoneButton.style.right = config.style.position === 'left' ? '20px' : '20px';
-        phoneButton.style.width = '60px';
-        phoneButton.style.height = '60px';
-        phoneButton.style.borderRadius = '50%';
-        phoneButton.style.display = 'flex';
-        phoneButton.style.alignItems = 'center';
-        phoneButton.style.justifyContent = 'center';
-        phoneButton.style.background = 'linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%)';
-        phoneButton.style.color = 'white';
-        phoneButton.style.border = 'none';
-        phoneButton.style.cursor = 'pointer';
-        phoneButton.style.boxShadow = '0 4px 12px var(--chat--color-primary)';
-        phoneButton.style.zIndex = '2147483646';
-        phoneButton.style.padding = '0';
-        
-        // Phone button click handler
-        phoneButton.onclick = function(e) {
+      phoneButton.className = `chat-toggle phone-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
+      phoneButton.innerHTML = `
+        <div class="chat-toggle-content">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        </div>
+      `;
+      
+      // Style the phone button - positioning will be set later based on configuration
+      phoneButton.style.position = 'fixed';
+      phoneButton.style.bottom = '20px';
+      phoneButton.style.width = '60px';
+      phoneButton.style.height = '60px';
+      phoneButton.style.borderRadius = '50%';
+      phoneButton.style.display = 'flex';
+      phoneButton.style.alignItems = 'center';
+      phoneButton.style.justifyContent = 'center';
+      phoneButton.style.background = 'linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%)';
+      phoneButton.style.color = 'white';
+      phoneButton.style.border = 'none';
+      phoneButton.style.cursor = 'pointer';
+      phoneButton.style.boxShadow = '0 4px 12px var(--chat--color-primary)';
+      phoneButton.style.zIndex = '2147483646';
+      phoneButton.style.padding = '0';
+      
+      // Remove the position adjustment of the chat toggle button
+      // Let both buttons sit in their natural positions
+      
+      // Phone button click handler
+      phoneButton.onclick = function(e) {
         e.stopPropagation();
         
         // Remove any existing tooltip
@@ -3976,9 +3880,42 @@ window.IntendrPhoneCallActive = false;
             document.getElementById('intendr-direct-start-call').textContent = 'Start Call';
           }
         };
-        };
-        
+      };
+      } // Close the if (showPhone) block
+      
+      // Only add phone button to container if it was created
+      if (phoneButton) {
         widgetContainer.appendChild(phoneButton);
+      }
+      
+      // Position chat toggle based on phone visibility and position setting
+      if (chatEnabled) {
+        if (!phoneEnabled) {
+          // No phone button, move chat to original position
+          if (config.style.position === 'left') {
+            toggleButton.style.left = '20px';
+          } else {
+            toggleButton.style.right = '20px';
+          }
+        } else {
+          // Both buttons, keep chat at offset position
+          if (config.style.position === 'left') {
+            toggleButton.style.left = '85px';
+          } else {
+            toggleButton.style.right = '85px';
+          }
+        }
+      }
+      
+      // Position phone button if enabled
+      if (phoneEnabled && phoneButton) {
+        if (config.style.position === 'left') {
+          phoneButton.style.left = '20px';
+          phoneButton.style.right = 'auto';
+        } else {
+          phoneButton.style.right = '20px';
+          phoneButton.style.left = 'auto';
+        }
       }
       
       document.body.appendChild(widgetContainer);
@@ -3991,8 +3928,7 @@ window.IntendrPhoneCallActive = false;
       const closeButton = chatContainer.querySelector('.close-button');
       
       // Add event listeners
-      if (toggleButton) {
-        toggleButton.addEventListener('click', function() {
+      toggleButton.addEventListener('click', function() {
         if (!chatContainer.classList.contains('open')) {
           chatContainer.classList.add('open');
           toggleButton.classList.add('hidden');
@@ -4027,8 +3963,7 @@ window.IntendrPhoneCallActive = false;
           startInactivityTimer();
           clearTimeout(promptBubbleTimer);
         }
-        });
-      }
+      });
 
       closeButton.addEventListener('click', function() {
         // Track session end before closing
@@ -4758,7 +4693,7 @@ window.IntendrPhoneCallActive = false;
           chatContainer.style.borderRadius = '12px';
           chatContainer.style.padding = '16px 6px 10px 6px';
         }
-        if (toggleButton) toggleButton.classList.add('hidden');
+        toggleButton.classList.add('hidden');
         document.body.appendChild(overlayDiv);
         overlayDiv.appendChild(chatContainer);
             document.body.style.overflow = 'hidden';
@@ -5005,11 +4940,9 @@ window.IntendrPhoneCallActive = false;
         }
 
         // Add event listeners (only once)
-        if (toggleButton) {
-          toggleButton.addEventListener('click', function() {
-            showChat();
-          });
-        }
+        toggleButton.addEventListener('click', function() {
+          showChat();
+        });
         closeButton.addEventListener('click', function() {
           // Track session end before closing
           const messagesContainer = document.querySelector('.chat-messages');
@@ -5054,7 +4987,7 @@ window.IntendrPhoneCallActive = false;
             hidePromptBubble();
             promptBubbleShown = true;
             chatContainer.classList.add('open');
-            if (toggleButton) toggleButton.classList.add('hidden');
+            toggleButton.classList.add('hidden');
         if (window.innerWidth <= 600) document.body.style.overflow = 'hidden';
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         startInactivityTimer();
@@ -5063,7 +4996,7 @@ window.IntendrPhoneCallActive = false;
 
       function hideChat() {
         chatContainer.classList.remove('open');
-        if (toggleButton) toggleButton.classList.remove('hidden');
+        toggleButton.classList.remove('hidden');
         if (window.innerWidth <= 600) document.body.style.overflow = '';
       }
 
