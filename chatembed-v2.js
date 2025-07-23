@@ -184,13 +184,14 @@ window.IntendrPhoneCallActive = false;
       
       for (let script of scripts) {
         console.log('Checking script:', script.src);
-        if (script.src.includes('aegis-embed.js') || script.src.includes('chatembed')) {
-          console.log('Found matching script:', script.src);
+        // Look for the original embed script first (highest priority)
+        if (script.src.includes('aegis-embed.js') || script.src.includes('embed.js')) {
+          console.log('Found embed script:', script.src);
           const url = new URL(script.src);
           const chatParam = url.searchParams.get('chat');
           const phoneParam = url.searchParams.get('phone');
           
-          console.log('Raw parameters - chat:', chatParam, 'phone:', phoneParam);
+          console.log('Raw parameters from embed script - chat:', chatParam, 'phone:', phoneParam);
           
           // Parse boolean parameters (true/false or 1/0)
           if (chatParam !== null) {
@@ -200,8 +201,28 @@ window.IntendrPhoneCallActive = false;
             scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
           }
           
-          console.log('Parsed script parameters:', scriptParams);
+          console.log('Parsed script parameters from embed:', scriptParams);
           break;
+        }
+        // Fallback to chatembed scripts if no embed script found
+        else if (script.src.includes('chatembed')) {
+          console.log('Found chatembed script:', script.src);
+          const url = new URL(script.src);
+          const chatParam = url.searchParams.get('chat');
+          const phoneParam = url.searchParams.get('phone');
+          
+          console.log('Raw parameters from chatembed - chat:', chatParam, 'phone:', phoneParam);
+          
+          // Parse boolean parameters (true/false or 1/0)
+          if (chatParam !== null) {
+            scriptParams.chat = chatParam === 'true' || chatParam === '1';
+          }
+          if (phoneParam !== null) {
+            scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
+          }
+          
+          console.log('Parsed script parameters from chatembed:', scriptParams);
+          // Don't break here, keep looking for embed scripts
         }
       }
       
