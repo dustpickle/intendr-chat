@@ -180,11 +180,17 @@ window.IntendrPhoneCallActive = false;
       const scripts = document.querySelectorAll('script[src]');
       let scriptParams = { chat: true, phone: true }; // Default both enabled
       
+      console.log('Looking for script parameters in', scripts.length, 'scripts');
+      
       for (let script of scripts) {
+        console.log('Checking script:', script.src);
         if (script.src.includes('aegis-embed.js') || script.src.includes('chatembed')) {
+          console.log('Found matching script:', script.src);
           const url = new URL(script.src);
           const chatParam = url.searchParams.get('chat');
           const phoneParam = url.searchParams.get('phone');
+          
+          console.log('Raw parameters - chat:', chatParam, 'phone:', phoneParam);
           
           // Parse boolean parameters (true/false or 1/0)
           if (chatParam !== null) {
@@ -194,8 +200,34 @@ window.IntendrPhoneCallActive = false;
             scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
           }
           
-          console.log('Script parameters:', scriptParams);
+          console.log('Parsed script parameters:', scriptParams);
           break;
+        }
+      }
+      
+      // Fallback: try to get the current script element directly
+      if (scriptParams.chat === true && scriptParams.phone === true) {
+        try {
+          const currentScript = document.currentScript;
+          if (currentScript && currentScript.src) {
+            console.log('Trying fallback with currentScript:', currentScript.src);
+            const url = new URL(currentScript.src);
+            const chatParam = url.searchParams.get('chat');
+            const phoneParam = url.searchParams.get('phone');
+            
+            console.log('Fallback raw parameters - chat:', chatParam, 'phone:', phoneParam);
+            
+            if (chatParam !== null) {
+              scriptParams.chat = chatParam === 'true' || chatParam === '1';
+            }
+            if (phoneParam !== null) {
+              scriptParams.phone = phoneParam === 'true' || phoneParam === '1';
+            }
+            
+            console.log('Fallback parsed script parameters:', scriptParams);
+          }
+        } catch (e) {
+          console.log('Fallback method failed:', e);
         }
       }
       
