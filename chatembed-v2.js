@@ -4,7 +4,6 @@
 // Default configuration - can be overridden by client-specific files
 const DEFAULT_CONFIG = {
   endpoints: {
-    pageContext: 'https://automation.cloudcovehosting.com/webhook/intendr-pagecontext',
     voiceCall: 'https://automation.cloudcovehosting.com/webhook/intendr-call-aegis',
     ipify: 'https://api.ipify.org?format=json',
     leadSubmission: 'https://automation.cloudcovehosting.com/webhook/aegis-submit-lead'
@@ -12,7 +11,7 @@ const DEFAULT_CONFIG = {
   storageKeys: {
     chatSession: 'intendrChatSession',
     chatState: 'intendrChatState',
-    pageSummary: 'intendrPageSummary',
+    // pageSummary: 'intendrPageSummary', // Page context webhook disabled
     navLinks: 'intendr_nav_links',
     overtakeShown: 'intendrOvertakeShown',
     funnelData: 'intendrFunnelData'
@@ -2059,8 +2058,7 @@ window.IntendrPhoneCallActive = false;
           currentSessionId = generateSessionId();
           // Show initial messages immediately
           sendInitialMessages();
-          // Generate page summary in background
-          generatePageSummary();
+          // Page context webhook disabled - generatePageSummary() removed
         }
         
         // Always check and show/hide initial buttons based on current messages
@@ -3949,11 +3947,8 @@ window.IntendrPhoneCallActive = false;
             inactivityMessageSent = false;
             currentSessionId = generateSessionId();
             
-            // Generate page context before sending initial messages
-            generatePageSummary().then(() => {
-              // Send initial messages after page context is generated
-              sendInitialMessages();
-            });
+            // Page context webhook disabled - sending initial messages directly
+            sendInitialMessages();
           }
           
           // Save session after changes
@@ -4052,8 +4047,7 @@ window.IntendrPhoneCallActive = false;
       });
       
       // Store page summary globally
-      let pageSummary = null;
-      let summaryFetchTimeout = null;
+      // Page context webhook disabled - pageSummary and summaryFetchTimeout variables removed
       
       // Function to determine page type
       function determinePageType() {
@@ -4167,144 +4161,20 @@ window.IntendrPhoneCallActive = false;
         return linksArray
       }
 
-      // Function to generate page summary with caching
+      // Function to generate page summary with caching - DISABLED
       async function generatePageSummary() {
-        try {
-          // Get navigation links
-          const navigationLinks = collectNavigationLinks();
-
-          // Get page type
-          const pageType = determinePageType();
-
-          // Clean the entire page content
-          const cleanedContent = cleanHtmlContent(document.body);
-          if (!cleanedContent) {
-            console.log('No text content found on page');
-            return null;
-          }
-
-          // Generate content hash
-          const contentHash = await generateContentHash(cleanedContent);
-
-          // Check cache
-          const cachedSummary = getCachedSummary(window.location.href, contentHash);
-          if (cachedSummary) {
-            console.log('Using cached page summary');
-            return {
-              ...cachedSummary,
-              navigationLinks
-            };
-          }
-
-          // Prepare metadata
-          const metadata = {
-            title: document.title,
-            url: window.location.href,
-            description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
-            type: pageType,
-            business: config.business,
-            navigationLinks
-          };
-
-          // Generate summary
-          const response = await fetch(INTENDR_API_ENDPOINTS.pageContext, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Origin': window.location.origin
-            },
-            body: JSON.stringify({
-              content: cleanedContent,
-              metadata: metadata
-            })
-          });
-
-          if (!response.ok) {
-            console.warn('Failed to generate page summary:', response.status, response.statusText);
-            return null;
-          }
-
-          const summary = await response.text();
-          if (summary) {
-            cacheSummary(window.location.href, contentHash, summary);
-            return {
-              summary,
-              navigationLinks
-            };
-          }
-
-          console.warn('Empty response from page context webhook');
-          return null;
-        } catch (error) {
-          console.error('Error generating page summary:', error);
-          return null;
-        }
-      }
-
-      // Function to generate a simple hash of the content
-      async function generateContentHash(content) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(content);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      }
-
-      // Function to get cached summary
-      function getCachedSummary(url, contentHash) {
-        try {
-          const cached = localStorage.getItem(INTENDR_STORAGE_KEYS.pageSummary);
-          if (cached) {
-            const { url: cachedUrl, hash: cachedHash, summary, timestamp } = JSON.parse(cached);
-            // Check if the cache is for the same URL, content, and less than 1 hour old
-            if (cachedUrl === url && cachedHash === contentHash && 
-                (Date.now() - timestamp) < 3600000) { // 1 hour cache
-              return summary;
-            }
-          }
-        } catch (error) {
-          console.error('Error reading cached summary:', error);
-        }
+        console.log('Page context webhook disabled - generatePageSummary() returns null');
         return null;
       }
 
-      // Function to cache summary
-      function cacheSummary(url, contentHash, summary) {
-        try {
-          const cacheData = {
-            url,
-            hash: contentHash,
-            summary,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(INTENDR_STORAGE_KEYS.pageSummary, JSON.stringify(cacheData));
-        } catch (error) {
-          console.error('Error caching summary:', error);
-        }
-      }
+      // Page context webhook disabled - generateContentHash function removed
+
+      // Page context webhook disabled - getCachedSummary function removed
+
+      // Page context webhook disabled - cacheSummary function removed
 
       // Debounced function to generate summary
-      function debouncedGenerateSummary() {
-        if (summaryFetchTimeout) {
-          clearTimeout(summaryFetchTimeout);
-        }
-        summaryFetchTimeout = setTimeout(async () => {
-          pageSummary = await generatePageSummary();
-        }, 1000); // Wait 1 second after last page change before generating summary
-      }
-
-      // Generate summary when page loads
-      document.addEventListener('DOMContentLoaded', debouncedGenerateSummary);
-
-      // Generate summary when URL changes (for SPA navigation)
-      const lastUrl = window.location.href;
-      new MutationObserver(() => {
-        const currentUrl = window.location.href;
-        if (currentUrl !== lastUrl) {
-          lastUrl = currentUrl;
-          debouncedGenerateSummary();
-            }
-      }).observe(document, { subtree: true, childList: true });
+      // Page context webhook disabled - debouncedGenerateSummary and event listeners removed
 
       // Send message function
       async function sendMessage(message) {
@@ -4357,8 +4227,8 @@ window.IntendrPhoneCallActive = false;
           const thinkingDiv = showThinkingAnimation();
           
           try {
-          // Get current page context if available
-          const currentPageContext = pageSummary || await generatePageSummary();
+          // Page context webhook disabled - using null for pageContext
+          const currentPageContext = null;
           
           // Determine if this is the first message of the session
           const isFirstMessage = userMessages.length === 0;
@@ -4371,7 +4241,6 @@ window.IntendrPhoneCallActive = false;
             currentPageUrl: window.location.href, // Include current page URL with UTMs
             metadata: {
               business: config.business,
-              pageContext: currentPageContext,
               utmParameters: window.initialUtmParameters || {},
               userIP: userIP,
               currentPageUrl: window.location.href // Also include in metadata for consistency
@@ -4931,7 +4800,7 @@ window.IntendrPhoneCallActive = false;
             inactivityMessageSent = false;
             currentSessionId = generateSessionId();
           sendInitialMessages();
-          generatePageSummary();
+          // Page context webhook disabled - generatePageSummary() removed
           }
           saveSession();
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -5005,8 +4874,7 @@ window.IntendrPhoneCallActive = false;
       // Call initChat on page load
       initChat();
 
-      // Generate page summary on load
-      generatePageSummary();
+      // Page context webhook disabled - generatePageSummary() removed
 
       // Ensure chat input row markup and send button are correct
       // (Rebuild input row if needed)

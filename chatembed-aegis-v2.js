@@ -40,7 +40,6 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
   
   // API Endpoints (usually client-specific)
   endpoints: {
-    pageContext: 'https://automation.cloudcovehosting.com/webhook/intendr-pagecontext',
     voiceCall: 'https://automation.cloudcovehosting.com/webhook/intendr-call-aegis',
     ipify: 'https://api.ipify.org?format=json',
     leadSubmission: 'https://automation.cloudcovehosting.com/webhook/aegis-submit-lead'
