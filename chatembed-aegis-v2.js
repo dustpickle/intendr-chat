@@ -74,7 +74,6 @@ if (typeof CUSTOM_CLIENT_CONFIG === 'undefined') {
 // Apply client customizations to core system
 window.ChatWidgetCustomConfig = {
   endpoints: {
-    pageContext: window.CUSTOM_CLIENT_CONFIG.endpoints.pageContext,
     voiceCall: window.CUSTOM_CLIENT_CONFIG.endpoints.voiceCall,
     ipify: window.CUSTOM_CLIENT_CONFIG.endpoints.ipify,
     leadSubmission: window.CUSTOM_CLIENT_CONFIG.endpoints.leadSubmission
@@ -83,7 +82,6 @@ window.ChatWidgetCustomConfig = {
   storageKeys: {
     chatSession: 'aegisChatSession',
     chatState: 'aegisChatState',
-    pageSummary: 'aegisPageSummary',
     navLinks: 'aegis_nav_links',
     overtakeShown: 'aegisOvertakeShown',
     funnelData: 'aegisFunnelData'

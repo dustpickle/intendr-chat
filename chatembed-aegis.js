@@ -39,7 +39,6 @@ const CUSTOM_CLIENT_CONFIG = {
   
   // API Endpoints (usually client-specific)
   endpoints: {
-    pageContext: 'https://automation.cloudcovehosting.com/webhook/intendr-pagecontext',
     voiceCall: 'https://automation.cloudcovehosting.com/webhook/intendr-call'
   },
   
@@ -58,7 +57,6 @@ const CUSTOM_CLIENT_CONFIG = {
 // Apply client customizations to core system
 window.ChatWidgetCustomConfig = {
   endpoints: {
-    pageContext: CUSTOM_CLIENT_CONFIG.endpoints.pageContext,
     voiceCall: CUSTOM_CLIENT_CONFIG.endpoints.voiceCall,
     ipify: 'https://api.ipify.org?format=json'
   },
@@ -66,7 +64,6 @@ window.ChatWidgetCustomConfig = {
   storageKeys: {
     chatSession: 'aegisChatSession',
     chatState: 'aegisChatState',
-    pageSummary: 'aegisPageSummary',
     navLinks: 'aegis_nav_links',
     overtakeShown: 'aegisOvertakeShown'
   },
