@@ -1499,37 +1499,59 @@ window.IntendrPhoneCallActive = false;
     // Function to submit funnel form
     async function submitFunnelForm() {
       const form = document.getElementById('contact-form');
+      if (!form) {
+        console.error('Contact form not found');
+        alert('Form not found. Please refresh the page and try again.');
+        return;
+      }
+      
       const submitBtn = form.querySelector('.submit-btn');
+      if (!submitBtn) {
+        console.error('Submit button not found');
+        alert('Submit button not found. Please refresh the page and try again.');
+        return;
+      }
+      
       const originalText = submitBtn.textContent;
       
       try {
         submitBtn.textContent = 'Submitting...';
         submitBtn.disabled = true;
         
-        // Collect form data
+        // Collect form data with safety checks
+        const firstNameEl = document.getElementById('first-name');
+        const lastNameEl = document.getElementById('last-name');
+        const emailEl = document.getElementById('email');
+        const phoneEl = document.getElementById('phone');
+        const messageEl = document.getElementById('message');
+        
+        if (!firstNameEl || !lastNameEl || !emailEl || !phoneEl || !messageEl) {
+          throw new Error('One or more form fields not found');
+        }
+        
         const formData = {
-          firstName: document.getElementById('first-name').value,
-          lastName: document.getElementById('last-name').value,
-          email: document.getElementById('email').value,
-          phone: document.getElementById('phone').value,
-          message: document.getElementById('message').value
+          firstName: firstNameEl.value || '',
+          lastName: lastNameEl.value || '',
+          email: emailEl.value || '',
+          phone: phoneEl.value || '',
+          message: messageEl.value || ''
         };
         
-        // Prepare lead data
+        // Prepare lead data with safety checks
         const leadData = {
-          client: config.business.name || 'Aegis Living',
-          chatbotId: extractChatbotId(),
-          sessionId: currentSessionId,
+          client: (config && config.business && config.business.name) || 'Aegis Living',
+          chatbotId: typeof extractChatbotId === 'function' ? extractChatbotId() : 'unknown',
+          sessionId: currentSessionId || 'unknown',
           leadname: `${formData.firstName} ${formData.lastName}`,
           leadphone: formData.phone,
           leademail: formData.email,
-          leadtype: getLeadType(),
+          leadtype: typeof getLeadType === 'function' ? getLeadType() : 'unknown',
           leadnotes: formData.message
         };
         
         // Add tour-specific fields (will be empty for non-tour funnels)
-        leadData.tourDate = getTourDate();
-        leadData.tourTime = getTourTime();
+        leadData.tourDate = typeof getTourDate === 'function' ? getTourDate() : '';
+        leadData.tourTime = typeof getTourTime === 'function' ? getTourTime() : '';
         
         // Submit to webhook (with CORS error handling)
         try {
@@ -1561,15 +1583,29 @@ window.IntendrPhoneCallActive = false;
         }
         
         // Mark as submitted
-        funnelData.submitted = true;
-        funnelData.formData = formData;
-        saveFunnelData();
+        if (funnelData) {
+          funnelData.submitted = true;
+          funnelData.formData = formData;
+        }
+        
+        if (typeof saveFunnelData === 'function') {
+          saveFunnelData();
+        }
         
         // Show success message
-        showFunnelSuccess();
+        if (typeof showFunnelSuccess === 'function') {
+          showFunnelSuccess();
+        } else {
+          console.warn('showFunnelSuccess function not available');
+        }
         
       } catch (error) {
         console.error('Error submitting funnel form:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         alert('There was an error submitting your information. Please try again.');
         
         submitBtn.textContent = originalText;
