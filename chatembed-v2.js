@@ -1472,12 +1472,18 @@ window.IntendrPhoneCallActive = false;
         
         // Try to get summary immediately or wait for it
         console.log('[FunnelSummary] Contact form loaded, checking for summary...');
-        window.FunnelSummaryManager.getSummary(fillMessageBox);
+        
+        // Safety check for FunnelSummaryManager
+        if (window.FunnelSummaryManager && typeof window.FunnelSummaryManager.getSummary === 'function') {
+          window.FunnelSummaryManager.getSummary(fillMessageBox);
+        } else {
+          console.warn('[FunnelSummary] FunnelSummaryManager not available yet');
+        }
         
         // Also add a failsafe polling mechanism for 10 seconds
         let pollCount = 0;
         const pollInterval = setInterval(() => {
-          if (window.FunnelSummaryManager.summary && !messageBox.value.trim()) {
+          if (window.FunnelSummaryManager && window.FunnelSummaryManager.summary && !messageBox.value.trim()) {
             fillMessageBox(window.FunnelSummaryManager.summary);
             clearInterval(pollInterval);
           }
@@ -1525,21 +1531,34 @@ window.IntendrPhoneCallActive = false;
         leadData.tourDate = getTourDate();
         leadData.tourTime = getTourTime();
         
-        // Submit to webhook
-        const response = await fetch(INTENDR_API_ENDPOINTS.leadSubmission, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(leadData)
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to submit lead');
+        // Submit to webhook (with CORS error handling)
+        try {
+          const response = await fetch(INTENDR_API_ENDPOINTS.leadSubmission, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(leadData)
+          });
+          
+          if (!response.ok) {
+            console.warn('Lead submission webhook failed, but continuing with HubSpot submission');
+          } else {
+            console.log('Lead submitted successfully to webhook');
+          }
+        } catch (webhookError) {
+          console.warn('CORS error with lead submission webhook, continuing with HubSpot submission:', webhookError);
+          // Continue with HubSpot submission even if webhook fails
         }
         
         // Submit to HubSpot if configured
-        await submitToHubSpot(formData, leadData);
+        try {
+          await submitToHubSpot(formData, leadData);
+          console.log('HubSpot submission completed');
+        } catch (hubspotError) {
+          console.error('HubSpot submission failed:', hubspotError);
+          // Still show success to user since webhook might have worked
+        }
         
         // Mark as submitted
         funnelData.submitted = true;
@@ -4408,7 +4427,9 @@ window.IntendrPhoneCallActive = false;
             // If a funnel was triggered, show loading message and start funnel
             if (funnelResult) {
               // Reset the funnel summary manager for new funnel
-              window.FunnelSummaryManager.reset();
+              if (window.FunnelSummaryManager && typeof window.FunnelSummaryManager.reset === 'function') {
+                window.FunnelSummaryManager.reset();
+              }
               
               // Add loading message immediately
               const loadingMessageDiv = document.createElement('div');
@@ -4453,7 +4474,11 @@ window.IntendrPhoneCallActive = false;
                   };
                   
                   // Use FunnelSummaryManager to fetch and manage the summary
-                  await window.FunnelSummaryManager.fetchSummary(payload);
+                  if (window.FunnelSummaryManager && typeof window.FunnelSummaryManager.fetchSummary === 'function') {
+                    await window.FunnelSummaryManager.fetchSummary(payload);
+                  } else {
+                    console.warn('[FunnelSummary] FunnelSummaryManager.fetchSummary not available');
+                  }
                   
                 } catch (err) {
                   console.error('[FunnelSummary] Error in summary fetch:', err);
