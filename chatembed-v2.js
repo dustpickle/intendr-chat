@@ -135,7 +135,7 @@ window.IntendrPhoneCallActive = false;
     const chatbotId = getChatbotIdFromConfig();
     
     if (chatbotId && !window.IntendrTrackingInitialized) {
-      console.log('🎯 [Tracking Pixel] Loading tracking pixel immediately for chatbot:', chatbotId);
+      // console.log('🎯 [Tracking Pixel] Loading tracking pixel immediately for chatbot:', chatbotId);
       
       // Create script element for tracking pixel
       const trackingScript = document.createElement('script');
@@ -150,7 +150,7 @@ window.IntendrPhoneCallActive = false;
       };
       
       trackingScript.onload = function() {
-        console.log('✅ [Tracking Pixel] Tracking pixel loaded immediately and tracking visitors');
+        // console.log('✅ [Tracking Pixel] Tracking pixel loaded immediately and tracking visitors');
       };
       
       // Add to document head
@@ -162,7 +162,7 @@ window.IntendrPhoneCallActive = false;
   (function() {
     // Configuration
     const CHAT_VERSION = "2.0";
-    console.log("ChatVersion:", CHAT_VERSION);
+    // console.log("ChatVersion:", CHAT_VERSION);
     
     // Store user IP globally
     let userIP = '';
@@ -173,7 +173,7 @@ window.IntendrPhoneCallActive = false;
         const response = await fetch(INTENDR_API_ENDPOINTS.ipify);
         const data = await response.json();
         userIP = data.ip;
-        console.log('User IP collected for chat');
+        // console.log('User IP collected for chat');
       } catch (error) {
         console.error('Error fetching IP:', error);
         userIP = 'unknown';
@@ -213,6 +213,111 @@ window.IntendrPhoneCallActive = false;
       overtakePath: window.ChatWidgetConfig.overtakePath || '/',
       initialButtons: window.ChatWidgetConfig.initialButtons || []
     } : defaultConfig;
+    
+    // Security/auth configuration (optional)
+    const defaultSecurity = {
+      enabled: false,
+      type: 'hmac', // 'hmac' | 'bearer' | 'apiKey'
+      bearerToken: '',
+      apiKey: '',
+      apiKeyHeader: 'X-API-Key',
+      hmacSecret: '',
+      signatureHeader: 'X-Signature',
+      timestampHeader: 'X-Signature-Timestamp',
+      // Which hosts to sign/authorize; n8n routing and analytics by default
+      allowedHosts: ['automation.cloudcovehosting.com', 'intendr.ai']
+    }
+    const security = (window.ChatWidgetConfig && window.ChatWidgetConfig.security)
+      ? { ...defaultSecurity, ...window.ChatWidgetConfig.security }
+      : (window.ChatWidgetCustomConfig && window.ChatWidgetCustomConfig.security)
+        ? { ...defaultSecurity, ...window.ChatWidgetCustomConfig.security }
+        : defaultSecurity
+    
+    // Utility: UTF-8 to ArrayBuffer
+    function utf8ToArrayBuffer(str) {
+      const encoder = new TextEncoder()
+      return encoder.encode(str)
+    }
+    
+    // Utility: ArrayBuffer to hex
+    function arrayBufferToHex(buffer) {
+      const bytes = new Uint8Array(buffer)
+      let hex = ''
+      for (let i = 0; i < bytes.length; i++) {
+        const h = bytes[i].toString(16).padStart(2, '0')
+        hex += h
+      }
+      return hex
+    }
+    
+    // Compute HMAC-SHA256 signature (hex). Falls back to SHA-256(secret+message) if HMAC not supported.
+    async function computeHmacSha256Hex(secret, message) {
+      try {
+        if (!window.crypto || !window.crypto.subtle) throw new Error('WebCrypto not available')
+        const keyData = utf8ToArrayBuffer(secret)
+        const cryptoKey = await window.crypto.subtle.importKey(
+          'raw',
+          keyData,
+          { name: 'HMAC', hash: { name: 'SHA-256' } },
+          false,
+          ['sign']
+        )
+        const sigBuffer = await window.crypto.subtle.sign('HMAC', cryptoKey, utf8ToArrayBuffer(message))
+        return arrayBufferToHex(sigBuffer)
+      } catch (e) {
+        // Fallback: SHA-256(secret + message)
+        try {
+          const data = utf8ToArrayBuffer(secret + message)
+          const digest = await window.crypto.subtle.digest('SHA-256', data)
+          return arrayBufferToHex(digest)
+        } catch (e2) {
+          console.warn('[Security] Unable to compute signature:', e2)
+          return ''
+        }
+      }
+    }
+    
+    // Build auth headers if enabled and host is allowed
+    async function buildAuthHeaders(url, bodyString) {
+      if (!security.enabled) return {}
+      let host = ''
+      try { host = new URL(url, window.location.href).host } catch (e) {}
+      if (!host || !security.allowedHosts.includes(host)) return {}
+      
+      const headers = {}
+      
+      if (security.type === 'bearer' && security.bearerToken) {
+        headers['Authorization'] = `Bearer ${security.bearerToken}`
+      } else if (security.type === 'apiKey' && security.apiKey) {
+        const headerName = security.apiKeyHeader || 'X-API-Key'
+        headers[headerName] = security.apiKey
+      } else if (security.type === 'hmac' && security.hmacSecret) {
+        const ts = Date.now().toString()
+        const payload = bodyString || ''
+        const signature = await computeHmacSha256Hex(security.hmacSecret, ts + '\n' + payload)
+        const sigHeader = security.signatureHeader || 'X-Signature'
+        const tsHeader = security.timestampHeader || 'X-Signature-Timestamp'
+        headers[sigHeader] = `sha256=${signature}`
+        headers[tsHeader] = ts
+      }
+      return headers
+    }
+    
+    // Wrapper around fetch to include optional auth/signature headers
+    async function secureFetch(url, options = {}) {
+      const opts = { ...options }
+      // Normalize body to string for signing
+      let bodyString = ''
+      if (opts.body && typeof opts.body !== 'string') {
+        bodyString = JSON.stringify(opts.body)
+        opts.body = bodyString
+      } else if (typeof opts.body === 'string') {
+        bodyString = opts.body
+      }
+      const extraHeaders = await buildAuthHeaders(url, bodyString)
+      opts.headers = { ...(opts.headers || {}), ...extraHeaders }
+      return fetch(url, opts)
+    }
     
     // Prevent multiple initializations
     if (window.IntendrChatWidgetInitialized) return;
@@ -263,11 +368,11 @@ window.IntendrPhoneCallActive = false;
         };
 
         // Log the payload being sent for debugging
-        console.log('📊 [Analytics] Sending payload:', JSON.stringify(trackingData, null, 2));
-        console.log('📊 [Analytics] Event type:', eventType, '| Timestamp:', new Date().toLocaleTimeString());
+        // console.log('📊 [Analytics] Sending payload:', JSON.stringify(trackingData, null, 2));
+        // console.log('📊 [Analytics] Event type:', eventType, '| Timestamp:', new Date().toLocaleTimeString());
 
         // Send to analytics API
-        const response = await fetch('https://intendr.ai/api/analytics/track', {
+        const response = await secureFetch('https://intendr.ai/api/analytics/track', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -276,7 +381,7 @@ window.IntendrPhoneCallActive = false;
         });
 
         if (response.ok) {
-          console.log(`✅ [Analytics] ${eventType} tracked successfully - Status: ${response.status}`);
+          // console.log(`✅ [Analytics] ${eventType} tracked successfully - Status: ${response.status}`);
         } else {
           console.warn(`❌ [Analytics] Failed to track ${eventType} - Status: ${response.status}`);
           console.warn(`❌ [Analytics] Response:`, await response.text());
@@ -323,13 +428,13 @@ window.IntendrPhoneCallActive = false;
     const visitorTrackingKey = 'intendr_visitor_tracked_session';
     const sessionKey = window.sessionStorage.getItem(visitorTrackingKey);
     if (!sessionKey) {
-      console.log('🎯 [Analytics] New visitor detected - tracking page load event directly');
+      // console.log('🎯 [Analytics] New visitor detected - tracking page load event directly');
       trackAnalyticsEvent('visitor');
       window.sessionStorage.setItem(visitorTrackingKey, 'true');
     } else {
-      console.log('🔄 [Analytics] Returning visitor - skipping duplicate tracking');
+      // console.log('🔄 [Analytics] Returning visitor - skipping duplicate tracking');
     }
-    console.log('🎯 [Analytics] Visitor tracking handled directly by chat widget (tracking pixel has endpoint bug)');
+    // console.log('🎯 [Analytics] Visitor tracking handled directly by chat widget (tracking pixel has endpoint bug)');
     
     // Track page visibility changes (after initial visitor tracking)
     document.addEventListener('visibilitychange', function() {
@@ -1555,7 +1660,7 @@ window.IntendrPhoneCallActive = false;
         
         // Submit to webhook (with CORS error handling)
         try {
-          const response = await fetch(INTENDR_API_ENDPOINTS.leadSubmission, {
+          const response = await secureFetch(INTENDR_API_ENDPOINTS.leadSubmission, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -2157,7 +2262,7 @@ window.IntendrPhoneCallActive = false;
     
     // Store UTM parameters globally when first loaded
     window.initialUtmParameters = extractUtmParameters(window.location.href);
-    console.log('Initial UTM Parameters:', window.initialUtmParameters);
+    // console.log('Initial UTM Parameters:', window.initialUtmParameters);
     
     // Generate UUID
     function generateUUID() {
@@ -2181,7 +2286,7 @@ window.IntendrPhoneCallActive = false;
           return existingTrackingSession;
         }
       } catch (error) {
-        console.warn('Error reading tracking session from sessionStorage:', error);
+        // console.warn('Error reading tracking session from sessionStorage:', error);
       }
       
       // Generate new UUID for analytics
@@ -2189,7 +2294,7 @@ window.IntendrPhoneCallActive = false;
       try {
         sessionStorage.setItem(trackingSessionKey, newAnalyticsSessionId);
       } catch (error) {
-        console.warn('Error storing tracking session in sessionStorage:', error);
+        // console.warn('Error storing tracking session in sessionStorage:', error);
       }
       
       return newAnalyticsSessionId;
@@ -2198,7 +2303,7 @@ window.IntendrPhoneCallActive = false;
     // Generate new chat session ID (always creates new for each conversation)
     function generateSessionId() {
       const newChatSessionId = generateUUID();
-      console.log('🆕 Generated new chat sessionId:', newChatSessionId);
+      // console.log('🆕 Generated new chat sessionId:', newChatSessionId);
       return newChatSessionId;
     }
 
@@ -4316,7 +4421,7 @@ window.IntendrPhoneCallActive = false;
           }
           
           // Send to webhook
-            const response = await fetch(config.webhook.url, {
+            let response = await secureFetch(config.webhook.url, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -4338,7 +4443,7 @@ window.IntendrPhoneCallActive = false;
               messageData.chatHistory = chatHistory;
               messageData.sessionRecovery = true;
               
-              const retryResponse = await fetch(config.webhook.url, {
+              const retryResponse = await secureFetch(config.webhook.url, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',
@@ -5199,7 +5304,7 @@ window.IntendrPhoneCallActive = false;
         try {
           console.log('[Intendr] Sending voice call payload:', JSON.stringify(payload))
           
-          const response = await fetch(INTENDR_API_ENDPOINTS.voiceCall, {
+          const response = await secureFetch(INTENDR_API_ENDPOINTS.voiceCall, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -5596,7 +5701,7 @@ window.IntendrPhoneCallActive = false;
         
         try {
           console.log('[FunnelSummary] Sending webhook:', payload);
-          const resp = await fetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
+          const resp = await secureFetch('https://automation.cloudcovehosting.com/webhook/aegis-funnel-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

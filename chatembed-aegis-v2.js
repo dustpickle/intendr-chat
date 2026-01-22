@@ -725,7 +725,7 @@ function loadCoreWidget() {
   const script = document.createElement('script');
   script.src = corePath;
   script.onload = function() {
-    console.log('[Aegis] Core widget loaded successfully from:', corePath);
+    // console.log('[Aegis] Core widget loaded successfully from:', corePath);
   };
   script.onerror = function() {
     console.error('[Aegis] Failed to load core widget from:', corePath);
