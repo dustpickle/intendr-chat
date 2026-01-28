@@ -1623,12 +1623,12 @@ window.IntendrPhoneCallActive = false;
         submitBtn.textContent = 'Submitting...';
         submitBtn.disabled = true;
         
-        // Collect form data with safety checks
-        const firstNameEl = document.getElementById('first-name');
-        const lastNameEl = document.getElementById('last-name');
-        const emailEl = document.getElementById('email');
-        const phoneEl = document.getElementById('phone');
-        const messageEl = document.getElementById('message');
+        // Collect form data with safety checks - scope to form to avoid ID conflicts with host page
+        const firstNameEl = form.querySelector('#first-name');
+        const lastNameEl = form.querySelector('#last-name');
+        const emailEl = form.querySelector('#email');
+        const phoneEl = form.querySelector('#phone');
+        const messageEl = form.querySelector('#message');
         
         if (!firstNameEl || !lastNameEl || !emailEl || !phoneEl || !messageEl) {
           throw new Error('One or more form fields not found');
@@ -1641,6 +1641,10 @@ window.IntendrPhoneCallActive = false;
           phone: phoneEl.value || '',
           message: messageEl.value || ''
         };
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7245/ingest/e7b0c5a2-61b0-4a5c-8a30-89d6707def0d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chatembed-v2.js:1644',message:'Form data collected',data:{formData:formData,firstNameFound:!!firstNameEl,lastNameFound:!!lastNameEl,emailFound:!!emailEl,phoneFound:!!phoneEl},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         
         // Prepare lead data with safety checks
         const leadData = {
