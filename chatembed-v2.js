@@ -1603,7 +1603,9 @@ window.IntendrPhoneCallActive = false;
     
     // Function to submit funnel form
     async function submitFunnelForm() {
-      const form = document.getElementById('contact-form');
+      // Scope form lookup to chat widget to avoid ID conflicts with host page
+      const funnelPanel = chatContainer.querySelector('.funnel-panel');
+      const form = funnelPanel ? funnelPanel.querySelector('#contact-form') : null;
       if (!form) {
         console.error('Contact form not found');
         alert('Form not found. Please refresh the page and try again.');
