@@ -1829,10 +1829,12 @@ window.IntendrPhoneCallActive = false;
         const trackingData = collectHubSpotTrackingData();
         
         // Prepare HubSpot form data - using correct API format with legal consent
+        // Use session ID as fallback email if user doesn't provide one (HubSpot requires email)
+        const fallbackEmail = `${currentSessionId}@intendr.ai`;
         const hubspotFields = [
           { name: 'firstname', value: formData.firstName },
           { name: 'lastname', value: formData.lastName },
-          { name: 'email', value: formData.email },
+          { name: 'email', value: formData.email || fallbackEmail },
           { name: 'phone', value: formData.phone },
           { name: 'message', value: formData.message || '' },
           { name: 'leadgenie_disposition', value: getLeadType() },
